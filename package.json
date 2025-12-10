@@ -1,0 +1,11 @@
+{
+  "name": "tr41-groundctrl",
+  "version": "1.0.0",
+  "description": "Mission CTRL - Virtual Satellite Operations Trainer",
+  "scripts": {
+    "build": "echo 'No build required - static site'"
+  },
+  "keywords": ["satellite", "training", "space"],
+  "author": "",
+  "license": "MIT"
+}
