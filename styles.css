@@ -612,6 +612,41 @@ body {
     }
 }
 
+.product-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 3.5rem;
+    font-weight: 900;
+    letter-spacing: 8px;
+    background: linear-gradient(135deg, #34d399, #10b981, #059669);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 40px rgba(52, 211, 153, 0.6);
+    margin: 30px 0 20px;
+    animation: productGlow 2.5s ease-in-out infinite;
+    position: relative;
+}
+
+.product-name::before {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #34d399, transparent);
+}
+
+@keyframes productGlow {
+    0%, 100% {
+        filter: brightness(1) drop-shadow(0 0 20px rgba(52, 211, 153, 0.4));
+    }
+    50% {
+        filter: brightness(1.2) drop-shadow(0 0 30px rgba(52, 211, 153, 0.6));
+    }
+}
+
 .subtitle {
     font-family: 'Space Grotesk', sans-serif;
     font-size: 1.8rem;
