@@ -153,12 +153,6 @@ GET http://localhost:3001/api/v1/auth/me
 - Session management
 - Security hardening
 
-## 🔄 Route Changes
-
-**Important**: The Firebase status endpoint has been updated:
-- **Old**: `GET /api/v1/firebase-status` (removed)
-- **New**: `GET /api/v1/firebase/status` (current)
-
 ## 📊 API Response Examples
 
 ### Health Check
