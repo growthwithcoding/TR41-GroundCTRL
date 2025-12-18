@@ -5,6 +5,7 @@ function App() {
     <>
       <div>
         <h1>Hello World</h1>
+        <h1>here is my navbar</h1>
       </div>
     </>
   );
