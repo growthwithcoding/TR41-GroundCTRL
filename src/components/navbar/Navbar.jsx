@@ -14,7 +14,7 @@ import MenuItem from "@mui/material/MenuItem";
 import AdbIcon from "@mui/icons-material/Adb";
 
 // Stylesheets
-import "./Navigation.css";
+import "./Navbar.css";
 
 // TODO: Replace logo with our own logo.
 
@@ -22,7 +22,7 @@ import "./Navigation.css";
 const pages = ["Products", "Pricing", "Blog"];
 const settings = ["Profile", "Account", "Dashboard", "Logout"];
 
-function Navigation() {
+function Navbar() {
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
 
@@ -166,4 +166,4 @@ function Navigation() {
     </AppBar>
   );
 }
-export default Navigation;
+export default Navbar;
