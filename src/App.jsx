@@ -1,6 +1,6 @@
 // Components
 import Navigation from "./components/navbar/Navbar";
-import Login from "./components/login/Login";
+import LoginForm from "./components/loginForm/LoginForm";
 import Footer from "./components/Footer/Footer";
 
 // Style Sheets
@@ -11,7 +11,7 @@ function App() {
     <>
       <div>
         <Navigation />
-        <Login />
+        <LoginForm />
         <Footer />
       </div>
     </>
