@@ -1,0 +1,458 @@
+# 🛰️ GroundCTRL Backend API
+
+**Mission Control Platform for Satellite Simulation**
+
+A production-ready Node.js/Express API with enterprise-grade security, Firebase integration, and aerospace-themed mission control interfaces.
+
+---
+
+## 🚀 Features
+
+### Core Capabilities
+- ✅ **JWT Authentication** - Access tokens (15m) + Refresh tokens (7d)
+- ✅ **Token Blacklisting** - Immediate token revocation via Firebase
+- ✅ **Account Lockout** - 5 failed logins = 15 minute lockout
+- ✅ **Rate Limiting** - Configurable per-endpoint protection
+- ✅ **Audit Logging** - Comprehensive operation tracking with severity levels
+- ✅ **Mission Control Responses** - GO/NO-GO/HOLD/ABORT status codes
+- ✅ **Admin Role Management** - Fine-grained permission control
+- ✅ **Call Sign System** - Unique operator identification
+- ✅ **Swagger Documentation** - Interactive API documentation at `/api/v1/docs`
+
+### Architecture
+- **Separation of Concerns**: Routes → Controllers → Services → Repositories
+- **Factory Pattern**: Reusable CRUD, response, audit, and lockout factories
+- **Middleware Stack**: Auth, rate limiting, audit logging, error handling
+- **Firebase Integration**: Firestore + Firebase Auth
+- **Zod Validation**: Runtime type safety for all inputs
+- **Vercel-Ready**: Serverless-compatible structure
+
+---
+
+## 📋 Prerequisites
+
+- **Node.js** 18.x or higher
+- **npm** 9.x or higher
+- **Firebase Project** with Firestore and Auth enabled
+- **Firebase Service Account** credentials
+
+---
+
+## 🔧 Installation
+
+### 1. Clone & Install Dependencies
+
+```bash
+cd backend
+npm install
+```
+
+### 2. Environment Configuration
+
+Create `.env` file from the sample:
+
+```bash
+cp .env.sample .env
+```
+
+Edit `.env` with your configuration:
+
+```env
+# Server Configuration
+PORT=3001
+NODE_ENV=development
+CALL_SIGN=GROUNDCTRL-01
+
+# Firebase Configuration (from Firebase Console → Project Settings → Service Accounts)
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_PRIVATE_KEY_ID=your-private-key-id
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour private key here\n-----END PRIVATE KEY-----\n"
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk@your-project.iam.gserviceaccount.com
+FIREBASE_CLIENT_ID=your-client-id
+FIREBASE_WEB_API_KEY=your-web-api-key-from-firebase-console
+
+# JWT Configuration (generate a strong secret: openssl rand -base64 64)
+JWT_SECRET=your-super-secret-jwt-key-minimum-64-characters-long
+JWT_ACCESS_TOKEN_EXPIRY=15m
+JWT_REFRESH_TOKEN_EXPIRY=7d
+
+# CORS Configuration
+ALLOWED_ORIGINS=http://localhost:3001,http://localhost:5173
+
+# Rate Limiting Configuration
+LOGIN_RATE_LIMIT_WINDOW_MS=900000
+LOGIN_RATE_LIMIT_MAX_REQUESTS=5
+API_RATE_LIMIT_WINDOW_MS=900000
+API_RATE_LIMIT_MAX_REQUESTS=100
+
+# Lockout Configuration
+LOCKOUT_THRESHOLD=5
+LOCKOUT_DURATION_MINUTES=15
+LOCKOUT_WINDOW_HOURS=1
+
+# Logging
+LOG_LEVEL=info
+```
+
+### 3. Firebase Setup
+
+#### Enable Firebase Authentication
+
+In Firebase Console → Authentication:
+- Enable **Email/Password** sign-in method
+
+---
+
+## 🏃 Running the Application
+
+### Development Mode (with auto-restart)
+
+```bash
+npm run dev
+```
+
+### Production Mode
+
+```bash
+npm start
+```
+
+### Linting
+
+```bash
+npm run lint
+npm run lint:fix
+```
+
+---
+
+## 📖 API Documentation
+
+### Interactive Swagger Documentation
+
+The API includes comprehensive Swagger/OpenAPI documentation with:
+- **Interactive API Explorer** - Test endpoints directly from your browser
+- **Mission Control Protocol** - Detailed GO/NO-GO/HOLD/ABORT status codes
+- **Request/Response Schemas** - Complete data structures with examples
+- **Authentication Guide** - JWT Bearer token setup and usage
+- **Rate Limiting Info** - Per-endpoint rate limit specifications
+- **Security Schemas** - Account lockout and token management details
+
+**Access Swagger UI:**
+```
+http://localhost:3001/api/v1/docs
+```
+
+The documentation includes:
+- All authentication endpoints (register, login, refresh, logout, revoke)
+- Request body schemas with validation rules
+- Response examples with mission control formatting
+- Security requirements for protected endpoints
+- Rate limiting and error response details
+
+**Features:**
+- 🎯 Try out API calls directly from the browser
+- 🔐 Built-in authorization support (add your JWT token)
+- 📋 Copy/paste ready request examples
+- 🚀 Mission control themed with aerospace terminology
+- 📊 Complete error response documentation
+
+---
+
+## 📡 API Endpoints
+
+### Base URL
+```
+http://localhost:3001/api/v1
+```
+
+### Health Check
+```http
+GET /api/v1/health
+```
+No authentication required. Returns system status.
+
+### Authentication
+
+#### Register New User
+```http
+POST /api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "pilot@groundctrl.com",
+  "password": "SecurePass123!",
+  "callSign": "APOLLO-11",
+  "displayName": "Neil Armstrong"
+}
+```
+
+#### Login
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "pilot@groundctrl.com",
+  "password": "SecurePass123!"
+}
+```
+
+Returns:
+```json
+{
+  "status": "GO",
+  "code": 200,
+  "brief": "Satellite uplink established. Telemetry nominal.",
+  "payload": {
+    "data": {
+      "user": {
+        "uid": "abc123",
+        "email": "pilot@groundctrl.com",
+        "callSign": "APOLLO-11",
+        "displayName": "Neil Armstrong",
+        "isAdmin": false
+      },
+      "tokens": {
+        "accessToken": "eyJhbGc...",
+        "refreshToken": "eyJhbGc..."
+      }
+    }
+  },
+  "telemetry": {
+    "missionTime": "2025-01-01T00:00:00.000Z",
+    "operatorCallSign": "APOLLO-11",
+    "stationId": "GROUNDCTRL-01",
+    "requestId": "uuid-here"
+  },
+  "timestamp": 1704067200000
+}
+```
+
+#### Refresh Token
+```http
+POST /api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "eyJhbGc..."
+}
+```
+
+#### Logout
+```http
+POST /api/v1/auth/logout
+Authorization: Bearer {accessToken}
+Content-Type: application/json
+
+{
+  "refreshToken": "eyJhbGc..."
+}
+```
+
+#### Revoke Token (Admin Only)
+```http
+POST /api/v1/auth/revoke
+Authorization: Bearer {AccessToken}
+Content-Type: application/json
+
+{
+  "userId": "abc123"
+}
+```
+
+---
+
+## 🔐 Security Features
+
+### Password Requirements
+- Minimum 8 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one number
+- At least one special character (@$!%*?&#^()_+-=[]{}|;:,.<>/)
+- Not in common password list
+
+### Rate Limiting
+- **Login**: 5 attempts per 15 minutes
+- **Auth Operations**: 10 attempts per 15 minutes
+- **General API**: 100 requests per 15 minutes
+
+### Account Lockout
+- Triggers after 5 failed login attempts within 1 hour
+- Lockout duration: 15 minutes
+- Tracked via audit logs
+
+### Token Management
+- **Access tokens**: 15 minutes expiry
+- **Refresh tokens**: 7 days expiry
+- Immediate revocation via blacklist
+- SHA-256 hashed storage
+
+---
+
+## 🗂️ Project Structure
+
+```
+backend/
+├── src/
+│   ├── config/           # Configuration files
+│   │   ├── firebase.js
+│   │   ├── jwtConfig.js
+│   │   ├── rateLimits.js
+│   │   └── missionControl.js
+│   ├── constants/        # Constants and enums
+│   │   ├── auditEvents.js
+│   │   ├── auditSeverity.js
+│   │   └── httpStatus.js
+│   ├── controllers/      # HTTP request handlers
+│   │   └── authController.js
+│   ├── factories/        # Reusable object creators
+│   │   ├── auditFactory.js
+│   │   └── responseFactory.js
+│   ├── middleware/       # Express middleware
+│   │   ├── authMiddleware.js
+│   │   ├── rateLimiter.js
+│   │   ├── auditLogger.js
+│   │   └── errorHandler.js
+│   ├── repositories/     # Database abstraction
+│   │   ├── auditRepository.js
+│   │   └── tokenBlacklistRepository.js
+│   ├── routes/           # API routes
+│   │   ├── index.js
+│   │   ├── health.js
+│   │   └── auth.js
+│   ├── schemas/          # Zod validation schemas
+│   │   └── authSchemas.js
+│   ├── services/         # Business logic
+│   │   ├── authService.js
+│   │   └── lockoutService.js
+│   ├── utils/            # Utility functions
+│   │   ├── errors.js
+│   │   ├── jwt.js
+│   │   ├── logger.js
+│   │   └── passwordValidation.js
+│   ├── app.js            # Express app configuration
+│   └── server.js         # Server entry point
+├── .env.sample           # Environment variables template
+├── .eslintrc.json        # ESLint configuration
+├── .gitignore            # Git ignore rules
+├── nodemon.json          # Nodemon configuration
+├── package.json          # Dependencies and scripts
+└── README.md             # This file
+```
+
+---
+
+## 🧪 Testing the API
+
+### Using cURL
+
+#### Health Check
+```bash
+curl http://localhost:3001/api/v1/health
+```
+
+#### Register New User
+```bash
+curl -X POST http://localhost:3001/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@groundctrl.com",
+    "password": "SecurePass123!",
+    "callSign": "TEST-01",
+    "displayName": "Test Pilot"
+  }'
+```
+
+#### Login
+```bash
+curl -X POST http://localhost:3001/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@groundctrl.com",
+    "password": "SecurePass123!"
+  }'
+```
+
+#### Refresh Access Token
+```bash
+curl -X POST http://localhost:3001/api/v1/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refreshToken": "YOUR_REFRESH_TOKEN"
+  }'
+```
+
+#### Logout
+```bash
+curl -X POST http://localhost:3001/api/v1/auth/logout \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refreshToken": "YOUR_REFRESH_TOKEN"
+  }'
+```
+
+#### Revoke User Token (Admin Only)
+```bash
+curl -X POST http://localhost:3001/api/v1/auth/revoke \
+  -H "Authorization: Bearer YOUR_ADMIN_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "USER_ID_TO_REVOKE"
+  }'
+```
+
+---
+
+## 📊 Monitoring & Audit Logs
+
+### Viewing Audit Logs
+
+Query Firestore `audit_logs` collection:
+- Filter by `userId`, `action`, `severity`
+- Sort by `timestamp` descending
+- Export for compliance reporting
+
+### Log Severity Levels
+- **INFO**: Normal operations (login, read operations)
+- **WARNING**: Suspicious activity (failed logins, permission denied)
+- **ERROR**: Application errors (validation failures, not found)
+- **CRITICAL**: Security incidents (lockouts, token revocation, deletions)
+
+---
+
+## 👨‍💻 Backend Development Team
+
+- **Backend Software Engineers**  
+  - Austin Allen Carlson — [@growthwithcoding](https://github.com/growthwithcoding)
+  - Cameron Carmody — [@gotcurds](https://github.com/gotcurds)
+  - Tessa Robinson — [@TeslamodelIT](https://github.com/TeslamodelIT)
+
+---
+
+## 🆘 Troubleshooting
+
+### Firebase Connection Issues
+- Verify service account credentials in `.env`
+- Ensure Firebase project has Firestore and Auth enabled
+- Check network connectivity to Firebase
+
+### Port Already in Use
+```bash
+# Find process using port 3001
+lsof -i :3001  # macOS/Linux
+netstat -ano | findstr :3001  # Windows
+
+# Kill process or change PORT in .env
+```
+
+### Token Verification Fails
+- Check JWT_SECRET matches between token creation and verification
+- Verify token hasn't expired
+- Check if token is blacklisted
+
+---
+
+**Mission Status: GO FOR LAUNCH** 🚀
