@@ -1,16 +1,29 @@
-# React + Vite
+# GroundCTRL
+## Virtual Satellite Simulator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**GroundCTRL** is a browser-based training simulator that introduces users to the fundamentals of satellite operations through interactive, guided missions. Players manage a virtual Earth-orbiting satellite using a simplified mission console, real-time AI guidance, and structured objectives that blend learning with gameplay. Designed for space enthusiasts, students, and new operators, the platform provides visual feedback, step-by-step tutorials, and progress tracking. The simulator runs in modern desktop browsers and aims to make satellite operations education engaging, accessible, and beginner-friendly. Built with **React**, **Node.js**, and **Firebase**.
 
-Currently, two official plugins are available:
+![React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react&logoColor=white)
+![Node.js](https://img.shields.io/badge/Backend-Node.js-339933?logo=node.js&logoColor=white)
+![Firebase](https://img.shields.io/badge/Database-Firebase-FFCA28?logo=firebase&logoColor=white)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## Team
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend Software Engineers**  
+  - Waleed Saleh — [@waleedo91](https://github.com/waleedo91)
+  - Daniel Ocampo — [@Danielsoftware033](https://github.com/Danielsoftware033)
 
-## Expanding the ESLint configuration
+- **Backend Software Engineers**  
+  - Cameron Carmody — [@gotcurds](https://github.com/gotcurds)
+  - Tessa Robinson — [@TeslamodelIT](https://github.com/TeslamodelIT)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Full Stack Engineer**  
+  - Austin Allen Carlson — [@aacarlson](https://github.com/growthwithcoding)
+  
+- **Cybersecurity**  
+  - Mohana Gautam — *(GitHub link can be added here if available)*
+
+- **Quality Assurance**  
+  - Adam Colyer — [@AColyer13](https://github.com/AColyer13)

@@ -1,0 +1,1364 @@
+{
+  "info": {
+    "name": "GroundCTRL Mission Control API",
+    "description": "Comprehensive API test collection for GroundCTRL Mission Control System using Top Gun character test data.\n\n**Mission Roster:**\n- **ICEMAN (Admin)** - Pre-existing admin user in database. Top rival pilot and commanding officer. Login only, not registered via API.\n- GOOSE - RIO and best friend (Standard User)\n- SLIDER - Iceman's RIO (Standard User)\n- VIPER - Commanding officer and instructor\n- JESTER - Flight instructor\n- COUGAR - Early pilot\n- MERLIN - RIO\n- HOLLYWOOD - Fighter pilot\n- WOLFMAN - RIO\n- STINGER - Base commander\n- SUNDOWN - Fighter pilot\n- CHARLIE - Civilian instructor (astrophysicist)\n\n**Important Notes:**\n- MAVERICK is reserved for Swagger documentation examples\n- ICEMAN pre-exists in the database with admin privileges and is accessed via login\n- callSign field is optional in API responses\n- isAdmin is always set to false via API registration (admin users must be created in database)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "groundctrl-mission-ops"
+  },
+  "item": [
+    {
+      "name": "System Health & Info",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Test: System health returns GO status",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"System status is GO\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "});",
+                  "",
+                  "pm.test(\"Response includes telemetry data\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.telemetry).to.exist;",
+                  "    pm.expect(jsonData.telemetry.missionTime).to.exist;",
+                  "    pm.expect(jsonData.telemetry.stationId).to.exist;",
+                  "});",
+                  "",
+                  "pm.test(\"Response time is less than 500ms\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "health"]
+            },
+            "description": "Check system health and operational status"
+          },
+          "response": []
+        },
+        {
+          "name": "API Root Info",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns available routes\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.payload.availableRoutes).to.be.an('array');",
+                  "    pm.expect(jsonData.payload.availableRoutes.length).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", ""]
+            },
+            "description": "Get API information and available routes"
+          },
+          "response": []
+        }
+      ],
+      "description": "System health checks and API information"
+    },
+    {
+      "name": "Authentication - Registration",
+      "item": [
+        {
+          "name": "Register ICEMAN (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has Mission Control format\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "});",
+                  "",
+                  "pm.test(\"Returns user data\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.payload.user).to.exist;",
+                  "    // callSign is optional",
+                  "    if (jsonData.payload.user.callSign) {",
+                  "        pm.expect(jsonData.payload.user.callSign).to.eql(pm.environment.get(\"iceman_callsign\"));",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test(\"Returns access and refresh tokens\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.payload.accessToken).to.exist;",
+                  "    pm.expect(jsonData.payload.refreshToken).to.exist;",
+                  "    ",
+                  "    // Save tokens and user ID for manual admin update",
+                  "    pm.environment.set(\"access_token\", jsonData.payload.accessToken);",
+                  "    pm.environment.set(\"refresh_token\", jsonData.payload.refreshToken);",
+                  "    pm.environment.set(\"user_id\", jsonData.payload.user.uid);",
+                  "});",
+                  "",
+                  "pm.test(\"⚠️ isAdmin is false (MANUAL UPDATE REQUIRED)\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    // API always sets isAdmin to false - this is expected behavior",
+                  "    pm.expect(jsonData.payload.user.isAdmin).to.eql(false);",
+                  "    ",
+                  "    console.log(\"⚠️ IMPORTANT: Manually set isAdmin to true in Firestore for user:\", jsonData.payload.user.uid);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{iceman_email}}\",\n  \"password\": \"{{iceman_password}}\",\n  \"callSign\": \"{{iceman_callsign}}\",\n  \"displayName\": \"{{iceman_displayname}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "register"]
+            },
+            "description": "⚠️ MANUAL STEP REQUIRED AFTER REGISTRATION ⚠️\n\nRegister ICEMAN - Tom Kazansky, will become admin operator.\n\n**The API always sets isAdmin to false during registration. After running this request:**\n\n1. Copy the user UID from the response (saved as user_id)\n2. Open Firebase Console → Firestore Database\n3. Navigate to the 'users' collection\n4. Find the document with the UID from step 1\n5. Edit the document and set `isAdmin: true`\n6. Save the changes\n7. Then proceed to \"Login ICEMAN (Admin)\" request\n\n**Why this is necessary:**\nFor security reasons, the API cannot create admin users. Admin privileges must be granted manually in the database to prevent unauthorized privilege escalation."
+          },
+          "response": []
+        },
+        {
+          "name": "Login ICEMAN (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has Mission Control format\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "});",
+                  "",
+                  "pm.test(\"Returns access and refresh tokens\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.payload.accessToken).to.exist;",
+                  "    pm.expect(jsonData.payload.refreshToken).to.exist;",
+                  "    ",
+                  "    // Update tokens after manual admin promotion",
+                  "    pm.environment.set(\"access_token\", jsonData.payload.accessToken);",
+                  "    pm.environment.set(\"refresh_token\", jsonData.payload.refreshToken);",
+                  "});",
+                  "",
+                  "pm.test(\"Telemetry includes mission time\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.telemetry.missionTime).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{iceman_email}}\",\n  \"password\": \"{{iceman_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "login"]
+            },
+            "description": "Login as ICEMAN after manually setting isAdmin to true in Firestore.\n\nRun this AFTER:\n1. Registering ICEMAN\n2. Manually updating isAdmin to true in Firebase Console\n\nThis login will refresh your tokens with admin privileges."
+          },
+          "response": []
+        },
+        {
+          "name": "Register GOOSE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"GOOSE registered successfully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    // callSign is optional, check if provided",
+                  "    if (jsonData.payload.user.callSign) {",
+                  "        pm.expect(jsonData.payload.user.callSign).to.eql(\"GOOSE\");",
+                  "        pm.environment.set(\"operator_callsign\", jsonData.payload.user.callSign);",
+                  "    }",
+                  "    ",
+                  "    // Save GOOSE tokens",
+                  "    pm.environment.set(\"access_token\", jsonData.payload.accessToken);",
+                  "    pm.environment.set(\"refresh_token\", jsonData.payload.refreshToken);",
+                  "    pm.environment.set(\"user_id\", jsonData.payload.user.uid);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{goose_email}}\",\n  \"password\": \"{{goose_password}}\",\n  \"callSign\": \"{{goose_callsign}}\",\n  \"displayName\": \"{{goose_displayname}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "register"]
+            },
+            "description": "Register GOOSE - Nick Bradshaw, RIO and best friend"
+          },
+          "response": []
+        },
+        {
+          "name": "Register SLIDER",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"SLIDER registered successfully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.payload.user).to.exist;",
+                  "    // callSign is optional, check if provided",
+                  "    if (jsonData.payload.user.callSign) {",
+                  "        pm.expect(jsonData.payload.user.callSign).to.eql(\"SLIDER\");",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{slider_email}}\",\n  \"password\": \"{{slider_password}}\",\n  \"callSign\": \"{{slider_callsign}}\",\n  \"displayName\": \"{{slider_displayname}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "register"]
+            },
+            "description": "Register SLIDER - Ron Kerner, Iceman's RIO"
+          },
+          "response": []
+        },
+        {
+          "name": "Register VIPER",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"VIPER registered successfully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.payload.user).to.exist;",
+                  "    // callSign is optional, check if provided",
+                  "    if (jsonData.payload.user.callSign) {",
+                  "        pm.expect(jsonData.payload.user.callSign).to.eql(\"VIPER\");",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{viper_email}}\",\n  \"password\": \"{{viper_password}}\",\n  \"callSign\": \"{{viper_callsign}}\",\n  \"displayName\": \"{{viper_displayname}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "register"]
+            },
+            "description": "Register VIPER - Mike Metcalf, commanding officer"
+          },
+          "response": []
+        },
+        {
+          "name": "Register JESTER",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"JESTER registered successfully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.payload.user).to.exist;",
+                  "    // callSign is optional, check if provided",
+                  "    if (jsonData.payload.user.callSign) {",
+                  "        pm.expect(jsonData.payload.user.callSign).to.eql(\"JESTER\");",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{jester_email}}\",\n  \"password\": \"{{jester_password}}\",\n  \"callSign\": \"{{jester_callsign}}\",\n  \"displayName\": \"{{jester_displayname}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "register"]
+            },
+            "description": "Register JESTER - Rick Heatherly, flight instructor"
+          },
+          "response": []
+        },
+        {
+          "name": "Register Duplicate User (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 409 or 400 (Conflict/Bad Request)\", function () {",
+                  "    pm.expect([400, 409]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns error status NO-GO or ABORT\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect([\"NO-GO\", \"ABORT\"]).to.include(jsonData.status);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{goose_email}}\",\n  \"password\": \"{{goose_password}}\",\n  \"callSign\": \"{{goose_callsign}}\",\n  \"displayName\": \"{{goose_displayname}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "register"]
+            },
+            "description": "Test duplicate registration - should fail"
+          },
+          "response": []
+        },
+        {
+          "name": "Register Invalid Password (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 (Bad Request)\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns validation error\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"NO-GO\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"weakpassword@topgun.navy.mil\",\n  \"password\": \"weak\",\n  \"callSign\": \"WEAK\",\n  \"displayName\": \"Weak Password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "register"]
+            },
+            "description": "Test password validation - should fail with weak password"
+          },
+          "response": []
+        }
+      ],
+      "description": "User registration tests with Top Gun characters"
+    },
+    {
+      "name": "Authentication - Login & Token Management",
+      "item": [
+        {
+          "name": "Login ICEMAN (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Login successful with GO status\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "    pm.expect(jsonData.payload.accessToken).to.exist;",
+                  "    pm.expect(jsonData.payload.refreshToken).to.exist;",
+                  "    ",
+                  "    // Update admin tokens",
+                  "    pm.environment.set(\"access_token\", jsonData.payload.accessToken);",
+                  "    pm.environment.set(\"refresh_token\", jsonData.payload.refreshToken);",
+                  "});",
+                  "",
+                  "pm.test(\"Telemetry includes operator callSign\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.telemetry.operatorCallSign).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{iceman_email}}\",\n  \"password\": \"{{iceman_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "login"]
+            },
+            "description": "Login as ICEMAN (admin privileges)"
+          },
+          "response": []
+        },
+        {
+          "name": "Login GOOSE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"GOOSE login successful\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "    // callSign is optional, check if provided",
+                  "    if (jsonData.payload.user.callSign) {",
+                  "        pm.expect(jsonData.payload.user.callSign).to.eql(\"GOOSE\");",
+                  "    }",
+                  "    ",
+                  "    // Update GOOSE tokens",
+                  "    pm.environment.set(\"access_token\", jsonData.payload.accessToken);",
+                  "    pm.environment.set(\"refresh_token\", jsonData.payload.refreshToken);",
+                  "    pm.environment.set(\"user_id\", jsonData.payload.user.uid);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{goose_email}}\",\n  \"password\": \"{{goose_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "login"]
+            },
+            "description": "Login as GOOSE (standard user)"
+          },
+          "response": []
+        },
+        {
+          "name": "Login Invalid Credentials (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401 (Unauthorized)\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns NO-GO status\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"NO-GO\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{goose_email}}\",\n  \"password\": \"WrongPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "login"]
+            },
+            "description": "Test login with invalid credentials"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token (GOOSE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"New access token received\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "    pm.expect(jsonData.payload.accessToken).to.exist;",
+                  "    pm.environment.set(\"access_token\", jsonData.payload.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "refresh"]
+            },
+            "description": "Refresh access token using refresh token"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout GOOSE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Logout successful\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "logout"]
+            },
+            "description": "Logout and revoke tokens"
+          },
+          "response": []
+        }
+      ],
+      "description": "Login, token management, and logout tests"
+    },
+    {
+      "name": "User Management - Admin Operations",
+      "item": [
+        {
+          "name": "Get All Users (Admin - ICEMAN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns list of users\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "    pm.expect(jsonData.payload.users).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Users include standard fields\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.payload.users.length > 0) {",
+                  "        const user = jsonData.payload.users[0];",
+                  "        pm.expect(user.uid).to.exist;",
+                  "        pm.expect(user.email).to.exist;",
+                  "        // callSign is optional",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "users"]
+            },
+            "description": "Get all users (admin only) - ICEMAN viewing roster"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users (Non-Admin - Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403 (Forbidden)\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns NO-GO status\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"NO-GO\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "users"]
+            },
+            "description": "Test non-admin access to user list (should fail)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create User MERLIN (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"MERLIN created successfully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "    pm.expect(jsonData.payload.user).to.exist;",
+                  "    // callSign is optional, check if provided",
+                  "    if (jsonData.payload.user.callSign) {",
+                  "        pm.expect(jsonData.payload.user.callSign).to.eql(\"MERLIN\");",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{merlin_email}}\",\n  \"password\": \"{{merlin_password}}\",\n  \"callSign\": \"{{merlin_callsign}}\",\n  \"displayName\": \"{{merlin_displayname}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "users"]
+            },
+            "description": "Admin creates new user MERLIN - Sam Wells, RIO"
+          },
+          "response": []
+        },
+        {
+          "name": "Create User HOLLYWOOD (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"HOLLYWOOD created successfully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.payload.user).to.exist;",
+                  "    // callSign is optional, check if provided",
+                  "    if (jsonData.payload.user.callSign) {",
+                  "        pm.expect(jsonData.payload.user.callSign).to.eql(\"HOLLYWOOD\");",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{hollywood_email}}\",\n  \"password\": \"{{hollywood_password}}\",\n  \"callSign\": \"{{hollywood_callsign}}\",\n  \"displayName\": \"{{hollywood_displayname}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "users"]
+            },
+            "description": "Admin creates HOLLYWOOD - Rick Neven, fighter pilot"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By ID (Own Profile - GOOSE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns own user profile\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "    pm.expect(jsonData.payload.user).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "users", "{{user_id}}"]
+            },
+            "description": "GOOSE viewing his own profile"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User (GOOSE Updates Own Profile)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Profile updated successfully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Nick 'GOOSE' Bradshaw\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "users", "{{user_id}}"]
+            },
+            "description": "GOOSE updates his own display name"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User (Admin - Remove COUGAR)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"User deleted successfully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// First need to create COUGAR to delete him",
+                  "// This would typically be a separate request"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "users", "{{user_id}}"]
+            },
+            "description": "Admin deletes user (COUGAR resigning his wings)"
+          },
+          "response": []
+        }
+      ],
+      "description": "User management operations (admin and user level)"
+    },
+    {
+      "name": "User Management - Audit Logs",
+      "item": [
+        {
+          "name": "Get User Audit Logs (Own Logs - GOOSE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns audit logs\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "    pm.expect(jsonData.payload.auditLogs).to.exist;",
+                  "});",
+                  "",
+                  "pm.test(\"Audit logs include mission time\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.payload.auditLogs && jsonData.payload.auditLogs.length > 0) {",
+                  "        pm.expect(jsonData.payload.auditLogs[0].timestamp).to.exist;",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/users/{{user_id}}/audit",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "users", "{{user_id}}", "audit"]
+            },
+            "description": "GOOSE viewing his own audit trail"
+          },
+          "response": []
+        }
+      ],
+      "description": "Audit log retrieval for mission tracking"
+    },
+    {
+      "name": "Security Tests",
+      "item": [
+        {
+          "name": "Access Protected Route Without Token (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401 (Unauthorized)\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns NO-GO status\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"NO-GO\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "users", "{{user_id}}"]
+            },
+            "description": "Test accessing protected route without authentication"
+          },
+          "response": []
+        },
+        {
+          "name": "Access With Invalid Token (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401 (Unauthorized)\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns NO-GO status\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"NO-GO\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer invalid_token_12345"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "users", "{{user_id}}"]
+            },
+            "description": "Test accessing protected route with invalid token"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin Revoke Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Token revoked successfully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{user_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/revoke",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "revoke"]
+            },
+            "description": "Admin (ICEMAN) revokes user token - emergency security measure"
+          },
+          "response": []
+        }
+      ],
+      "description": "Security and authorization tests"
+    },
+    {
+      "name": "Mission Roster - Batch Operations",
+      "item": [
+        {
+          "name": "Register Multiple Operators",
+          "item": [
+            {
+              "name": "Register WOLFMAN",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{wolfman_email}}\",\n  \"password\": \"{{wolfman_password}}\",\n  \"callSign\": \"{{wolfman_callsign}}\",\n  \"displayName\": \"{{wolfman_displayname}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/{{api_version}}/auth/register",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "{{api_version}}", "auth", "register"]
+                },
+                "description": "Register WOLFMAN - Leonard Wolfe, RIO"
+              },
+              "response": []
+            },
+            {
+              "name": "Register STINGER",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{stinger_email}}\",\n  \"password\": \"{{stinger_password}}\",\n  \"callSign\": \"{{stinger_callsign}}\",\n  \"displayName\": \"{{stinger_displayname}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/{{api_version}}/auth/register",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "{{api_version}}", "auth", "register"]
+                },
+                "description": "Register STINGER - CDR Johnson, base commander"
+              },
+              "response": []
+            },
+            {
+              "name": "Register SUNDOWN",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{sundown_email}}\",\n  \"password\": \"{{sundown_password}}\",\n  \"callSign\": \"{{sundown_callsign}}\",\n  \"displayName\": \"{{sundown_displayname}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/{{api_version}}/auth/register",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "{{api_version}}", "auth", "register"]
+                },
+                "description": "Register SUNDOWN - Marcus Williams, fighter pilot"
+              },
+              "response": []
+            },
+            {
+              "name": "Register CHARLIE",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{charlie_email}}\",\n  \"password\": \"{{charlie_password}}\",\n  \"callSign\": \"{{charlie_callsign}}\",\n  \"displayName\": \"{{charlie_displayname}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/{{api_version}}/auth/register",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "{{api_version}}", "auth", "register"]
+                },
+                "description": "Register CHARLIE - Charlotte Blackwood, civilian instructor"
+              },
+              "response": []
+            }
+          ],
+          "description": "Register remaining Top Gun operators"
+        }
+      ],
+      "description": "Batch operations for mission roster management"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request script",
+          "// Add request timestamp for mission time correlation",
+          "pm.environment.set(\"request_timestamp\", new Date().toISOString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script",
+          "// Validate Mission Control response format",
+          "if (pm.response.code !== 401 && pm.response.code !== 403 && pm.response.code !== 404) {",
+          "    pm.test(\"Response has Mission Control format\", function () {",
+          "        const jsonData = pm.response.json();",
+          "        pm.expect(jsonData).to.have.property('status');",
+          "        pm.expect(jsonData).to.have.property('telemetry');",
+          "    });",
+          "    ",
+          "    pm.test(\"Telemetry includes mission time\", function () {",
+          "        const jsonData = pm.response.json();",
+          "        if (jsonData.telemetry) {",
+          "            pm.expect(jsonData.telemetry.missionTime).to.exist;",
+          "        }",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3001",
+      "type": "default"
+    },
+    {
+      "key": "api_version",
+      "value": "v1",
+      "type": "default"
+    }
+  ]
+}
