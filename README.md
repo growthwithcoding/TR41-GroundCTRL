@@ -23,7 +23,7 @@
   - Austin Allen Carlson — [@aacarlson](https://github.com/growthwithcoding)
   
 - **Cybersecurity**  
-  - Mohana Gautam — *(GitHub link can be added here if available)*
+  - Mohana Gautam — [@mohanag7-SHIV)](https://github.com/mohanag7-SHIV)
 
 - **Quality Assurance**  
   - Adam Colyer — [@AColyer13](https://github.com/AColyer13)
