@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 0.5: Updated Swagger documentation to reflect uid-based identity policy
 - Phase 0.5: Clarified callSign as non-unique display label (not identifier)
 - Phase 0.5: Documented email as unique constraint for data integrity only
+- Phase 1: Updated userService to allow duplicate callSign values across users
+
+### Removed
+- Phase 1: Removed `getByCallSign` method from userRepository (callSign lookups no longer supported)
+- Phase 1: Removed callSign uniqueness checks from create, update, and patch user flows
 
 ---
 

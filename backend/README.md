@@ -16,7 +16,7 @@ A production-ready Node.js/Express API with enterprise-grade security, Firebase 
 - ✅ **Audit Logging** - Comprehensive operation tracking with severity levels
 - ✅ **Mission Control Responses** - GO/NO-GO/HOLD/ABORT status codes
 - ✅ **Admin Role Management** - Fine-grained permission control
-- ✅ **Call Sign System** - Unique operator identification
+- ✅ **Call Sign System** - Non-unique display labels for operators
 - ✅ **Swagger Documentation** - Interactive API documentation at `/api/v1/docs`
 
 ### Architecture
@@ -25,6 +25,7 @@ A production-ready Node.js/Express API with enterprise-grade security, Firebase 
 - **Middleware Stack**: Auth, rate limiting, audit logging, error handling
 - **Firebase Integration**: Firestore + Firebase Auth
 - **Zod Validation**: Runtime type safety for all inputs
+- **Identity Policy**: uid-based targeting, callSign for display only (non-unique)
 - **Vercel-Ready**: Serverless-compatible structure
 
 ---
