@@ -111,7 +111,7 @@ Bump version when a phase set reaches one of these checkpoints:
 
 # PHASE 0: Repo Hygiene + Versioning Docs + Swagger Identity Docs (includes 0.5)
 
-**Status:** READY FOR PR (requires 1 approving reviewer)  
+**Status:** DONE  
 **Owner:** Austin Carlson
 
 ## Goal
@@ -149,8 +149,8 @@ Update:
 
 # PHASE 1: Identity Enforcement (callSign non-unique + remove callSign targeting)
 
-**Status:** NOT STARTED  
-**Owner:** SELF-ASSIGN
+**Status:** DONE  
+**Owner:** Austin Carlson
 
 ## Goal
 Ensure runtime behavior follows identity policy (uid canonical, callSign display-only).
@@ -647,4 +647,7 @@ Cut a clean release based on decision gates.
 | Date | Phase | Owner | PR | Notes |
 |------|-------|-------|----|------|
 | 2025-12-25 | Plan created | - | - | Initial implementation plan |
+| 2025-12-27 | Phase 0 | Austin Carlson | - | Repo hygiene, versioning docs, Swagger identity corrections |
+| 2025-12-27 | Phase 0.5 | Austin Carlson | - | Identity policy corrections in documentation |
+| 2025-12-27 | Phase 1 | Austin Carlson | - | Identity enforcement - callSign non-unique implementation |
  bn cdf

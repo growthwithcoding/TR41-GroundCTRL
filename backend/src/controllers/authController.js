@@ -148,7 +148,7 @@ async function login(req, res, next) {
               await lockoutService.checkAccountLockout(userId, userCallSign);
             }
           }
-        } catch (lookupError) {
+        } catch {
           // User not found - don't reveal this information
           logger.debug('Failed login attempt for unknown user', { email });
         }

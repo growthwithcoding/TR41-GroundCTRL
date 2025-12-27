@@ -71,11 +71,7 @@ async function createUser(userData, requestingUser) {
     throw new ConflictError('Email already in use');
   }
 
-  // Check if call sign already exists
-  const existingCallSign = await userRepository.getByCallSign(userData.callSign);
-  if (existingCallSign) {
-    throw new ConflictError('Call sign already in use');
-  }
+  // Note: callSign is non-unique and no longer checked for conflicts
 
   // Create user
   const user = await userRepository.create(userData, {
@@ -120,13 +116,7 @@ async function updateUser(uid, userData, requestingUser) {
     }
   }
 
-  // Check if new call sign conflicts with existing user
-  if (userData.callSign) {
-    const existingUser = await userRepository.getByCallSign(userData.callSign);
-    if (existingUser && existingUser.uid !== uid) {
-      throw new ConflictError('Call sign already in use by another user');
-    }
-  }
+  // Note: callSign is non-unique and no longer checked for conflicts
 
   // Update user
   const user = await userRepository.update(uid, userData, {
@@ -178,13 +168,7 @@ async function patchUser(uid, updates, requestingUser) {
     }
   }
 
-  // Check if new call sign conflicts with existing user
-  if (updates.callSign) {
-    const existingUser = await userRepository.getByCallSign(updates.callSign);
-    if (existingUser && existingUser.uid !== uid) {
-      throw new ConflictError('Call sign already in use by another user');
-    }
-  }
+  // Note: callSign is non-unique and no longer checked for conflicts
 
   // Patch user
   const user = await userRepository.patch(uid, updates, {

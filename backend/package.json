@@ -45,5 +45,13 @@
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
+  },
+  "overrides": {
+    "glob": "^10.0.0",
+    "z-schema": {
+      ".": "^6.0.0",
+      "lodash.get": "npm:lodash@^4.17.21",
+      "lodash.isequal": "npm:lodash@^4.17.21"
+    }
   }
 }

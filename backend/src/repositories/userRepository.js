@@ -139,33 +139,6 @@ async function getByEmail(email) {
   }
 }
 
-/**
- * Get user by call sign
- * @param {string} callSign - User call sign
- * @returns {Promise<object|null>} User data or null if not found
- */
-async function getByCallSign(callSign) {
-  try {
-    const db = getFirestore();
-    const snapshot = await db.collection(COLLECTION_NAME)
-      .where('callSign', '==', callSign)
-      .limit(1)
-      .get();
-
-    if (snapshot.empty) {
-      return null;
-    }
-
-    const doc = snapshot.docs[0];
-    return {
-      uid: doc.id,
-      ...doc.data()
-    };
-  } catch (error) {
-    logger.error('Failed to fetch user by call sign', { error: error.message, callSign });
-    throw error;
-  }
-}
 
 /**
  * Create new user
@@ -375,7 +348,6 @@ module.exports = {
   getAll,
   getById,
   getByEmail,
-  getByCallSign,
   create,
   update,
   patch,
