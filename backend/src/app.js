@@ -11,6 +11,8 @@ const { initializeFirebase } = require('./config/firebase');
 const swaggerSpec = require('./config/swagger');
 const auditLogger = require('./middleware/auditLogger');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
+const authErrorNormalizer = require('./middleware/authErrorNormalizer');
+const { apiLimiter } = require('./middleware/rateLimiter');
 const routes = require('./routes');
 const logger = require('./utils/logger');
 
@@ -53,6 +55,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Trust proxy (for accurate IP addresses behind reverse proxies like Vercel)
 app.set('trust proxy', 1);
 
+// Global API rate limiter (applied to all routes)
+app.use(apiLimiter);
+
 // Request logging middleware
 app.use(auditLogger);
 
@@ -79,6 +84,9 @@ app.get('/', (req, res) => {
 
 // 404 handler (must be after all routes)
 app.use(notFoundHandler);
+
+// Auth error normalizer (must be before global error handler)
+app.use(authErrorNormalizer);
 
 // Global error handler (must be last)
 app.use(errorHandler);

@@ -1,4 +1,4 @@
-# Changelog
+E# Changelog
 
 All notable changes to the GroundCTRL Backend will be documented in this file.
 
@@ -11,16 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 0: Project versioning and documentation framework
 - Phase 0: Helper scripts for file structure mapping and line ending conversion
 - Phase 0.5: Identity policy corrections in Swagger documentation
+- Phase 2: Global API rate limiting middleware (`apiLimiter`) mounted for all `/api/v1/*` routes
+- Phase 2: Centralized HTTP client (`src/utils/httpClient.js`) with configurable timeout (default 8000ms)
+- Phase 2: Authentication error normalizer middleware for production security
+- Phase 2: Environment variables for HTTP client configuration (`HTTP_CLIENT_TIMEOUT_MS`, `HTTP_CLIENT_RETRY_ATTEMPTS`, `HTTP_CLIENT_RETRY_DELAY_MS`)
 
 ### Changed
 - Phase 0.5: Updated Swagger documentation to reflect uid-based identity policy
 - Phase 0.5: Clarified callSign as non-unique display label (not identifier)
 - Phase 0.5: Documented email as unique constraint for data integrity only
 - Phase 1: Updated userService to allow duplicate callSign values across users
+- Phase 2: Authentication service now uses centralized `httpClient` for all Firebase Identity Toolkit calls
+- Phase 2: Auth error messages are now generic in production to prevent user enumeration attacks
 
 ### Removed
 - Phase 1: Removed `getByCallSign` method from userRepository (callSign lookups no longer supported)
 - Phase 1: Removed callSign uniqueness checks from create, update, and patch user flows
+
+### Security
+- Phase 2: Protection against DoS attacks via slow external HTTP responses (outbound timeout enforcement)
+- Phase 2: Auth error normalization prevents user enumeration in production environment
+- Phase 2: All Firebase authentication calls now have explicit 8-second timeout protection
+- Phase 2: Global rate limiting protects API from abuse (100 requests per 15-minute window per IP)
 
 ---
 

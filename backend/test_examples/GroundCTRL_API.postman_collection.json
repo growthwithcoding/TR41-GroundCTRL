@@ -122,10 +122,10 @@
                   "    pm.expect(jsonData.payload.accessToken).to.exist;",
                   "    pm.expect(jsonData.payload.refreshToken).to.exist;",
                   "    ",
-                  "    // Save tokens and user ID for manual admin update",
-                  "    pm.environment.set(\"access_token\", jsonData.payload.accessToken);",
-                  "    pm.environment.set(\"refresh_token\", jsonData.payload.refreshToken);",
-                  "    pm.environment.set(\"user_id\", jsonData.payload.user.uid);",
+                  "    // Save ICEMAN tokens to admin variables",
+                  "    pm.environment.set(\"admin_access_token\", jsonData.payload.accessToken);",
+                  "    pm.environment.set(\"admin_refresh_token\", jsonData.payload.refreshToken);",
+                  "    pm.environment.set(\"admin_user_id\", jsonData.payload.user.uid);",
                   "});",
                   "",
                   "pm.test(\"⚠️ isAdmin is false (MANUAL UPDATE REQUIRED)\", function () {",
@@ -507,9 +507,10 @@
                   "    pm.expect(jsonData.payload.accessToken).to.exist;",
                   "    pm.expect(jsonData.payload.refreshToken).to.exist;",
                   "    ",
-                  "    // Update admin tokens",
-                  "    pm.environment.set(\"access_token\", jsonData.payload.accessToken);",
-                  "    pm.environment.set(\"refresh_token\", jsonData.payload.refreshToken);",
+                  "    // Save ICEMAN tokens to admin-specific variables",
+                  "    pm.environment.set(\"admin_access_token\", jsonData.payload.accessToken);",
+                  "    pm.environment.set(\"admin_refresh_token\", jsonData.payload.refreshToken);",
+                  "    pm.environment.set(\"admin_user_id\", jsonData.payload.user.uid);",
                   "});",
                   "",
                   "pm.test(\"Telemetry includes operator callSign\", function () {",
@@ -755,7 +756,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{access_token}}"
+                "value": "Bearer {{admin_access_token}}"
               }
             ],
             "url": {
@@ -763,7 +764,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "{{api_version}}", "users"]
             },
-            "description": "Get all users (admin only) - ICEMAN viewing roster"
+            "description": "Get all users (admin only) - ICEMAN viewing roster.\n\nPrerequisite: Run 'Login ICEMAN (Admin)' first to set admin_access_token."
           },
           "response": []
         },
@@ -834,7 +835,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{access_token}}"
+                "value": "Bearer {{admin_access_token}}"
               },
               {
                 "key": "Content-Type",
@@ -850,7 +851,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "{{api_version}}", "users"]
             },
-            "description": "Admin creates new user MERLIN - Sam Wells, RIO"
+            "description": "Admin (ICEMAN) creates new user MERLIN - Sam Wells, RIO.\n\nPrerequisite: Run 'Login ICEMAN (Admin)' first to set admin_access_token."
           },
           "response": []
         },
@@ -883,7 +884,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{access_token}}"
+                "value": "Bearer {{admin_access_token}}"
               },
               {
                 "key": "Content-Type",
@@ -899,12 +900,12 @@
               "host": ["{{base_url}}"],
               "path": ["api", "{{api_version}}", "users"]
             },
-            "description": "Admin creates HOLLYWOOD - Rick Neven, fighter pilot"
+            "description": "Admin (ICEMAN) creates HOLLYWOOD - Rick Neven, fighter pilot.\n\nPrerequisite: Run 'Login ICEMAN (Admin)' first to set admin_access_token."
           },
           "response": []
         },
         {
-          "name": "Get User By ID (Own Profile - GOOSE)",
+          "name": "Get User By ID (Own Profile - ICEMAN)",
           "event": [
             {
               "listen": "test",
@@ -1184,7 +1185,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{access_token}}"
+                "value": "Bearer {{admin_access_token}}"
               },
               {
                 "key": "Content-Type",
@@ -1200,7 +1201,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "{{api_version}}", "auth", "revoke"]
             },
-            "description": "Admin (ICEMAN) revokes user token - emergency security measure"
+            "description": "Admin (ICEMAN) revokes GOOSE's user token - emergency security measure.\n\nPrerequisite: Run 'Login ICEMAN (Admin)' first to set admin_access_token, and 'Login GOOSE' to set user_id."
           },
           "response": []
         }

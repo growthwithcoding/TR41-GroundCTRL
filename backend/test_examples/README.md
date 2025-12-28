@@ -147,10 +147,17 @@ The environment includes pre-configured variables for all Top Gun characters:
 - `refresh_token` - Current user's refresh token
 - `user_id` - Current user's Firebase UID
 
-### Admin Variables
-- `admin_access_token` - ICEMAN's access token
-- `admin_refresh_token` - ICEMAN's refresh token
-- `admin_user_id` - ICEMAN's user ID
+### Admin Variables (ICEMAN)
+- `admin_access_token` - ICEMAN's admin access token (set by Login ICEMAN)
+- `admin_refresh_token` - ICEMAN's admin refresh token (set by Login ICEMAN)
+- `admin_user_id` - ICEMAN's user ID (set by Register/Login ICEMAN)
+
+**Note:** Admin requests (Get All Users, Create User, Admin Revoke Token) use `admin_access_token` to clearly separate admin operations from standard user operations.
+
+### Standard User Variables (Currently GOOSE)
+- `access_token` - Current user's access token (typically GOOSE)
+- `refresh_token` - Current user's refresh token
+- `user_id` - Current user's Firebase UID
 
 ### Character Credentials
 Each character has the following variables:

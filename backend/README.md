@@ -6,6 +6,17 @@ A production-ready Node.js/Express API with enterprise-grade security, Firebase 
 
 ---
 
+## 🆕 Recent Updates
+
+### Phase 0-1 Enhancements (December 2025)
+- ✅ **Identity Policy Enforcement** - uid-based targeting (canonical identifier), callSign as non-unique display label
+- ✅ **Versioning Framework** - Established SemVer approach with CHANGELOG.md and release documentation
+- ✅ **Repository Hygiene** - Added CONTRIBUTING.md, VERSIONING.md, RELEASE.md for team workflow
+- ✅ **Enhanced Documentation** - Updated Swagger to reflect identity policy and architectural decisions
+- ✅ **ESLint v9 Migration** - Upgraded to flat config for modern linting standards
+
+---
+
 ## 🚀 Features
 
 ### Core Capabilities
@@ -16,7 +27,7 @@ A production-ready Node.js/Express API with enterprise-grade security, Firebase 
 - ✅ **Audit Logging** - Comprehensive operation tracking with severity levels
 - ✅ **Mission Control Responses** - GO/NO-GO/HOLD/ABORT status codes
 - ✅ **Admin Role Management** - Fine-grained permission control
-- ✅ **Call Sign System** - Non-unique display labels for operators
+- ✅ **Call Sign System** - Non-unique display labels for operators (uid is canonical identifier)
 - ✅ **Swagger Documentation** - Interactive API documentation at `/api/v1/docs`
 
 ### Architecture
@@ -25,7 +36,8 @@ A production-ready Node.js/Express API with enterprise-grade security, Firebase 
 - **Middleware Stack**: Auth, rate limiting, audit logging, error handling
 - **Firebase Integration**: Firestore + Firebase Auth
 - **Zod Validation**: Runtime type safety for all inputs
-- **Identity Policy**: uid-based targeting, callSign for display only (non-unique)
+- **Identity Policy**: uid-based targeting (canonical), callSign for display only (non-unique), email unique for data integrity
+- **HTTP Client Resilience**: Configurable timeouts and retry logic for external calls
 - **Vercel-Ready**: Serverless-compatible structure
 
 ---
@@ -56,7 +68,91 @@ Create `.env` file from the sample:
 cp .env.sample .env
 ```
 
-Edit `.env` with your configuration:
+Edit `.env` with your configuration. See **Environment Variables Reference** below for detailed explanations.
+
+#### Environment Variables Reference
+
+##### Server Configuration
+
+| Variable | Required | Description | Example | Default |
+|----------|----------|-------------|---------|---------|
+| `PORT` | Yes | Port number for the API server | `3001` | `3001` |
+| `NODE_ENV` | Yes | Application environment mode<br>• `development` - Verbose logging, detailed errors<br>• `production` - Optimized for performance, sanitized errors | `development` | `development` |
+| `CALL_SIGN` | Yes | Station identifier for this API instance (appears in telemetry responses) | `GROUNDCTRL-01` | `GROUNDCTRL-01` |
+
+##### Firebase Configuration
+
+**Source:** Firebase Console → Project Settings → Service Accounts → Generate New Private Key
+
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `FIREBASE_PROJECT_ID` | Yes | Your Firebase project ID | `my-project-123` |
+| `FIREBASE_PRIVATE_KEY` | Yes | Private key from service account JSON<br>⚠️ **Security:** Keep quotes, preserve `\n` line breaks | `"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"` |
+| `FIREBASE_CLIENT_EMAIL` | Yes | Service account email address | `firebase-adminsdk-xyz@my-project.iam.gserviceaccount.com` |
+| `FIREBASE_WEB_API_KEY` | Yes | Web API key from Firebase project settings<br>Used for Firebase Authentication REST API calls | `AIzaSyA...` |
+
+**Setup Instructions:**
+1. Go to Firebase Console → Project Settings → Service Accounts
+2. Click "Generate New Private Key"
+3. Copy values from downloaded JSON to your `.env` file
+4. Ensure Firebase Authentication and Firestore are enabled
+
+##### JWT Configuration
+
+| Variable | Required | Description | Example | Default |
+|----------|----------|-------------|---------|---------|
+| `JWT_SECRET` | Yes | Secret key for signing JWT tokens<br>⚠️ **Security:** Minimum 64 characters, use cryptographically random string<br>Generate: `openssl rand -base64 64` | `your-super-secret-jwt-key...` | None |
+| `JWT_ACCESS_TOKEN_EXPIRY` | Yes | Access token lifespan (short-lived)<br>Format: `#s` (seconds), `#m` (minutes), `#h` (hours), `#d` (days) | `15m` | `15m` |
+| `JWT_REFRESH_TOKEN_EXPIRY` | Yes | Refresh token lifespan (long-lived)<br>Format: `#s` (seconds), `#m` (minutes), `#h` (hours), `#d` (days) | `7d` | `7d` |
+
+##### CORS Configuration
+
+| Variable | Required | Description | Example | Default |
+|----------|----------|-------------|---------|---------|
+| `ALLOWED_ORIGINS` | Yes | Comma-separated list of allowed origins for CORS<br>Include all frontend URLs (local development + production) | `http://localhost:3001,http://localhost:5173,https://myapp.com` | `http://localhost:3001,http://localhost:5173` |
+
+##### HTTP Client Configuration
+
+**Purpose:** Resilience for outbound HTTP calls (Firebase Auth API, future external integrations)
+
+| Variable | Required | Description | Example | Default |
+|----------|----------|-------------|---------|---------|
+| `HTTP_CLIENT_TIMEOUT_MS` | No | Request timeout in milliseconds<br>Prevents hanging requests to external services | `8000` | `8000` |
+| `HTTP_CLIENT_RETRY_ATTEMPTS` | No | Number of retry attempts for failed requests<br>⚠️ Set to `0` to disable retries (recommended for auth flows) | `0` | `0` |
+| `HTTP_CLIENT_RETRY_DELAY_MS` | No | Delay between retry attempts in milliseconds | `1000` | `1000` |
+
+##### Rate Limiting Configuration
+
+**Purpose:** Protect against brute-force attacks and API abuse
+
+| Variable | Required | Description | Example | Default |
+|----------|----------|-------------|---------|---------|
+| `LOGIN_RATE_LIMIT_WINDOW_MS` | No | Time window for login rate limiting (milliseconds)<br>`900000` = 15 minutes | `900000` | `900000` |
+| `LOGIN_RATE_LIMIT_MAX_REQUESTS` | No | Maximum login attempts per window | `5` | `5` |
+| `API_RATE_LIMIT_WINDOW_MS` | No | Time window for general API rate limiting (milliseconds) | `900000` | `900000` |
+| `API_RATE_LIMIT_MAX_REQUESTS` | No | Maximum API requests per window | `100` | `100` |
+
+**Example:** Default config allows 5 login attempts per 15 minutes, 100 general API calls per 15 minutes
+
+##### Lockout Configuration
+
+**Purpose:** Automatic account protection after repeated failed login attempts
+
+| Variable | Required | Description | Example | Default |
+|----------|----------|-------------|---------|---------|
+| `LOCKOUT_THRESHOLD` | No | Number of failed login attempts before lockout | `5` | `5` |
+| `LOCKOUT_DURATION_MINUTES` | No | How long account remains locked (minutes) | `15` | `15` |
+| `LOCKOUT_WINDOW_HOURS` | No | Time window to count failed attempts (hours)<br>Failed attempts outside this window are ignored | `1` | `1` |
+
+**Example:** 5 failed logins within 1 hour triggers 15-minute lockout
+
+##### Logging Configuration
+
+| Variable | Required | Description | Example | Default |
+|----------|----------|-------------|---------|---------|
+| `LOG_LEVEL` | No | Logging verbosity level<br>• `debug` - All logs (development)<br>• `info` - General info + warnings + errors<br>• `warn` - Warnings + errors only<br>• `error` - Errors only (production) | `info` | `info` |
+
+#### Example `.env` File
 
 ```env
 # Server Configuration
@@ -64,21 +160,24 @@ PORT=3001
 NODE_ENV=development
 CALL_SIGN=GROUNDCTRL-01
 
-# Firebase Configuration (from Firebase Console → Project Settings → Service Accounts)
+# Firebase Configuration
 FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_PRIVATE_KEY_ID=your-private-key-id
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour private key here\n-----END PRIVATE KEY-----\n"
 FIREBASE_CLIENT_EMAIL=firebase-adminsdk@your-project.iam.gserviceaccount.com
-FIREBASE_CLIENT_ID=your-client-id
 FIREBASE_WEB_API_KEY=your-web-api-key-from-firebase-console
 
-# JWT Configuration (generate a strong secret: openssl rand -base64 64)
-JWT_SECRET=your-super-secret-jwt-key-minimum-64-characters-long
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-minimum-64-characters-long-for-production
 JWT_ACCESS_TOKEN_EXPIRY=15m
 JWT_REFRESH_TOKEN_EXPIRY=7d
 
 # CORS Configuration
 ALLOWED_ORIGINS=http://localhost:3001,http://localhost:5173
+
+# HTTP Client Configuration
+HTTP_CLIENT_TIMEOUT_MS=8000
+HTTP_CLIENT_RETRY_ATTEMPTS=0
+HTTP_CLIENT_RETRY_DELAY_MS=1000
 
 # Rate Limiting Configuration
 LOGIN_RATE_LIMIT_WINDOW_MS=900000
