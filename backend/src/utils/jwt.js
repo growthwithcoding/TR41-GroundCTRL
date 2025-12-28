@@ -83,7 +83,7 @@ function verifyToken(token) {
 function decodeToken(token) {
   try {
     return jwt.decode(token);
-  } catch (error) {
+  } catch {
     return null;
   }
 }

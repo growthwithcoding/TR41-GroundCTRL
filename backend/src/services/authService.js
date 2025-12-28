@@ -3,7 +3,7 @@
  * Handles authentication business logic
  */
 
-const axios = require('axios');
+const httpClient = require('../utils/httpClient');
 const { getAuth, getFirestore } = require('../config/firebase');
 const jwtUtil = require('../utils/jwt');
 const tokenBlacklistRepository = require('../repositories/tokenBlacklistRepository');
@@ -27,7 +27,7 @@ async function verifyPassword(email, password) {
   const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
   
   try {
-    const response = await axios.post(url, {
+    const response = await httpClient.post(url, {
       email,
       password,
       returnSecureToken: true

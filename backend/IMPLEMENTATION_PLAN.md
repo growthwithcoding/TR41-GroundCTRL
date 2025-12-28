@@ -111,7 +111,7 @@ Bump version when a phase set reaches one of these checkpoints:
 
 # PHASE 0: Repo Hygiene + Versioning Docs + Swagger Identity Docs (includes 0.5)
 
-**Status:** READY FOR PR (requires 1 approving reviewer)  
+**Status:** DONE  
 **Owner:** Austin Carlson
 
 ## Goal
@@ -149,8 +149,8 @@ Update:
 
 # PHASE 1: Identity Enforcement (callSign non-unique + remove callSign targeting)
 
-**Status:** NOT STARTED  
-**Owner:** SELF-ASSIGN
+**Status:** DONE  
+**Owner:** Austin Carlson
 
 ## Goal
 Ensure runtime behavior follows identity policy (uid canonical, callSign display-only).
@@ -177,8 +177,8 @@ Ensure runtime behavior follows identity policy (uid canonical, callSign display
 
 # PHASE 2: Security Quick Wins + Correctness Fixes
 
-**Status:** NOT STARTED  
-**Owner:** SELF-ASSIGN
+**Status:** DONE  
+**Owner:** Austin Carlson
 
 ## Goal
 Close the highest-risk items from the security review: global abuse protection and external-call resilience.

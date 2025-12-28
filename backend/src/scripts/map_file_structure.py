@@ -90,9 +90,9 @@ def create_file_structure_doc(output_file="file_structure.txt"):
     Args:
         output_file: Name of the output file
     """
-    # Get the backend root directory (parent of scripts folder)
+    # Get the backend root directory (two levels up: scripts -> src -> backend)
     script_dir = Path(__file__).parent
-    backend_root = script_dir.parent
+    backend_root = script_dir.parent.parent
     
     print(f"Mapping file structure from: {backend_root}")
     
@@ -102,7 +102,7 @@ def create_file_structure_doc(output_file="file_structure.txt"):
     # Create header for the document
     header = [
         "=" * 80,
-        "MISSION CONTROL - BACKEND FILE STRUCTURE",
+        "GroundCTRL - BACKEND FILE STRUCTURE",
         "=" * 80,
         f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         f"Root Directory: {backend_root}",
