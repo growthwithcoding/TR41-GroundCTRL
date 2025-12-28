@@ -1,4 +1,4 @@
-E# Changelog
+# Changelog
 
 All notable changes to the GroundCTRL Backend will be documented in this file.
 
