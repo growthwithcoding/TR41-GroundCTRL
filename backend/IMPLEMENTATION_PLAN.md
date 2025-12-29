@@ -123,8 +123,6 @@ Each new domain adds new API endpoints/resources, which per semantic versioning 
 **Status:** DONE 
 **Owner:** Austin Carlson  
 **Release:** Checkpoint A - v1.0.0 (baseline)
-**Status:** DONE  
-**Owner:** Austin Carlson
 
 ## Goal
 Establish repo discipline, contributor workflow, and correct identity language in documentation.
@@ -163,7 +161,6 @@ Update:
 
 **Status:** DONE  
 **Owner:** AUSTIN CARLSON 
-**Owner:** Austin Carlson
 
 ## Goal
 Ensure runtime behavior follows identity policy (uid canonical, callSign display-only).
@@ -192,7 +189,6 @@ Ensure runtime behavior follows identity policy (uid canonical, callSign display
 
 **Status:** DONE  
 **Owner:** AUSTIN CARLSON 
-**Owner:** Austin Carlson
 
 ## Goal
 Close the highest-risk items from the security review: global abuse protection and external-call resilience.
@@ -312,8 +308,8 @@ Make `crudFactory` a reliable engine for upcoming domain work without burying do
 
 # PHASE 5: Satellites Domain Implementation
 
-**Status:** NOT STARTED  
-**Owner:** SELF-ASSIGN  
+**Status:** IN DEVELOPMENT 
+**Owner:** CAMERON CARMODY  
 **Release:** Checkpoint C - v1.1.0 (MINOR) - Satellites domain
 
 ## Goal
