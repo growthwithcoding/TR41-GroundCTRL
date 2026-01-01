@@ -1,0 +1,1011 @@
+{
+  "info": {
+    "name": "GroundCTRL Satellites API",
+    "description": "Comprehensive satellite management API test collection for GroundCTRL Mission Control System.\n\n**Test Users:**\n- **ICEMAN (Admin)** - Tom Kazansky, admin privileges for all operations\n- **MAVERICK** - Pete Mitchell, standard user for testing ownership-based operations\n\n**Satellite Operations:**\n- Create new training satellites\n- List satellites with pagination and filtering\n- Retrieve specific satellite details\n- Update satellite configurations (full and partial)\n- Delete satellites\n- Test authorization and ownership rules\n\n**Important Notes:**\n- Run authentication requests first to obtain access tokens\n- ICEMAN can access all satellites\n- Standard users can only access their own satellites\n- Satellites include realistic orbital parameters and subsystem configurations",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "groundctrl-satellites"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login ICEMAN (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"ICEMAN login successful\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "    pm.expect(jsonData.payload.accessToken).to.exist;",
+                  "    ",
+                  "    // Save ICEMAN admin tokens",
+                  "    pm.environment.set(\"admin_access_token\", jsonData.payload.accessToken);",
+                  "    pm.environment.set(\"admin_refresh_token\", jsonData.payload.refreshToken);",
+                  "    pm.environment.set(\"admin_user_id\", jsonData.payload.user.uid);",
+                  "    ",
+                  "    console.log(\"✓ ICEMAN authenticated as admin\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{iceman_email}}\",\n  \"password\": \"{{iceman_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "login"]
+            },
+            "description": "Login as ICEMAN with admin privileges. Required for admin-level satellite operations."
+          },
+          "response": []
+        },
+        {
+          "name": "Register MAVERICK",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"MAVERICK registered successfully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "    ",
+                  "    // Save MAVERICK tokens (standard user)",
+                  "    pm.environment.set(\"access_token\", jsonData.payload.accessToken);",
+                  "    pm.environment.set(\"refresh_token\", jsonData.payload.refreshToken);",
+                  "    pm.environment.set(\"user_id\", jsonData.payload.user.uid);",
+                  "    pm.environment.set(\"maverick_user_id\", jsonData.payload.user.uid);",
+                  "    ",
+                  "    console.log(\"✓ MAVERICK registered as standard user\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"maverick@topgun.navy.mil\",\n  \"password\": \"Maverick123!@Pilot\",\n  \"callSign\": \"MAVERICK\",\n  \"displayName\": \"Pete Mitchell\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "register"]
+            },
+            "description": "Register MAVERICK - Pete Mitchell as standard user for testing ownership-based satellite operations."
+          },
+          "response": []
+        },
+        {
+          "name": "Login MAVERICK",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"MAVERICK login successful\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"GO\");",
+                  "    pm.expect(jsonData.payload.accessToken).to.exist;",
+                  "    ",
+                  "    // Save MAVERICK tokens (standard user)",
+                  "    pm.environment.set(\"access_token\", jsonData.payload.accessToken);",
+                  "    pm.environment.set(\"refresh_token\", jsonData.payload.refreshToken);",
+                  "    pm.environment.set(\"user_id\", jsonData.payload.user.uid);",
+                  "    pm.environment.set(\"maverick_user_id\", jsonData.payload.user.uid);",
+                  "    ",
+                  "    console.log(\"✓ MAVERICK authenticated as standard user\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"maverick@topgun.navy.mil\",\n  \"password\": \"Maverick123!@Pilot\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "login"]
+            },
+            "description": "Login as MAVERICK (standard user). Use this if MAVERICK is already registered, or to refresh tokens."
+          },
+          "response": []
+        }
+      ],
+      "description": "Authentication for ICEMAN (admin) and MAVERICK (standard user)"
+    },
+    {
+      "name": "Satellites - Create",
+      "item": [
+        {
+          "name": "Create TrainingSat-01 (MAVERICK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Satellite created successfully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"success\");",
+                  "    pm.expect(jsonData.data).to.exist;",
+                  "    pm.expect(jsonData.data.name).to.eql(\"TrainingSat-01\");",
+                  "    ",
+                  "    // Save satellite ID for future tests",
+                  "    pm.environment.set(\"satellite_id_1\", jsonData.data.id);",
+                  "    ",
+                  "    console.log(\"✓ TrainingSat-01 created with ID:\", jsonData.data.id);",
+                  "});",
+                  "",
+                  "pm.test(\"Satellite has correct subsystems\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.orbit).to.exist;",
+                  "    pm.expect(jsonData.data.power).to.exist;",
+                  "    pm.expect(jsonData.data.attitude).to.exist;",
+                  "    pm.expect(jsonData.data.thermal).to.exist;",
+                  "    pm.expect(jsonData.data.propulsion).to.exist;",
+                  "    pm.expect(jsonData.data.payload).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"TrainingSat-01\",\n  \"description\": \"ISS-inspired LEO training satellite\",\n  \"orbit\": {\n    \"altitude_km\": 408,\n    \"inclination_degrees\": 51.6\n  },\n  \"power\": {\n    \"solarPower_watts\": 2.5,\n    \"batteryCapacity_wh\": 20,\n    \"baseDrawRate_watts\": 0.5,\n    \"currentCharge_percent\": 85\n  },\n  \"attitude\": {\n    \"currentTarget\": \"NADIR\",\n    \"error_degrees\": 0.5\n  },\n  \"thermal\": {\n    \"currentTemp_celsius\": 20,\n    \"minSafe_celsius\": -10,\n    \"maxSafe_celsius\": 50,\n    \"heaterAvailable\": true\n  },\n  \"propulsion\": {\n    \"propellantRemaining_kg\": 0.5,\n    \"maxDeltaV_ms\": 15\n  },\n  \"payload\": {\n    \"type\": \"Camera\",\n    \"isActive\": false,\n    \"powerDraw_watts\": 1.2\n  },\n  \"status\": \"TRAINING\",\n  \"difficultyLevel\": \"BEGINNER\",\n  \"capabilities\": [\"Power management\", \"Attitude control\"],\n  \"designSource\": \"ISS-inspired LEO trainer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites"]
+            },
+            "description": "Create a basic training satellite based on ISS parameters. Owned by MAVERICK."
+          },
+          "response": []
+        },
+        {
+          "name": "Create GeoSat-Alpha (MAVERICK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"GeoSat-Alpha created successfully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.name).to.eql(\"GeoSat-Alpha\");",
+                  "    pm.expect(jsonData.data.orbit.altitude_km).to.eql(35786);",
+                  "    ",
+                  "    pm.environment.set(\"satellite_id_2\", jsonData.data.id);",
+                  "    console.log(\"✓ GeoSat-Alpha created (GEO orbit)\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"GeoSat-Alpha\",\n  \"description\": \"Geostationary communications satellite simulator\",\n  \"orbit\": {\n    \"altitude_km\": 35786,\n    \"inclination_degrees\": 0\n  },\n  \"power\": {\n    \"solarPower_watts\": 5.0,\n    \"batteryCapacity_wh\": 50,\n    \"baseDrawRate_watts\": 1.0,\n    \"currentCharge_percent\": 100\n  },\n  \"attitude\": {\n    \"currentTarget\": \"NADIR\",\n    \"error_degrees\": 0.1\n  },\n  \"thermal\": {\n    \"currentTemp_celsius\": 15,\n    \"minSafe_celsius\": -20,\n    \"maxSafe_celsius\": 60,\n    \"heaterAvailable\": true\n  },\n  \"propulsion\": {\n    \"propellantRemaining_kg\": 2.0,\n    \"maxDeltaV_ms\": 50\n  },\n  \"payload\": {\n    \"type\": \"Communications Array\",\n    \"isActive\": true,\n    \"powerDraw_watts\": 2.5\n  },\n  \"status\": \"ACTIVE\",\n  \"difficultyLevel\": \"ADVANCED\",\n  \"capabilities\": [\"Communications\", \"Station keeping\"],\n  \"designSource\": \"Generic GEO comsat\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites"]
+            },
+            "description": "Create an advanced geostationary satellite for communications training."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Satellite - Invalid Orbit (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 or 422\", function () {",
+                  "    pm.expect([400, 422]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns validation error\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"error\");",
+                  "    console.log(\"✓ Validation correctly rejected invalid orbit\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"InvalidSat\",\n  \"description\": \"This should fail\",\n  \"orbit\": {\n    \"altitude_km\": 50,\n    \"inclination_degrees\": 51.6\n  },\n  \"power\": {\n    \"solarPower_watts\": 2.5,\n    \"batteryCapacity_wh\": 20,\n    \"baseDrawRate_watts\": 0.5,\n    \"currentCharge_percent\": 85\n  },\n  \"attitude\": {\n    \"currentTarget\": \"NADIR\",\n    \"error_degrees\": 0.5\n  },\n  \"thermal\": {\n    \"currentTemp_celsius\": 20,\n    \"minSafe_celsius\": -10,\n    \"maxSafe_celsius\": 50,\n    \"heaterAvailable\": true\n  },\n  \"propulsion\": {\n    \"propellantRemaining_kg\": 0.5,\n    \"maxDeltaV_ms\": 15\n  },\n  \"payload\": {\n    \"type\": \"Camera\",\n    \"isActive\": false,\n    \"powerDraw_watts\": 1.2\n  },\n  \"status\": \"TRAINING\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites"]
+            },
+            "description": "Test validation - altitude below minimum (160 km LEO minimum)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Create satellite operations with validation tests"
+    },
+    {
+      "name": "Satellites - List & Retrieve",
+      "item": [
+        {
+          "name": "List All Satellites (MAVERICK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns paginated satellite list\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"success\");",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "    pm.expect(jsonData.pagination).to.exist;",
+                  "});",
+                  "",
+                  "pm.test(\"Pagination includes correct fields\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.pagination.page).to.exist;",
+                  "    pm.expect(jsonData.pagination.limit).to.exist;",
+                  "    pm.expect(jsonData.pagination.total).to.exist;",
+                  "    pm.expect(jsonData.pagination.totalPages).to.exist;",
+                  "    ",
+                  "    console.log(\"✓ Found\", jsonData.pagination.total, \"satellite(s)\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites"]
+            },
+            "description": "List all satellites owned by MAVERICK (default pagination)"
+          },
+          "response": []
+        },
+        {
+          "name": "List Satellites - Filtered by Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns only TRAINING satellites\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.data.length > 0) {",
+                  "        jsonData.data.forEach(sat => {",
+                  "            pm.expect(sat.status).to.eql(\"TRAINING\");",
+                  "        });",
+                  "    }",
+                  "    console.log(\"✓ Filtered to TRAINING status satellites\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites?status=TRAINING",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "TRAINING"
+                }
+              ]
+            },
+            "description": "Filter satellites by TRAINING status"
+          },
+          "response": []
+        },
+        {
+          "name": "List Satellites - Custom Pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns correct page and limit\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.pagination.page).to.eql(1);",
+                  "    pm.expect(jsonData.pagination.limit).to.eql(10);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites?page=1&limit=10&sortBy=name&sortOrder=asc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "name"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc"
+                }
+              ]
+            },
+            "description": "List satellites with custom pagination and sorting"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Satellite By ID (MAVERICK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns satellite details\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"success\");",
+                  "    pm.expect(jsonData.data.id).to.exist;",
+                  "    pm.expect(jsonData.data.name).to.exist;",
+                  "    ",
+                  "    console.log(\"✓ Retrieved satellite:\", jsonData.data.name);",
+                  "});",
+                  "",
+                  "pm.test(\"Satellite has all subsystems\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.orbit).to.exist;",
+                  "    pm.expect(jsonData.data.power).to.exist;",
+                  "    pm.expect(jsonData.data.attitude).to.exist;",
+                  "    pm.expect(jsonData.data.thermal).to.exist;",
+                  "    pm.expect(jsonData.data.propulsion).to.exist;",
+                  "    pm.expect(jsonData.data.payload).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites/{{satellite_id_1}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites", "{{satellite_id_1}}"]
+            },
+            "description": "Retrieve specific satellite by ID (MAVERICK's own satellite)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Satellite - Not Found (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns error status\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"error\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites/nonexistent_id_12345",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites", "nonexistent_id_12345"]
+            },
+            "description": "Test retrieval of non-existent satellite"
+          },
+          "response": []
+        }
+      ],
+      "description": "List and retrieve satellite operations"
+    },
+    {
+      "name": "Satellites - Update",
+      "item": [
+        {
+          "name": "Update Satellite - Full (PUT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Satellite updated successfully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"success\");",
+                  "    pm.expect(jsonData.data.description).to.include(\"Updated\");",
+                  "    ",
+                  "    console.log(\"✓ Satellite fully updated\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"TrainingSat-01\",\n  \"description\": \"Updated ISS-inspired LEO training satellite - Mission Day 2\",\n  \"orbit\": {\n    \"altitude_km\": 410,\n    \"inclination_degrees\": 51.6\n  },\n  \"power\": {\n    \"solarPower_watts\": 2.5,\n    \"batteryCapacity_wh\": 20,\n    \"baseDrawRate_watts\": 0.5,\n    \"currentCharge_percent\": 90\n  },\n  \"attitude\": {\n    \"currentTarget\": \"SUN\",\n    \"error_degrees\": 0.3\n  },\n  \"thermal\": {\n    \"currentTemp_celsius\": 22,\n    \"minSafe_celsius\": -10,\n    \"maxSafe_celsius\": 50,\n    \"heaterAvailable\": true\n  },\n  \"propulsion\": {\n    \"propellantRemaining_kg\": 0.45,\n    \"maxDeltaV_ms\": 14\n  },\n  \"payload\": {\n    \"type\": \"Camera\",\n    \"isActive\": true,\n    \"powerDraw_watts\": 1.2\n  },\n  \"status\": \"ACTIVE\",\n  \"difficultyLevel\": \"BEGINNER\",\n  \"capabilities\": [\"Power management\", \"Attitude control\", \"Imaging\"],\n  \"designSource\": \"ISS-inspired LEO trainer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites/{{satellite_id_1}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites", "{{satellite_id_1}}"]
+            },
+            "description": "Full satellite update (PUT) - replaces entire satellite configuration"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Satellite - Partial (PATCH)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Partial update successful\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"success\");",
+                  "    pm.expect(jsonData.data.power.currentCharge_percent).to.eql(75);",
+                  "    ",
+                  "    console.log(\"✓ Battery charge updated to 75%\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"power\": {\n    \"currentCharge_percent\": 75\n  },\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites/{{satellite_id_1}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites", "{{satellite_id_1}}"]
+            },
+            "description": "Partial satellite update (PATCH) - update only specific fields like battery charge"
+          },
+          "response": []
+        },
+        {
+          "name": "Patch Satellite - Attitude Change",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Attitude target updated\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.attitude.currentTarget).to.eql(\"NADIR\");",
+                  "    ",
+                  "    console.log(\"✓ Attitude pointing changed to NADIR\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"attitude\": {\n    \"currentTarget\": \"NADIR\",\n    \"error_degrees\": 1.2\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites/{{satellite_id_1}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites", "{{satellite_id_1}}"]
+            },
+            "description": "Update satellite attitude control target"
+          },
+          "response": []
+        },
+        {
+          "name": "Patch Satellite - Empty Body (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 or 422\", function () {",
+                  "    pm.expect([400, 422]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns validation error\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"error\");",
+                  "    console.log(\"✓ Empty PATCH correctly rejected\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites/{{satellite_id_1}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites", "{{satellite_id_1}}"]
+            },
+            "description": "Test PATCH validation - empty body should fail"
+          },
+          "response": []
+        }
+      ],
+      "description": "Full and partial satellite update operations"
+    },
+    {
+      "name": "Satellites - Authorization Tests",
+      "item": [
+        {
+          "name": "Admin Access Any Satellite (ICEMAN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Admin can access any satellite\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"success\");",
+                  "    ",
+                  "    console.log(\"✓ ICEMAN (admin) accessed MAVERICK's satellite\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites/{{satellite_id_1}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites", "{{satellite_id_1}}"]
+            },
+            "description": "Test that ICEMAN (admin) can access MAVERICK's satellite"
+          },
+          "response": []
+        },
+        {
+          "name": "Access Without Token (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns authorization error\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.be.oneOf([\"NO-GO\", \"error\"]);",
+                  "    ",
+                  "    console.log(\"✓ Unauthorized access correctly blocked\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites"]
+            },
+            "description": "Test accessing satellites without authentication token"
+          },
+          "response": []
+        }
+      ],
+      "description": "Authorization and access control tests"
+    },
+    {
+      "name": "Satellites - Delete",
+      "item": [
+        {
+          "name": "Delete Satellite (MAVERICK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Satellite deleted successfully\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"success\");",
+                  "    pm.expect(jsonData.message).to.exist;",
+                  "    ",
+                  "    console.log(\"✓ Satellite deleted\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites/{{satellite_id_2}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites", "{{satellite_id_2}}"]
+            },
+            "description": "Delete GeoSat-Alpha (MAVERICK's own satellite)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Non-Existent Satellite (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns not found error\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"error\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites/nonexistent_satellite_xyz",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites", "nonexistent_satellite_xyz"]
+            },
+            "description": "Test deletion of non-existent satellite"
+          },
+          "response": []
+        },
+        {
+          "name": "Admin Delete Any Satellite (ICEMAN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Admin can delete any satellite\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"success\");",
+                  "    ",
+                  "    console.log(\"✓ ICEMAN (admin) deleted MAVERICK's satellite\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/satellites/{{satellite_id_1}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "satellites", "{{satellite_id_1}}"]
+            },
+            "description": "Test that ICEMAN (admin) can delete any user's satellite"
+          },
+          "response": []
+        }
+      ],
+      "description": "Satellite deletion operations"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request script",
+          "pm.environment.set(\"request_timestamp\", new Date().toISOString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script",
+          "pm.test(\"Response time is acceptable\", function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "satellite_id_1",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "satellite_id_2",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "key": "maverick_user_id",
+      "value": "",
+      "type": "default"
+    }
+  ]
+}

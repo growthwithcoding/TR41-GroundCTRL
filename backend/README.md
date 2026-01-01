@@ -8,12 +8,15 @@ A production-ready Node.js/Express API with enterprise-grade security, Firebase 
 
 ## 🆕 Recent Updates
 
-### Phase 0-1 Enhancements (December 2025)
-- ✅ **Identity Policy Enforcement** - uid-based targeting (canonical identifier), callSign as non-unique display label
-- ✅ **Versioning Framework** - Established SemVer approach with CHANGELOG.md and release documentation
-- ✅ **Repository Hygiene** - Added CONTRIBUTING.md, VERSIONING.md, RELEASE.md for team workflow
-- ✅ **Enhanced Documentation** - Updated Swagger to reflect identity policy and architectural decisions
-- ✅ **ESLint v9 Migration** - Upgraded to flat config for modern linting standards
+### Phase 5: Satellites Domain (December 2025)
+- ✅ **Satellite Management** - Full CRUD operations with ownership scoping and training scenarios
+
+### Upcoming Phases (Q1 2026)
+- 🔄 **Phase 6: Scenarios Domain** - Mission scenarios with satellite references and initial state
+- 🔄 **Phase 7: Scenario Steps Domain** - Ordered steps for guided scenarios with objectives
+- 🔄 **Phase 8: Sessions & Simulation State** - User scenario sessions and state tracking
+- 🔄 **Phase 9: Mission Commands** - Command logging, validation, and feedback hooks
+- 🔄 **Phase 10: NOVA AI Integration** - AI tutoring layer with step-aware guidance
 
 ---
 
@@ -31,6 +34,7 @@ A production-ready Node.js/Express API with enterprise-grade security, Firebase 
 - ✅ **Call Sign System** - Non-unique operator display names
 - ✅ **Call Sign System** - Non-unique display labels for operators (uid is canonical identifier)
 - ✅ **Swagger Documentation** - Interactive API documentation at `/api/v1/docs`
+- ✅ **Satellite Management** - Full CRUD operations with ownership scoping and training scenarios
 
 ### Architecture
 - **Separation of Concerns**: Routes → Controllers → Services → Repositories
@@ -370,6 +374,98 @@ Content-Type: application/json
 }
 ```
 
+### Satellites
+
+#### List Satellites
+```http
+GET /api/v1/satellites?page=1&limit=20&sortBy=createdAt&sortOrder=desc&status=TRAINING
+Authorization: Bearer {accessToken}
+```
+
+Returns paginated list of satellites owned by the authenticated user (or all satellites if admin).
+
+#### Create Satellite
+```http
+POST /api/v1/satellites
+Authorization: Bearer {accessToken}
+Content-Type: application/json
+
+{
+  "name": "TrainingSat-01",
+  "description": "ISS-like satellite for training",
+  "orbit": {
+    "altitude_km": 408,
+    "inclination_degrees": 51.6
+  },
+  "power": {
+    "solarPower_watts": 2.5,
+    "batteryCapacity_wh": 20,
+    "baseDrawRate_watts": 0.5,
+    "currentCharge_percent": 100
+  },
+  "attitude": {
+    "currentTarget": "NADIR",
+    "error_degrees": 0.5
+  },
+  "thermal": {
+    "currentTemp_celsius": 20,
+    "minSafe_celsius": -20,
+    "maxSafe_celsius": 50,
+    "heaterAvailable": true
+  },
+  "propulsion": {
+    "propellantRemaining_kg": 0.5,
+    "maxDeltaV_ms": 50
+  },
+  "payload": {
+    "type": "Camera",
+    "isActive": false,
+    "powerDraw_watts": 5
+  },
+  "status": "TRAINING",
+  "difficultyLevel": "BEGINNER"
+}
+```
+
+#### Get Satellite by ID
+```http
+GET /api/v1/satellites/{id}
+Authorization: Bearer {accessToken}
+```
+
+Returns a single satellite by ID (owner or admin only).
+
+#### Update Satellite (Full)
+```http
+PUT /api/v1/satellites/{id}
+Authorization: Bearer {accessToken}
+Content-Type: application/json
+
+{
+  "name": "UpdatedSat-01",
+  // ... all required fields
+}
+```
+
+#### Update Satellite (Partial)
+```http
+PATCH /api/v1/satellites/{id}
+Authorization: Bearer {accessToken}
+Content-Type: application/json
+
+{
+  "power": {
+    "currentCharge_percent": 75
+  }
+}
+```
+
+#### Delete Satellite
+```http
+DELETE /api/v1/satellites/{id}
+Authorization: Bearer {accessToken}
+```
+
 ---
 
 ## 🔐 Security Features
@@ -437,7 +533,7 @@ backend/
 │   │   ├── health.js         # Health check endpoint
 │   │   ├── auth.js           # Authentication routes
 │   │   ├── users.js          # User management routes
-│   │   ├── satellites.js     # Satellite routes (stub)
+│   │   ├── satellites.js     # Satellite management routes
 │   │   ├── scenarios.js      # Scenario routes (stub)
 │   │   ├── commands.js       # Command routes (stub)
 │   │   └── ai.js             # AI/NOVA routes (stub)

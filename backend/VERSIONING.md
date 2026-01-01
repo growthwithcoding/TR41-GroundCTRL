@@ -1,8 +1,8 @@
 # Versioning Scheme
 
 **Project:** GroundCTRL Backend  
-**Current Version:** 1.0.1  
-**Last Updated:** 2025-12-28  
+**Current Version:** 1.1.0  
+**Last Updated:** 2025-01-02  
 **Standard:** [Semantic Versioning 2.0.0](https://semver.org)
 
 ---
@@ -213,7 +213,7 @@ When depending on GroundCTRL Backend API:
 |---------|------|------|-------------|
 | 1.0.0 | 2025-12-25 | INITIAL | MVP with authentication and user management |
 | 1.0.1 | 2025-12-28 | PATCH | Foundation hardening (security, validation, CRUD) |
-| 1.1.0 | TBD | MINOR | Satellites domain (new endpoints) |
+| 1.1.0 | 2025-01-02 | MINOR | Satellites domain (new endpoints) |
 | 1.2.0 | TBD | MINOR | Scenarios domain (new endpoints) |
 | 1.3.0 | TBD | MINOR | Steps domain (new endpoints) |
 | 1.4.0 | TBD | MINOR | Sessions domain (new endpoints) |

@@ -9,6 +9,7 @@ const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const { initializeFirebase } = require('./config/firebase');
 const swaggerSpec = require('./config/swagger');
+const missionControl = require('./config/missionControl');
 const auditLogger = require('./middleware/auditLogger');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const authErrorNormalizer = require('./middleware/authErrorNormalizer');
@@ -75,7 +76,7 @@ app.use('/api/v1', routes);
 app.get('/', (req, res) => {
   res.json({
     service: 'GroundCTRL API',
-    version: '1.0.0',
+    version: missionControl.version,
     status: 'operational',
     documentation: '/api/v1/docs',
     health: '/api/v1/health'

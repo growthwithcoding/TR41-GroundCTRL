@@ -5,9 +5,19 @@ All notable changes to the GroundCTRL Backend will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2025-01-02
+
+### Checkpoint C: Core Domain APIs Ready (Phase 5 Complete)
+
+This minor release completes the satellite management domain, marking the first core domain API ready for client integration. The satellite subsystem provides full CRUD operations with ownership scoping, comprehensive validation, and complete Swagger documentation.
 
 ### Added
+- Phase 5: Complete satellite management domain with full CRUD operations
+- Phase 5: Satellite schema validation with strict Zod schemas for all subsystems (orbit, power, attitude, thermal, propulsion, payload)
+- Phase 5: Ownership scoping for satellite operations (users can only access their own satellites, admins see all)
+- Phase 5: Comprehensive Swagger documentation for all satellite endpoints
+- Phase 5: Satellite repository with Firestore integration
+- Phase 5: Satellite controller using CRUD factory pattern with lifecycle hooks
 
 ### Changed
 
@@ -16,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 ---
+
+## [Unreleased]
 
 ## [1.0.1] - 2025-12-28
 
@@ -183,6 +195,8 @@ This patch release completes the foundation layer with security hardening, valid
 ## Version History
 
 - **[1.0.0]** - 2025-12-25 - Initial release with core authentication and user management
+- **[1.0.1]** - 2025-12-28 - Foundation hardening (security, validation, CRUD improvements)
+- **[1.1.0]** - 2025-01-02 - Satellites domain complete (Checkpoint C)
 - **[Unreleased]** - Current development version
 
 ---

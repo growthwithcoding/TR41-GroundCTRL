@@ -5,6 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
+const missionControl = require('../config/missionControl');
 
 // Import route modules
 const healthRoutes = require('./health');
@@ -26,7 +27,7 @@ router.get('/', (req, res) => {
     code: 200,
     payload: {
       message: 'GroundCTRL API v1',
-      version: '1.0.0',
+      version: missionControl.version,
       availableRoutes: [
         { path: '/health', methods: ['GET'], description: 'Health check and system status' },
         { path: '/auth/login', methods: ['POST'], description: 'Operator authentication' },

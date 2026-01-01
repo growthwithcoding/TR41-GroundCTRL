@@ -11,7 +11,7 @@ const swaggerOptions = {
     openapi: '3.0.0',
     info: {
       title: 'GroundCTRL Mission Control API',
-      version: '1.0.0',
+      version: missionControl.version,
       description: `
 ## 🛰️ Mission Control Platform for Satellite Simulation
 
@@ -88,7 +88,7 @@ All timestamps use ISO 8601 format. Telemetry includes:
       },
       {
         name: 'Satellites',
-        description: 'Satellite operations (coming soon)'
+        description: 'Satellite management operations (CRUD, ownership scoping, training scenarios)'
       },
       {
         name: 'Scenarios',
@@ -264,6 +264,178 @@ All timestamps use ISO 8601 format. Telemetry includes:
               type: 'string',
               description: 'JWT refresh token (7 day expiry)',
               example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+            }
+          }
+        },
+        Satellite: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              description: 'Unique satellite identifier',
+              example: 'sat_123'
+            },
+            name: {
+              type: 'string',
+              description: 'Satellite name or designation',
+              example: 'TrainingSat-01'
+            },
+            description: {
+              type: 'string',
+              description: 'Optional human-readable description',
+              example: 'ISS-like satellite for training'
+            },
+            orbit: {
+              type: 'object',
+              properties: {
+                altitude_km: {
+                  type: 'number',
+                  description: 'Altitude above Earth mean sea level in kilometers',
+                  example: 408
+                },
+                inclination_degrees: {
+                  type: 'number',
+                  description: 'Orbital plane inclination in degrees',
+                  example: 51.6
+                }
+              }
+            },
+            power: {
+              type: 'object',
+              properties: {
+                solarPower_watts: {
+                  type: 'number',
+                  description: 'Peak power from solar panels in Watts',
+                  example: 2.5
+                },
+                batteryCapacity_wh: {
+                  type: 'number',
+                  description: 'Usable battery energy in Watt-hours',
+                  example: 20
+                },
+                baseDrawRate_watts: {
+                  type: 'number',
+                  description: 'Always-on power draw in Watts',
+                  example: 0.5
+                },
+                currentCharge_percent: {
+                  type: 'number',
+                  description: 'Battery state of charge (0-100%)',
+                  example: 85
+                }
+              }
+            },
+            attitude: {
+              type: 'object',
+              properties: {
+                currentTarget: {
+                  type: 'string',
+                  enum: ['NADIR', 'SUN', 'INERTIAL_EAST'],
+                  description: 'Current pointing target',
+                  example: 'NADIR'
+                },
+                error_degrees: {
+                  type: 'number',
+                  description: 'Pointing error from desired target in degrees',
+                  example: 0.5
+                }
+              }
+            },
+            thermal: {
+              type: 'object',
+              properties: {
+                currentTemp_celsius: {
+                  type: 'number',
+                  description: 'Current average satellite temperature in Celsius',
+                  example: 20
+                },
+                minSafe_celsius: {
+                  type: 'number',
+                  description: 'Minimum safe operating temperature in Celsius',
+                  example: -20
+                },
+                maxSafe_celsius: {
+                  type: 'number',
+                  description: 'Maximum safe operating temperature in Celsius',
+                  example: 50
+                },
+                heaterAvailable: {
+                  type: 'boolean',
+                  description: 'Whether an active heater is available',
+                  example: true
+                }
+              }
+            },
+            propulsion: {
+              type: 'object',
+              properties: {
+                propellantRemaining_kg: {
+                  type: 'number',
+                  description: 'Remaining propellant mass in kilograms',
+                  example: 0.5
+                },
+                maxDeltaV_ms: {
+                  type: 'number',
+                  description: 'Approximate available delta-V in meters per second',
+                  example: 50
+                }
+              }
+            },
+            payload: {
+              type: 'object',
+              properties: {
+                type: {
+                  type: 'string',
+                  description: 'Payload type (e.g., Camera, Spectrometer)',
+                  example: 'Camera'
+                },
+                isActive: {
+                  type: 'boolean',
+                  description: 'Whether the payload is currently active',
+                  example: false
+                },
+                powerDraw_watts: {
+                  type: 'number',
+                  description: 'Payload power consumption when active in Watts',
+                  example: 5
+                }
+              }
+            },
+            status: {
+              type: 'string',
+              enum: ['ACTIVE', 'INACTIVE', 'ARCHIVED', 'TRAINING'],
+              description: 'Operational/training status',
+              example: 'TRAINING'
+            },
+            capabilities: {
+              type: 'array',
+              items: {
+                type: 'string'
+              },
+              description: 'Capabilities used for filtering',
+              example: ['Power management', 'Attitude control']
+            },
+            designSource: {
+              type: 'string',
+              description: 'Reference design source',
+              example: 'ISS-inspired'
+            },
+            createdBy: {
+              type: 'string',
+              description: 'User ID who created the satellite',
+              example: 'abc123xyz456'
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Creation timestamp',
+              example: '2025-01-01T00:00:00.000Z'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp',
+              example: '2025-01-01T00:00:00.000Z'
             }
           }
         }

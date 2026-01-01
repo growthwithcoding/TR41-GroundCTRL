@@ -3,7 +3,12 @@
  * Defines Mission Control response codes and telemetry settings
  */
 
+const packageJson = require('../../package.json');
+
 module.exports = {
+  // API Version (automatically read from package.json)
+  version: packageJson.version,
+
   // Mission Control Status Codes
   statusCodes: {
     GO: 'GO',           // 200-299: Success

@@ -17,7 +17,7 @@ router.get('/', (req, res) => {
   const healthData = {
     status: 'operational',
     service: 'GroundCTRL API',
-    version: '1.0.0',
+    version: missionControl.version,
     station: missionControl.stationId,
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),

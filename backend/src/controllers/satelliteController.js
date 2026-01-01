@@ -1,0 +1,209 @@
+/**
+ * Satellite Controller
+ * 
+ * Generates CRUD handlers using the crudFactory pattern with lifecycle hooks
+ * Enforces ownership scoping and audit logging
+ * 
+ * All input is pre-validated by the validate middleware before reaching these handlers
+ * Validated data is available as req.body, req.query, req.params (standard Express)
+ */
+
+const satelliteRepository = require('../repositories/satelliteRepository');
+const { createCrudHandlers } = require('../factories/crudFactory');
+const logger = require('../utils/logger');
+const {
+  createSatelliteSchema,
+  updateSatelliteSchema,
+  patchSatelliteSchema
+} = require('../schemas/satelliteSchemas');
+
+/**
+ * Lifecycle hooks for satellite CRUD operations
+ * 
+ * These hooks are called by the crudFactory at key points in the request lifecycle
+ * All hooks receive req with authenticated user data from authenticate middleware
+ */
+const satelliteHooks = {
+  /**
+   * Ownership scoping hook
+   * Ensures non-admins only see their own satellites
+   * Admins see all satellites
+   * 
+   * Called before getAll to filter results
+   */
+  ownershipScope: async (req, operation, options) => {
+    // Non-admins scoped to their own satellites
+    if (!req.user?.isAdmin) {
+      return { ...options, createdBy: req.user?.id };
+    }
+    // Admins can see all
+    return options;
+  },
+
+  /**
+   * Pre-create hook
+   * Enriches satellite data with user context
+   */
+  beforeCreate: async (req, data) => {
+    // Data already validated by validate middleware
+    logger.debug('Satellite pre-create validation', {
+      satelliteName: data.name,
+      userId: req.user?.id
+    });
+  },
+
+  /**
+   * Post-create hook
+   * Logs successful creation
+   * 
+   * Note: The crudFactory will handle response formatting
+   */
+  afterCreate: async (req, doc) => {
+    logger.info('Satellite created', {
+      satelliteId: doc.id,
+      satelliteName: doc.name,
+      userId: req.user?.id
+    });
+  },
+
+  /**
+   * Pre-update hook
+   * Validates update operation
+   */
+  beforeUpdate: async (req, data) => {
+    logger.debug('Satellite pre-update validation', {
+      satelliteName: data.name,
+      userId: req.user?.id
+    });
+  },
+
+  /**
+   * Post-update hook
+   * Logs successful update
+   */
+  afterUpdate: async (req, doc) => {
+    logger.info('Satellite updated', {
+      satelliteId: doc.id,
+      satelliteName: doc.name,
+      userId: req.user?.id
+    });
+  },
+
+  /**
+   * Pre-patch hook
+   * Validates partial update
+   */
+  beforePatch: async (req, data) => {
+    logger.debug('Satellite pre-patch validation', {
+      fieldsUpdated: Object.keys(data),
+      userId: req.user?.id
+    });
+  },
+
+  /**
+   * Post-patch hook
+   * Logs successful patch
+   */
+  afterPatch: async (req, doc) => {
+    logger.info('Satellite patched', {
+      satelliteId: doc.id,
+      userId: req.user?.id
+    });
+  },
+
+  /**
+   * Pre-delete hook
+   * Validates deletion
+   */
+  beforeDelete: async (req, id) => {
+    logger.debug('Satellite pre-delete validation', {
+      satelliteId: id,
+      userId: req.user?.id
+    });
+  },
+
+  /**
+   * Post-delete hook
+   * Logs successful deletion
+   */
+  afterDelete: async (req, doc) => {
+    logger.info('Satellite deleted', {
+      satelliteId: doc.id,
+      satelliteName: doc.name,
+      userId: req.user?.id
+    });
+  },
+
+  /**
+   * Post-read hook
+   * Applies to both getAll and getOne operations
+   * Useful for enriching data or post-processing
+   * 
+   * @param {Array} docs - Always an array (single item for getOne, multiple for getAll)
+   */
+  afterRead: async (req, docs) => {
+    logger.debug('Satellites retrieved', {
+      count: docs.length,
+      userId: req.user?.id
+    });
+  },
+
+  /**
+   * Custom audit metadata builder
+   * Enriches audit log with additional context
+   * Merged into the audit log entry by the factory
+   * 
+   * Note: operation and result are provided by factory but not needed for this implementation
+   */
+  auditMetadata: async (req, _operation, _result) => {
+    return {
+      source: 'api',
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent')
+    };
+  }
+};
+
+/**
+ * Generate CRUD handlers using the factory
+ * 
+ * The factory creates handlers that:
+ * 1. Apply ownership scoping filter (if not admin)
+ * 2. Call beforeX hook
+ * 3. Execute repository operation
+ * 4. Call afterX hook
+ * 5. Format response via responseFactory
+ * 6. Log to auditRepository
+ * 
+ * Returns: { getAll, getOne, create, update, patch, delete }
+ */
+const satelliteHandlers = createCrudHandlers(
+  satelliteRepository,
+  'satellite',
+  {
+    create: createSatelliteSchema.shape.body,  // crudFactory only validates req.body
+    update: updateSatelliteSchema.shape.body,  // crudFactory only validates req.body
+    patch: patchSatelliteSchema.shape.body     // crudFactory only validates req.body
+  },
+  satelliteHooks
+);
+
+/**
+ * Export handlers with user-friendly names
+ * Ready to be mounted in route definitions
+ * 
+ * The crudFactory handles:
+ * - Request/response validation
+ * - Error handling (404s, 403s, 422s)
+ * - Pagination
+ * - Audit logging
+ * - Response formatting
+ */
+module.exports = {
+  list: satelliteHandlers.getAll,
+  getOne: satelliteHandlers.getOne,
+  create: satelliteHandlers.create,
+  update: satelliteHandlers.update,
+  patch: satelliteHandlers.patch,
+  remove: satelliteHandlers.delete
+};
