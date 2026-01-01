@@ -14,15 +14,12 @@ const { authMiddleware, requireAdmin } = require('../middleware/authMiddleware')
  * Execute satellite command (stub - admin only)
  */
 router.post('/execute', authMiddleware, requireAdmin, (req, res) => {
-  const response = responseFactory.createResponse(
-    'HOLD',
-    httpStatus.NOT_IMPLEMENTED,
+  const response = responseFactory.createErrorResponse(
     {
-      error: {
-        code: 'NOT_IMPLEMENTED',
-        message: 'Command execution feature under development',
-        details: 'This endpoint will be available in a future release'
-      }
+      statusCode: httpStatus.NOT_IMPLEMENTED,
+      code: 'NOT_IMPLEMENTED',
+      message: 'Command execution feature under development',
+      details: 'This endpoint will be available in a future release'
     },
     {
       callSign: req.callSign || 'SYSTEM',
@@ -38,15 +35,12 @@ router.post('/execute', authMiddleware, requireAdmin, (req, res) => {
  * Get command execution history (stub)
  */
 router.get('/history', authMiddleware, (req, res) => {
-  const response = responseFactory.createResponse(
-    'HOLD',
-    httpStatus.NOT_IMPLEMENTED,
+  const response = responseFactory.createErrorResponse(
     {
-      error: {
-        code: 'NOT_IMPLEMENTED',
-        message: 'Command history feature under development',
-        details: 'This endpoint will be available in a future release'
-      }
+      statusCode: httpStatus.NOT_IMPLEMENTED,
+      code: 'NOT_IMPLEMENTED',
+      message: 'Command history feature under development',
+      details: 'This endpoint will be available in a future release'
     },
     {
       callSign: req.callSign || 'SYSTEM',

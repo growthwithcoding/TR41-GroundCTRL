@@ -195,6 +195,12 @@ const createSatelliteSchema = z
         status: statusEnum
           .default('TRAINING')
           .describe('Operational/training status'),
+        isPublic: z
+          .boolean({
+            invalid_type_error: 'isPublic must be a boolean',
+          })
+          .default(false)
+          .describe('Whether satellite is publicly visible to all users'),
         capabilities: z
           .array(
             z
@@ -264,6 +270,12 @@ const patchSatelliteSchema = z
         payload: payloadSchema.partial().optional(),
 
         status: statusEnum.optional(),
+        isPublic: z
+          .boolean({
+            invalid_type_error: 'isPublic must be a boolean',
+          })
+          .optional()
+          .describe('Whether satellite is publicly visible to all users'),
         capabilities: z
           .array(
             z
@@ -314,6 +326,11 @@ const listSatellitesSchema = z
         status: statusEnum
           .optional()
           .describe('Filter by satellite status'),
+        isPublic: z
+          .string()
+          .optional()
+          .transform((val) => val === 'true')
+          .describe('Filter by public visibility (true/false)'),
       })
       .strict(),
   })

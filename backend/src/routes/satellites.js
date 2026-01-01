@@ -7,7 +7,7 @@ const express = require('express');
 const router = express.Router();
 const { z } = require('zod');
 const satelliteController = require('../controllers/satelliteController');
-const { authMiddleware, requireAdmin } = require('../middleware/authMiddleware');
+const { authMiddleware } = require('../middleware/authMiddleware');
 const { validate } = require('../middleware/validate');
 const {
   createSatelliteSchema,

@@ -5,6 +5,50 @@ All notable changes to the GroundCTRL Backend will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.3.0] - Development
+
+### Phase 7: Scenario Steps Domain (In Progress)
+
+Working on ordered steps for guided scenarios with objectives and default hints for NOVA.
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Security
+
+---
+
+## [1.2.0] - 2025-12-31
+
+### Scenarios Domain Complete (Phase 6)
+
+This minor release completes the scenarios domain, providing full CRUD operations for mission scenarios with satellite references and initial simulation state. The scenarios subsystem enables structured training missions with configurable difficulty levels, pilot tiers, and guided/sandbox modes.
+
+### Added
+- Phase 6: Complete scenario management domain with full CRUD operations
+- Phase 6: Scenario schema validation with strict Zod schemas for all subsystems (initial state, console layout, metadata)
+- Phase 6: Ownership scoping for scenario operations (users can only access their own scenarios, admins see all)
+- Phase 6: Satellite reference validation (scenarios must reference existing satellites)
+- Phase 6: Comprehensive Swagger documentation for all scenario endpoints
+- Phase 6: Scenario repository with Firestore integration
+- Phase 6: Scenario controller using CRUD factory pattern with lifecycle hooks
+- Phase 6: Initial state configuration for simulation seeding (orbit, power, attitude, thermal)
+- Phase 6: Console layout configuration for mission control interface
+- Phase 6: Scenario metadata (difficulty, tier, type, duration, tags, objectives, prerequisites)
+
+### Changed
+
+### Fixed
+
+### Security
+
+---
+
 ## [1.1.0] - 2025-01-02
 
 ### Checkpoint C: Core Domain APIs Ready (Phase 5 Complete)
@@ -26,8 +70,6 @@ This minor release completes the satellite management domain, marking the first 
 ### Security
 
 ---
-
-## [Unreleased]
 
 ## [1.0.1] - 2025-12-28
 
@@ -197,7 +239,8 @@ This patch release completes the foundation layer with security hardening, valid
 - **[1.0.0]** - 2025-12-25 - Initial release with core authentication and user management
 - **[1.0.1]** - 2025-12-28 - Foundation hardening (security, validation, CRUD improvements)
 - **[1.1.0]** - 2025-01-02 - Satellites domain complete (Checkpoint C)
-- **[Unreleased]** - Current development version
+- **[1.2.0]** - 2025-12-31 - Scenarios domain complete (Phase 6)
+- **[1.3.0]** - Development - Scenario Steps domain (Phase 7)
 
 ---
 

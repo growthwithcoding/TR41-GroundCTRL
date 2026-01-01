@@ -25,7 +25,9 @@ async function getAll(options = {}) {
       limit = 20,
       sortBy = 'createdAt',
       sortOrder = 'desc',
-      status
+      status,
+      isPublic,
+      createdBy // Ownership scoping
     } = options;
 
     const db = getFirestore();
@@ -34,6 +36,12 @@ async function getAll(options = {}) {
     // Apply filters
     if (status) {
       query = query.where('status', '==', status);
+    }
+    if (isPublic !== undefined) {
+      query = query.where('isPublic', '==', isPublic);
+    }
+    if (createdBy) {
+      query = query.where('createdBy', '==', createdBy);
     }
 
     // Apply sorting

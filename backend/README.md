@@ -8,11 +8,14 @@ A production-ready Node.js/Express API with enterprise-grade security, Firebase 
 
 ## 🆕 Recent Updates
 
+### Phase 6: Scenarios Domain (December 2025)
+- ✅ **Scenario Management** - Full CRUD operations with satellite references and initial state
+
 ### Phase 5: Satellites Domain (December 2025)
 - ✅ **Satellite Management** - Full CRUD operations with ownership scoping and training scenarios
 
 ### Upcoming Phases (Q1 2026)
-- 🔄 **Phase 6: Scenarios Domain** - Mission scenarios with satellite references and initial state
+- 🔄 **Phase 7: Scenario Steps Domain** - Ordered steps for guided scenarios with objectives
 - 🔄 **Phase 7: Scenario Steps Domain** - Ordered steps for guided scenarios with objectives
 - 🔄 **Phase 8: Sessions & Simulation State** - User scenario sessions and state tracking
 - 🔄 **Phase 9: Mission Commands** - Command logging, validation, and feedback hooks
@@ -35,6 +38,7 @@ A production-ready Node.js/Express API with enterprise-grade security, Firebase 
 - ✅ **Call Sign System** - Non-unique display labels for operators (uid is canonical identifier)
 - ✅ **Swagger Documentation** - Interactive API documentation at `/api/v1/docs`
 - ✅ **Satellite Management** - Full CRUD operations with ownership scoping and training scenarios
+- ✅ **Scenario Management** - Full CRUD operations with satellite references and initial state
 
 ### Architecture
 - **Separation of Concerns**: Routes → Controllers → Services → Repositories

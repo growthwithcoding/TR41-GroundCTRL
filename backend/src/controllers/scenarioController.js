@@ -1,5 +1,5 @@
 /**
- * Satellite Controller
+ * Scenario Controller
  * 
  * Generates CRUD handlers using the crudFactory pattern with lifecycle hooks
  * Enforces ownership scoping and audit logging
@@ -8,26 +8,27 @@
  * Validated data is available as req.body, req.query, req.params (standard Express)
  */
 
-const satelliteRepository = require('../repositories/satelliteRepository');
+const scenarioRepository = require('../repositories/scenarioRepository');
 const { createCrudHandlers } = require('../factories/crudFactory');
 const logger = require('../utils/logger');
 const {
-  createSatelliteSchema,
-  updateSatelliteSchema,
-  patchSatelliteSchema
-} = require('../schemas/satelliteSchemas');
+  createScenarioSchema,
+  updateScenarioSchema,
+  patchScenarioSchema
+} = require('../schemas/scenarioSchemas');
 
 /**
- * Lifecycle hooks for satellite CRUD operations
+ * Lifecycle hooks for scenario CRUD operations
  * 
  * These hooks are called by the crudFactory at key points in the request lifecycle
  * All hooks receive req with authenticated user data from authenticate middleware
  */
-const satelliteHooks = {
+const scenarioHooks = {
+
   /**
    * Ownership scoping hook
-   * Ensures non-admins only see their own satellites or public satellites
-   * Admins see all satellites
+   * Ensures non-admins only see their own scenarios or public scenarios
+   * Admins see all scenarios
    * 
    * Called before getAll to filter results
    * 
@@ -41,7 +42,7 @@ const satelliteHooks = {
     }
 
     // Non-admins: If not filtering by isPublic specifically,
-    // they can only see their own satellites OR public ones
+    // they can only see their own scenarios OR public ones
     // This is handled by the repository layer through post-filtering
     if (!req.user?.isAdmin) {
       return { ...options, createdBy: req.user?.id };
@@ -52,12 +53,12 @@ const satelliteHooks = {
 
   /**
    * Pre-create hook
-   * Enriches satellite data with user context
+   * Enriches scenario data with user context
    */
   beforeCreate: async (req, data) => {
     // Data already validated by validate middleware
-    logger.debug('Satellite pre-create validation', {
-      satelliteName: data.name,
+    logger.debug('Scenario pre-create validation', {
+      scenarioTitle: data.title,
       userId: req.user?.id
     });
   },
@@ -69,9 +70,9 @@ const satelliteHooks = {
    * Note: The crudFactory will handle response formatting
    */
   afterCreate: async (req, doc) => {
-    logger.info('Satellite created', {
-      satelliteId: doc.id,
-      satelliteName: doc.name,
+    logger.info('Scenario created', {
+      scenarioId: doc.id,
+      scenarioTitle: doc.title,
       userId: req.user?.id
     });
   },
@@ -81,8 +82,8 @@ const satelliteHooks = {
    * Validates update operation
    */
   beforeUpdate: async (req, data) => {
-    logger.debug('Satellite pre-update validation', {
-      satelliteName: data.name,
+    logger.debug('Scenario pre-update validation', {
+      scenarioTitle: data.title,
       userId: req.user?.id
     });
   },
@@ -92,9 +93,9 @@ const satelliteHooks = {
    * Logs successful update
    */
   afterUpdate: async (req, doc) => {
-    logger.info('Satellite updated', {
-      satelliteId: doc.id,
-      satelliteName: doc.name,
+    logger.info('Scenario updated', {
+      scenarioId: doc.id,
+      scenarioTitle: doc.title,
       userId: req.user?.id
     });
   },
@@ -104,7 +105,7 @@ const satelliteHooks = {
    * Validates partial update
    */
   beforePatch: async (req, data) => {
-    logger.debug('Satellite pre-patch validation', {
+    logger.debug('Scenario pre-patch validation', {
       fieldsUpdated: Object.keys(data),
       userId: req.user?.id
     });
@@ -115,8 +116,8 @@ const satelliteHooks = {
    * Logs successful patch
    */
   afterPatch: async (req, doc) => {
-    logger.info('Satellite patched', {
-      satelliteId: doc.id,
+    logger.info('Scenario patched', {
+      scenarioId: doc.id,
       userId: req.user?.id
     });
   },
@@ -126,8 +127,8 @@ const satelliteHooks = {
    * Validates deletion
    */
   beforeDelete: async (req, id) => {
-    logger.debug('Satellite pre-delete validation', {
-      satelliteId: id,
+    logger.debug('Scenario pre-delete validation', {
+      scenarioId: id,
       userId: req.user?.id
     });
   },
@@ -137,9 +138,9 @@ const satelliteHooks = {
    * Logs successful deletion
    */
   afterDelete: async (req, doc) => {
-    logger.info('Satellite deleted', {
-      satelliteId: doc.id,
-      satelliteName: doc.name,
+    logger.info('Scenario deleted', {
+      scenarioId: doc.id,
+      scenarioTitle: doc.title,
       userId: req.user?.id
     });
   },
@@ -152,7 +153,7 @@ const satelliteHooks = {
    * @param {Array} docs - Always an array (single item for getOne, multiple for getAll)
    */
   afterRead: async (req, docs) => {
-    logger.debug('Satellites retrieved', {
+    logger.debug('Scenarios retrieved', {
       count: docs.length,
       userId: req.user?.id
     });
@@ -162,8 +163,6 @@ const satelliteHooks = {
    * Custom audit metadata builder
    * Enriches audit log with additional context
    * Merged into the audit log entry by the factory
-   * 
-   * Note: operation and result are provided by factory but not needed for this implementation
    */
   auditMetadata: async (req, _operation, _result) => {
     return {
@@ -172,6 +171,7 @@ const satelliteHooks = {
       userAgent: req.get('user-agent')
     };
   }
+
 };
 
 /**
@@ -187,15 +187,15 @@ const satelliteHooks = {
  * 
  * Returns: { getAll, getOne, create, update, patch, delete }
  */
-const satelliteHandlers = createCrudHandlers(
-  satelliteRepository,
-  'satellite',
+const scenarioHandlers = createCrudHandlers(
+  scenarioRepository,
+  'scenario',
   {
-    create: createSatelliteSchema.shape.body,  // crudFactory only validates req.body
-    update: updateSatelliteSchema.shape.body,  // crudFactory only validates req.body
-    patch: patchSatelliteSchema.shape.body     // crudFactory only validates req.body
+    create: createScenarioSchema.shape.body,
+    update: updateScenarioSchema.shape.body,
+    patch: patchScenarioSchema.shape.body
   },
-  satelliteHooks
+  scenarioHooks
 );
 
 /**
@@ -210,10 +210,10 @@ const satelliteHandlers = createCrudHandlers(
  * - Response formatting
  */
 module.exports = {
-  list: satelliteHandlers.getAll,
-  getOne: satelliteHandlers.getOne,
-  create: satelliteHandlers.create,
-  update: satelliteHandlers.update,
-  patch: satelliteHandlers.patch,
-  remove: satelliteHandlers.delete
+  list: scenarioHandlers.getAll,
+  getOne: scenarioHandlers.getOne,
+  create: scenarioHandlers.create,
+  update: scenarioHandlers.update,
+  patch: scenarioHandlers.patch,
+  remove: scenarioHandlers.delete
 };

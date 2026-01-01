@@ -160,9 +160,19 @@ function createPaginatedResponse(data, pagination, options = {}) {
   });
 }
 
+/**
+ * Generic createResponse - Alias for createSuccessResponse
+ * Added for backward compatibility
+ * @deprecated Use createSuccessResponse instead
+ */
+function createResponse(data, options = {}) {
+  return createSuccessResponse(data, options);
+}
+
 module.exports = {
   createSuccessResponse,
   createErrorResponse,
   createPaginatedResponse,
-  getMissionStatus
+  getMissionStatus,
+  createResponse  // Backward compatibility alias
 };

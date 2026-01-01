@@ -14,15 +14,12 @@ const { authMiddleware } = require('../middleware/authMiddleware');
  * AI generation endpoint (stub)
  */
 router.post('/generate', authMiddleware, (req, res) => {
-  const response = responseFactory.createResponse(
-    'HOLD',
-    httpStatus.NOT_IMPLEMENTED,
+  const response = responseFactory.createErrorResponse(
     {
-      error: {
-        code: 'NOT_IMPLEMENTED',
-        message: 'AI generation feature under development',
-        details: 'This endpoint will be available in a future release'
-      }
+      statusCode: httpStatus.NOT_IMPLEMENTED,
+      code: 'NOT_IMPLEMENTED',
+      message: 'AI generation feature under development',
+      details: 'This endpoint will be available in a future release'
     },
     {
       callSign: req.callSign || 'SYSTEM',
@@ -38,15 +35,12 @@ router.post('/generate', authMiddleware, (req, res) => {
  * AI query endpoint (stub)
  */
 router.post('/query', authMiddleware, (req, res) => {
-  const response = responseFactory.createResponse(
-    'HOLD',
-    httpStatus.NOT_IMPLEMENTED,
+  const response = responseFactory.createErrorResponse(
     {
-      error: {
-        code: 'NOT_IMPLEMENTED',
-        message: 'AI query feature under development',
-        details: 'This endpoint will be available in a future release'
-      }
+      statusCode: httpStatus.NOT_IMPLEMENTED,
+      code: 'NOT_IMPLEMENTED',
+      message: 'AI query feature under development',
+      details: 'This endpoint will be available in a future release'
     },
     {
       callSign: req.callSign || 'SYSTEM',

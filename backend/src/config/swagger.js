@@ -92,7 +92,7 @@ All timestamps use ISO 8601 format. Telemetry includes:
       },
       {
         name: 'Scenarios',
-        description: 'Mission scenario management (coming soon)'
+        description: 'Mission scenario management (CRUD operations with satellite references and initial state)'
       },
       {
         name: 'AI',
@@ -423,6 +423,195 @@ All timestamps use ISO 8601 format. Telemetry includes:
             createdBy: {
               type: 'string',
               description: 'User ID who created the satellite',
+              example: 'abc123xyz456'
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Creation timestamp',
+              example: '2025-01-01T00:00:00.000Z'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp',
+              example: '2025-01-01T00:00:00.000Z'
+            }
+          }
+        },
+        Scenario: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              description: 'Unique scenario identifier',
+              example: 'scen_123'
+            },
+            code: {
+              type: 'string',
+              description: 'Unique scenario code (uppercase alphanumeric with underscores)',
+              example: 'ROOKIE_ORBIT_101'
+            },
+            title: {
+              type: 'string',
+              description: 'Human-readable scenario title',
+              example: 'Orbit Orientation'
+            },
+            description: {
+              type: 'string',
+              description: 'Detailed mission description and learning objectives',
+              example: 'Learn the basics of orbital mechanics and satellite positioning'
+            },
+            difficulty: {
+              type: 'string',
+              enum: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'],
+              description: 'Difficulty level for learning path',
+              example: 'BEGINNER'
+            },
+            tier: {
+              type: 'string',
+              enum: ['ROOKIE_PILOT', 'MISSION_SPECIALIST', 'MISSION_COMMANDER'],
+              description: 'Pilot tier required',
+              example: 'ROOKIE_PILOT'
+            },
+            type: {
+              type: 'string',
+              enum: ['GUIDED', 'SANDBOX'],
+              description: 'GUIDED (step-by-step) or SANDBOX (free-play)',
+              example: 'GUIDED'
+            },
+            estimatedDurationMinutes: {
+              type: 'number',
+              description: 'Expected playtime in minutes',
+              example: 15
+            },
+            status: {
+              type: 'string',
+              enum: ['DRAFT', 'PUBLISHED', 'ARCHIVED'],
+              description: 'Publishing status',
+              example: 'PUBLISHED'
+            },
+            isActive: {
+              type: 'boolean',
+              description: 'Whether scenario is available for users',
+              example: true
+            },
+            isCore: {
+              type: 'boolean',
+              description: 'true for core training scenarios',
+              example: true
+            },
+            satellite_id: {
+              type: 'string',
+              description: 'FK to satellites.id',
+              example: 'sat_123'
+            },
+            initialState: {
+              type: 'object',
+              description: 'Seed state for simulation (orbit, power, attitude, etc.)',
+              properties: {
+                orbit: {
+                  type: 'object',
+                  properties: {
+                    altitude_km: {
+                      type: 'number',
+                      description: 'Initial altitude in kilometers',
+                      example: 408
+                    },
+                    inclination_degrees: {
+                      type: 'number',
+                      description: 'Initial inclination in degrees',
+                      example: 51.6
+                    }
+                  }
+                },
+                power: {
+                  type: 'object',
+                  properties: {
+                    currentCharge_percent: {
+                      type: 'number',
+                      description: 'Initial battery charge percentage',
+                      example: 100
+                    }
+                  }
+                },
+                attitude: {
+                  type: 'object',
+                  properties: {
+                    currentTarget: {
+                      type: 'string',
+                      enum: ['NADIR', 'SUN', 'INERTIAL_EAST'],
+                      description: 'Initial pointing target',
+                      example: 'NADIR'
+                    },
+                    error_degrees: {
+                      type: 'number',
+                      description: 'Initial pointing error in degrees',
+                      example: 0.5
+                    }
+                  }
+                },
+                thermal: {
+                  type: 'object',
+                  properties: {
+                    currentTemp_celsius: {
+                      type: 'number',
+                      description: 'Initial temperature in Celsius',
+                      example: 20
+                    }
+                  }
+                }
+              }
+            },
+            consoleLayout: {
+              type: 'object',
+              description: 'Which panels/widgets appear in mission console',
+              properties: {
+                panels: {
+                  type: 'array',
+                  items: {
+                    type: 'string'
+                  },
+                  description: 'Which panels appear in mission console',
+                  example: ['power', 'attitude', 'thermal']
+                },
+                widgets: {
+                  type: 'array',
+                  items: {
+                    type: 'string'
+                  },
+                  description: 'Which widgets appear in mission console',
+                  example: ['telemetry', 'commands']
+                }
+              }
+            },
+            tags: {
+              type: 'array',
+              items: {
+                type: 'string'
+              },
+              description: 'Tags for filtering (e.g., power-management, attitude-control)',
+              example: ['orbit', 'basics']
+            },
+            objectives: {
+              type: 'array',
+              items: {
+                type: 'string'
+              },
+              description: 'Learning objectives for this scenario',
+              example: ['Understand orbital mechanics', 'Practice attitude control']
+            },
+            prerequisites: {
+              type: 'array',
+              items: {
+                type: 'string'
+              },
+              description: 'Scenario IDs that should be completed first',
+              example: ['scen_122']
+            },
+            createdBy: {
+              type: 'string',
+              description: 'User ID who created the scenario',
               example: 'abc123xyz456'
             },
             createdAt: {
