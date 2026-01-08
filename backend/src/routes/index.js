@@ -13,6 +13,7 @@ const authRoutes = require('./auth');
 const userRoutes = require('./users');
 const satelliteRoutes = require('./satellites');
 const scenarioRoutes = require('./scenarios');
+const scenarioStepRoutes = require('./scenarioSteps');
 const aiRoutes = require('./ai');
 const commandRoutes = require('./commands');
 
@@ -36,6 +37,7 @@ router.get('/', (req, res) => {
         { path: '/users', methods: ['GET', 'POST'], description: 'User management' },
         { path: '/satellites', methods: ['GET'], description: 'Satellite operations' },
         { path: '/scenarios', methods: ['GET'], description: 'Mission scenarios' },
+        { path: '/scenario-steps', methods: ['GET'], description: 'Scenario steps' },
         { path: '/ai', methods: ['GET'], description: 'AI-powered features' },
         { path: '/commands', methods: ['GET'], description: 'Command operations' }
       ]
@@ -64,6 +66,9 @@ router.use('/satellites', satelliteRoutes);
 
 // Scenario routes (stub)
 router.use('/scenarios', scenarioRoutes);
+
+// Scenario Step routes
+router.use('/scenario-steps', scenarioStepRoutes);
 
 // AI routes (stub)
 router.use('/ai', aiRoutes);
