@@ -1,10 +1,18 @@
+// Components
+import Navigation from "./components/Navbar/Navigation";
+import Intro from "./components/intro/Intro";
+import Footer from "./Components/Footer/Footer";
+
+// Style Sheets
 import "./App.css";
 
 function App() {
   return (
     <>
       <div>
-        <h1>Hello World</h1>
+        <Navigation />
+        <Intro />
+        <Footer />
       </div>
     </>
   );
