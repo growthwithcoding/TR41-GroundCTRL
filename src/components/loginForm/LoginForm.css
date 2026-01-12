@@ -1,0 +1,15 @@
+.login-form {
+  border: 3px solid black;
+  width: 30%;
+  border-radius: 10px;
+  padding: 30px;
+  box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.477);
+}
+
+.email-login:hover {
+  border: 1px solid black;
+}
+
+.password-login:hover {
+  border: 1px solid black;
+}
