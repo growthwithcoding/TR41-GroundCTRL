@@ -41,15 +41,8 @@ jobs:
 
       - name: Run all backend tests with Firebase Emulator
         # CHANGED: Using 'npx firebase' instead of global 'firebase'
+      - name: Run backend tests with coverage using Firebase Emulator
+        # CHANGED: Using 'npx firebase' instead of global 'firebase'
         # REASON: Better reproducibility and version control
-        run: npx firebase emulators:exec --project demo-project --only auth,firestore "npm test -- --runInBand tests-backend/sprint0 tests-backend/sprint1"
-        # Allow workflow to continue even if some tests fail (API server not running in CI)
-        continue-on-error: true
-
-      - name: Generate test coverage report
-        # CHANGED: Only runs coverage once after all tests
-        # REASON: Avoids re-running tests multiple times; generates single coverage report
-        # NOTE: The --coverage flag has been removed from package.json test script to avoid duplication
+        # NOTE: Run tests once with coverage to avoid duplicate executions
         run: npx firebase emulators:exec --project demo-project --only auth,firestore "npm test -- --runInBand --coverage tests-backend/sprint0 tests-backend/sprint1"
-        # Allow workflow to continue if coverage fails (e.g., coverage thresholds not met)
-        continue-on-error: true
