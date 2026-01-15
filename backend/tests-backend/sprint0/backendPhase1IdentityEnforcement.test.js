@@ -116,7 +116,6 @@ describe('Phase 1 – Identity Enforcement', () => {
   });
 
   it('ensures audit logs record actor uid, not callSign/email', async () => {
-    const auditRepository = require('../../src/repositories/auditRepository');
     const auditFactory = require('../../src/factories/auditFactory');
     
     // Create a mock audit entry
