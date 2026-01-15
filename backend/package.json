@@ -56,5 +56,14 @@
       "lodash.get": "npm:lodash@^4.17.21",
       "lodash.isequal": "npm:lodash@^4.17.21"
     }
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": ["<rootDir>/tests-backend/setup.js"],
+    "testMatch": ["**/tests-backend/**/*.test.js"],
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/server.js"
+    ]
   }
 }
