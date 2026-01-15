@@ -3,12 +3,6 @@
  * Covers rate limits, outbound timeouts, and auth error normalization.
  */
 
-const axios = require('axios');
-const rateLimit = require('express-rate-limit');
-const express = require('express');
-
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3001/api/v1';
-
 describe('Phase 2 – Security Quick Wins', () => {
   it('applies global API rate limit to /api/v1 routes', () => {
     const rateLimitConfig = require('../../src/config/rateLimits');
@@ -147,7 +141,7 @@ describe('Phase 2 – Security Quick Wins', () => {
     
     try {
       await httpClient.get(slowUrl);
-      fail('Request should have timed out');
+      throw new Error('Request should have timed out');
     } catch (error) {
       const elapsed = Date.now() - startTime;
       

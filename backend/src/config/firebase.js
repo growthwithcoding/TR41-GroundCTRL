@@ -6,8 +6,10 @@
 
 const admin = require('firebase-admin');
 const emulatorConfig = require('./emulatorConfig');
+const logger = require('../utils/logger');
 
 let isInitialized = false;
+const isProduction = process.env.NODE_ENV === 'production';
 
 /**
  * Initialize Firebase Admin SDK with service account credentials
@@ -23,9 +25,13 @@ function initializeFirebase() {
   if (emulatorConfig.useEmulators) {
     process.env.FIRESTORE_EMULATOR_HOST = emulatorConfig.firestoreEmulatorHost;
     process.env.FIREBASE_AUTH_EMULATOR_HOST = emulatorConfig.authEmulatorHost;
-    console.log('🧪 Using Firebase emulators:');
-    console.log(`   - Auth: ${emulatorConfig.authEmulatorHost}`);
-    console.log(`   - Firestore: ${emulatorConfig.firestoreEmulatorHost}`);
+    
+    if (!isProduction) {
+      logger.info('🧪 Using Firebase emulators:', {
+        auth: emulatorConfig.authEmulatorHost,
+        firestore: emulatorConfig.firestoreEmulatorHost
+      });
+    }
   }
 
   // Sanitize API Key if it has quotes (common .env mistake)
@@ -59,10 +65,14 @@ function initializeFirebase() {
     }
 
     isInitialized = true;
-    console.log('🔥 Firebase Admin SDK initialized successfully');
+    
+    if (!isProduction) {
+      logger.info('🔥 Firebase Admin SDK initialized successfully');
+    }
+    
     return admin;
   } catch (error) {
-    console.error('❌ Firebase initialization failed:', error.message);
+    logger.error('❌ Firebase initialization failed:', { error: error.message });
     throw new Error(`Firebase initialization failed: ${error.message}`);
   }
 }
