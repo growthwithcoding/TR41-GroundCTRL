@@ -4,7 +4,6 @@
  */
 
 const config = {
-  apiBaseUrl: process.env.API_BASE_URL || "https://api.missionctrl.org/api/v1",
   firebaseProjectId: process.env.FIREBASE_PROJECT_ID || "groundctrl-prod",
   useEmulators:
     !!process.env.FIREBASE_AUTH_EMULATOR_HOST ||
