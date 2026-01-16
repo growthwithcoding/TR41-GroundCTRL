@@ -10,7 +10,6 @@ const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3001/api/v1';
 
 describe('Phase 1 – Identity Enforcement', () => {
   let testUsers = [];
-  let authTokens = {};
 
   beforeAll(async () => {
     // Create test users with duplicate callSign to verify non-uniqueness
@@ -78,7 +77,7 @@ describe('Phase 1 – Identity Enforcement', () => {
     // This should fail or not exist as an endpoint
     try {
       await axios.get(`${API_BASE_URL}/users/callsign/${callSign}`);
-      fail('Should not support callSign-based lookups');
+      throw new Error('Should not support callSign-based lookups');
     } catch (error) {
       expect([404, 405]).toContain(error.response?.status);
     }
