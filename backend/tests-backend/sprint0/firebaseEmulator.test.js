@@ -26,7 +26,7 @@ describe('S0 003 – Firebase Emulator Configuration', () => {
         const db = admin.firestore();
         await db.collection('users').doc(testUserId).delete();
         await admin.auth().deleteUser(testUserId);
-      } catch (error) {
+      } catch {
         // Ignore cleanup errors
       }
       testUserId = null;
