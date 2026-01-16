@@ -17,11 +17,12 @@ const firebaseConfig = {
 };
 
 // Validate required Firebase environment variables before initialization
-const requiredFirebaseConfigKeys = ["apiKey", "authDomain", "appId"];
+const requiredFirebaseConfigKeys = ["apiKey", "authDomain", "appId", "projectId"];
 const firebaseConfigKeyToEnvVar = {
   apiKey: "VITE_FIREBASE_API_KEY",
   authDomain: "VITE_FIREBASE_AUTH_DOMAIN",
   appId: "VITE_FIREBASE_APP_ID",
+  projectId: "VITE_FIREBASE_PROJECT_ID",
 };
 
 const missingFirebaseEnvVars = requiredFirebaseConfigKeys
@@ -32,7 +33,7 @@ if (missingFirebaseEnvVars.length > 0) {
   throw new Error(
     `Missing Firebase environment variables: ${missingFirebaseEnvVars.join(
       ", "
-    )}. Please define them in your Vite environment file (e.g. .env.local).`
+    )}. Please define them in your Vite environment file (e.g. .env.local), using the .env.sample file in the repository as a reference for the required variables.`
   );
 }
 

@@ -7,7 +7,6 @@ const admin = require('firebase-admin');
 const axios = require('axios');
 
 const AUTH_EMULATOR_HOST = process.env.FIREBASE_AUTH_EMULATOR_HOST || 'localhost:9099';
-const FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || 'localhost:8080';
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3001/api/v1';
 
 describe('S0 003 – Firebase Emulator Configuration', () => {
