@@ -210,8 +210,6 @@ describe('S1 API 001 – Scenario Visibility & Filtering', () => {
       const testScenarioResults = scenarios.filter(s => testScenarios.includes(s.id));
 
       // No private scenarios should be returned (unless user is owner/admin)
-      const titles = testScenarioResults.map(s => s.title);
-      
       // Private scenarios should not appear in general list
       // (They may appear if user is the owner, but that's tested separately)
       for (const scenario of testScenarioResults) {
