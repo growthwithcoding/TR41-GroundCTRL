@@ -44,7 +44,7 @@ describe('Phase 1 – Identity Enforcement', () => {
       try {
         await db.collection('users').doc(user.uid).delete();
         await admin.auth().deleteUser(user.uid);
-      } catch (error) {
+      } catch {
         // Ignore cleanup errors
       }
     }
@@ -116,7 +116,6 @@ describe('Phase 1 – Identity Enforcement', () => {
   });
 
   it('ensures audit logs record actor uid, not callSign/email', async () => {
-    const auditRepository = require('../../src/repositories/auditRepository');
     const auditFactory = require('../../src/factories/auditFactory');
     
     // Create a mock audit entry
