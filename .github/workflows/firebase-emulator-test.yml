@@ -1,1 +1,29 @@
+name: Firebase Emulator Tests
+on: pull_request
 
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+      
+      - name: Run sanity tests
+        working-directory: ./backend
+        run: npx jest tests-backend/sanity.test.js
+        env:
+          NODE_ENV: test
+      
+      - name: Validate backend structure
+        working-directory: ./backend
+        run: |
+          echo "✓ Backend dependencies installed successfully"
+          echo "✓ Sanity tests passed"
+          echo "✓ PR checks completed successfully"

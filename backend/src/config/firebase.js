@@ -4,8 +4,57 @@
  */
 
 const admin = require('firebase-admin');
+const logger = require('../utils/logger');
 
 let isInitialized = false;
+
+/**
+ * Validates that emulator environment variables are not set in production
+ * @throws {Error} If emulator variables are set when NODE_ENV is 'production'
+ */
+function validateEmulatorConfiguration() {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const hasAuthEmulator = !!process.env.FIREBASE_AUTH_EMULATOR_HOST;
+  const hasFirestoreEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;
+
+  if (isProduction && (hasAuthEmulator || hasFirestoreEmulator)) {
+    const emulatorVars = [];
+    if (hasAuthEmulator) emulatorVars.push(`FIREBASE_AUTH_EMULATOR_HOST=${process.env.FIREBASE_AUTH_EMULATOR_HOST}`);
+    if (hasFirestoreEmulator) emulatorVars.push(`FIRESTORE_EMULATOR_HOST=${process.env.FIRESTORE_EMULATOR_HOST}`);
+
+    const errorMessage = [
+      '🚨 PRODUCTION DEPLOYMENT BLOCKED: Firebase Emulator Variables Detected',
+      '',
+      'The following emulator environment variables are set:',
+      ...emulatorVars.map(v => `  • ${v}`),
+      '',
+      'These variables MUST NOT be set in production as they would route',
+      'all Firebase traffic to non-existent local emulators.',
+      '',
+      'To fix this:',
+      '  1. Remove FIREBASE_AUTH_EMULATOR_HOST and FIRESTORE_EMULATOR_HOST from your production environment',
+      '  2. Ensure these variables are NOT in backend/apphosting.yaml',
+      '  3. These variables should ONLY be set in your local .env file for development',
+      '',
+      'See PRODUCTION_DEPLOYMENT.md for deployment guidelines.'
+    ].join('\n');
+
+    logger.error('Firebase emulator configuration error in production', {
+      environment: process.env.NODE_ENV,
+      emulatorVars
+    });
+
+    throw new Error(errorMessage);
+  }
+
+  // Log emulator status for development environments
+  if (!isProduction && (hasAuthEmulator || hasFirestoreEmulator)) {
+    logger.info('🔧 Firebase Emulators Configured', {
+      authEmulator: process.env.FIREBASE_AUTH_EMULATOR_HOST || 'not set',
+      firestoreEmulator: process.env.FIRESTORE_EMULATOR_HOST || 'not set'
+    });
+  }
+}
 
 /**
  * Initialize Firebase Admin SDK with service account credentials
@@ -15,6 +64,9 @@ function initializeFirebase() {
   if (isInitialized) {
     return admin;
   }
+
+  // Validate emulator configuration before initializing
+  validateEmulatorConfiguration();
 
   // Sanitize API Key if it has quotes (common .env mistake)
   if (process.env.FIREBASE_API_KEY) {
