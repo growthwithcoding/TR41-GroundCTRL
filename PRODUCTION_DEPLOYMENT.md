@@ -12,13 +12,13 @@ This document provides step-by-step instructions for deploying GroundCTRL to Fir
 ## Step 1: Add GitHub Secret for Frontend Deployment
 
 ### Generate Service Account JSON
-You already have this file: `groundctrl-c8860-53f9e1ae6e94.json`
+You already have this file: `your-service-account-key.json`
 
 ### Add to GitHub
 1. Go to: https://github.com/E-Y-J/TR41-GroundCTRL/settings/secrets/actions
 2. Click **"New repository secret"**
 3. Name: `FIREBASE_SERVICE_ACCOUNT_GROUNDCTRL_C8860`
-4. Value: Paste the **entire JSON** content from `groundctrl-c8860-53f9e1ae6e94.json`
+4. Value: Paste the **entire JSON** content from `your-service-account-key.json`
 5. Click **"Add secret"**
 
 ## Step 2: Set Backend Secrets in Firebase Secret Manager
