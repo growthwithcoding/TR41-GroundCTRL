@@ -34,8 +34,8 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ['\'self\''],
-      scriptSrc: ['\'self\'', '\'unsafe-inline\''],
-      styleSrc: ['\'self\'', '\'unsafe-inline\''],
+      scriptSrc: ['\'self\''],  // Removed 'unsafe-inline' for security
+      styleSrc: ['\'self\'', '\'unsafe-inline\''],  // Keep for CSS
       imgSrc: ['\'self\'', 'data:', 'https:'],
       connectSrc: ['\'self\''],
       fontSrc: ['\'self\''],
@@ -45,7 +45,10 @@ app.use(helmet({
     }
   },
   crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: { policy: 'cross-origin' }
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  xContentTypeOptions: 'nosniff',
+  xFrameOptions: { action: 'SAMEORIGIN' }
 }));
 
 // CORS configuration
