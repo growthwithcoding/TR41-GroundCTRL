@@ -28,7 +28,7 @@ env:
   - variable: LOG_LEVEL
     value: info
   - variable: ALLOWED_ORIGINS
-    value: https://missionctrl.org
+    value: https://missionctrl.org,https://www.missionctrl.org
   - variable: HTTP_CLIENT_TIMEOUT_MS
     value: "8000"
   - variable: HTTP_CLIENT_RETRY_ATTEMPTS
