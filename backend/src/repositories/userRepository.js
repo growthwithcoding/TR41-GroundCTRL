@@ -366,5 +366,6 @@ module.exports = {
   create,
   update,
   patch,
-  delete: deleteUser
+  delete: deleteUser,
+  deleteUser  // Export both for compatibility
 };
