@@ -1,0 +1,60 @@
+# Firebase App Hosting Configuration
+# This file configures how your backend is built and deployed to Cloud Run
+
+# Runtime environment
+runConfig:
+  # Minimum instances to keep running (0 for scale-to-zero)
+  minInstances: 0
+  # Maximum instances for auto-scaling
+  maxInstances: 10
+  # CPU allocation: "1" = 1 vCPU, "2" = 2 vCPUs
+  cpu: 1
+  # Memory allocation: 256Mi, 512Mi, 1Gi, 2Gi, 4Gi
+  memoryMiB: 512
+  # Maximum number of concurrent requests per instance
+  concurrency: 80
+
+# Environment variables (non-sensitive)
+# Sensitive values should be stored in Firebase Secret Manager
+env:
+  - variable: NODE_ENV
+    value: production
+  - variable: PORT
+    value: "8080"
+  - variable: CALL_SIGN
+    value: GROUNDCTRL-01
+  - variable: FIREBASE_PROJECT_ID
+    value: groundctrl-c8860
+  - variable: LOG_LEVEL
+    value: info
+  - variable: ALLOWED_ORIGINS
+    value: https://missionctrl.org
+  - variable: HTTP_CLIENT_TIMEOUT_MS
+    value: "8000"
+  - variable: HTTP_CLIENT_RETRY_ATTEMPTS
+    value: "0"
+  - variable: HTTP_CLIENT_RETRY_DELAY_MS
+    value: "1000"
+  - variable: LOGIN_RATE_LIMIT_WINDOW_MS
+    value: "900000"
+  - variable: LOGIN_RATE_LIMIT_MAX_REQUESTS
+    value: "5"
+  - variable: API_RATE_LIMIT_WINDOW_MS
+    value: "900000"
+  - variable: API_RATE_LIMIT_MAX_REQUESTS
+    value: "100"
+  - variable: LOCKOUT_THRESHOLD
+    value: "5"
+  - variable: LOCKOUT_DURATION_MINUTES
+    value: "15"
+  - variable: LOCKOUT_WINDOW_HOURS
+    value: "1"
+  - variable: JWT_ACCESS_TOKEN_EXPIRY
+    value: 15m
+  - variable: JWT_REFRESH_TOKEN_EXPIRY
+    value: 7d
+
+# Note: Sensitive environment variables should be set via Firebase Secret Manager:
+# firebase apphosting:secrets:set JWT_SECRET --project groundctrl-c8860
+# firebase apphosting:secrets:set FIREBASE_PRIVATE_KEY --project groundctrl-c8860
+# firebase apphosting:secrets:set SMTP_PASSWORD --project groundctrl-c8860

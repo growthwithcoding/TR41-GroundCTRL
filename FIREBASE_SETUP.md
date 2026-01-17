@@ -93,24 +93,20 @@ Firebase App Hosting for the backend requires manual setup through Firebase Cons
 firebase login
 
 # Create the backend
-firebase apps:hosting:backend:create groundctrl-backend \
+firebase apphosting:backends:create groundctrl-backend \
   --project groundctrl-c8860 \
   --location us-central1
 
-# Connect the GitHub repository
-# This will open a browser to authorize GitHub access
-firebase apps:hosting:backend:connect \
-  --backend groundctrl-backend \
-  --repo E-Y-J/TR41-GroundCTRL \
-  --branch main \
-  --root-directory backend/
+# Note: Connecting the repository to an existing backend is done via
+# Firebase Console. See the console setup steps above for details.
 
-# Set environment variables
-firebase apps:hosting:backend:secrets:set JWT_SECRET \
-  --backend groundctrl-backend
+# Set environment variables (secrets)
+firebase apphosting:secrets:set JWT_SECRET \
+  --project groundctrl-c8860
 
-# Deploy
-firebase deploy --only hosting:backend
+# Note: Firebase App Hosting backends are deployed automatically
+# after you connect your GitHub repository and push to the configured branch.
+# There is no separate "firebase deploy" command for App Hosting backends.
 ```
 
 ### Backend Auto-Deploy
