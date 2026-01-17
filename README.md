@@ -12,7 +12,6 @@
 ## Team
 
 - **Frontend Software Engineers**  
-  - Waleed Saleh — [@waleedo91](https://github.com/waleedo91)
   - Daniel Ocampo — [@Danielsoftware033](https://github.com/Danielsoftware033)
 
 - **Backend Software Engineers**  
