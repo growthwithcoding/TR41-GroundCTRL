@@ -72,11 +72,12 @@ describe('Phase 4 – CRUD Factory', () => {
     // Verify response contains pagination metadata
     if (mockRes.json.mock.calls.length > 0) {
       const response = mockRes.json.mock.calls[0][0];
-      expect(response.payload).toHaveProperty('data');
-      expect(response.pagination).toHaveProperty('page');
-      expect(response.pagination).toHaveProperty('limit');
-      expect(response.pagination).toHaveProperty('total');
-      expect(response.pagination).toHaveProperty('totalPages');
+      expect(response.payload).toHaveProperty('items');
+      expect(response.payload).toHaveProperty('pagination');
+      expect(response.payload.pagination).toHaveProperty('page');
+      expect(response.payload.pagination).toHaveProperty('limit');
+      expect(response.payload.pagination).toHaveProperty('totalItems');
+      expect(response.payload.pagination).toHaveProperty('totalPages');
     }
   });
 
@@ -106,10 +107,10 @@ describe('Phase 4 – CRUD Factory', () => {
 
     await handlers.getAll(nonAdminReq, mockRes, mockNext);
 
-    // Verify ownership scope was called
+    // Verify ownership scope was called (with 'list' operation name)
     expect(mockHooks.ownershipScope).toHaveBeenCalledWith(
       nonAdminReq,
-      'getAll',
+      'list',
       expect.any(Object)
     );
 

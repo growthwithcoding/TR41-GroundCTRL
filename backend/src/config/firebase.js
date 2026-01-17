@@ -59,6 +59,10 @@ function initializeFirebase() {
       });
     }
 
+    // Configure Firestore to ignore undefined properties
+    const db = admin.firestore();
+    db.settings({ ignoreUndefinedProperties: true });
+    
     isInitialized = true;
     
     if (!isProduction) {

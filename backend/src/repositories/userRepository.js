@@ -319,6 +319,21 @@ async function deleteUser(uid, metadata = {}) {
 }
 
 /**
+ * Remove undefined properties from object
+ * @param {object} obj - Object to clean
+ * @returns {object} Object without undefined values
+ */
+function removeUndefined(obj) {
+  const cleaned = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+}
+
+/**
  * Remove sensitive fields from user object
  * @param {object} user - User object
  * @returns {object} Sanitized user object
