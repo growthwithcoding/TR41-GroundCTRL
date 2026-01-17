@@ -32,6 +32,14 @@ async function getAll(options = {}) {
       isActive
     } = options;
 
+    // Cap limit at 100 and normalize values
+    const MAX_PAGE_LIMIT = 100;
+    const normalizedPage = Math.max(1, parseInt(page) || 1);
+    const normalizedLimit = Math.min(
+      Math.max(1, parseInt(limit) || 10),
+      MAX_PAGE_LIMIT
+    );
+
     const db = getFirestore();
     let query = db.collection(COLLECTION_NAME);
 
@@ -64,10 +72,10 @@ async function getAll(options = {}) {
       );
     }
 
-    // Calculate pagination
+    // Calculate pagination using normalized values
     const total = users.length;
-    const offset = (page - 1) * limit;
-    const paginatedUsers = users.slice(offset, offset + limit);
+    const offset = (normalizedPage - 1) * normalizedLimit;
+    const paginatedUsers = users.slice(offset, offset + normalizedLimit);
 
     // Remove sensitive fields
     const sanitizedUsers = paginatedUsers.map(sanitizeUser);
@@ -75,9 +83,9 @@ async function getAll(options = {}) {
     return {
       data: sanitizedUsers,
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit)
+      page: normalizedPage,
+      limit: normalizedLimit,
+      totalPages: Math.ceil(total / normalizedLimit)
     };
   } catch (error) {
     logger.error('Failed to fetch all users', { error: error.message });

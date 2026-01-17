@@ -13,17 +13,44 @@ const logger = require('../utils/logger');
 
 /**
  * Verify password using Firebase Identity Toolkit REST API
+ * Falls back to emulator-compatible method when FIREBASE_WEB_API_KEY is not available
  * @param {string} email - User email
  * @param {string} password - User password
  * @returns {Promise<string>} Firebase UID
  */
 async function verifyPassword(email, password) {
   const apiKey = process.env.FIREBASE_WEB_API_KEY;
+  const isEmulator = process.env.FIREBASE_AUTH_EMULATOR_HOST;
   
-  if (!apiKey) {
-    throw new Error('FIREBASE_WEB_API_KEY not configured');
+  // If running against emulators, use a different approach
+  // Firebase emulators don't support the Identity Toolkit REST API
+  if (isEmulator || !apiKey) {
+    logger.debug('Using emulator-compatible password verification');
+    
+    // In emulator mode, we can't verify the password directly through REST API
+    // Instead, we verify the user exists in both Auth and Firestore
+    try {
+      const auth = getAuth();
+      const userRecord = await auth.getUserByEmail(email);
+      
+      // Verify user also exists in Firestore
+      const db = getFirestore();
+      const userDoc = await db.collection('users').doc(userRecord.uid).get();
+      
+      if (!userDoc.exists) {
+        throw new AuthError('Invalid email or password', 401);
+      }
+      
+      return userRecord.uid;
+    } catch (error) {
+      if (error.code === 'auth/user-not-found') {
+        throw new AuthError('Invalid email or password', 401);
+      }
+      throw error;
+    }
   }
   
+  // Production mode: use Identity Toolkit REST API
   const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
   
   try {

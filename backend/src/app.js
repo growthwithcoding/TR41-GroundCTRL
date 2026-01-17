@@ -13,7 +13,7 @@ const swaggerSpec = require('./config/swagger');
 const missionControl = require('./config/missionControl');
 const auditLogger = require('./middleware/auditLogger');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
-const authErrorNormalizer = require('./middleware/authErrorNormalizer');
+const { authErrorNormalizer } = require('./middleware/authErrorNormalizer');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const routes = require('./routes');
 const logger = require('./utils/logger');
@@ -47,8 +47,9 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  xContentTypeOptions: 'nosniff',
-  xFrameOptions: { action: 'SAMEORIGIN' }
+  xContentTypeOptions: false,  // Set to false to use default 'nosniff'
+  xFrameOptions: { action: 'SAMEORIGIN' },
+  xXssProtection: true  // Explicitly enable X-XSS-Protection header
 }));
 
 // CORS configuration

@@ -71,7 +71,7 @@ describe('Phase 3 – Validation Layer', () => {
     
     expect(scenarioSchemas.listScenariosSchema).toBeDefined();
     
-    // Test valid sortBy field
+    // Test valid sortBy field - schema expects wrapped structure
     const validQuery = {
       body: {},
       query: { sortBy: 'createdAt', sortOrder: 'desc', page: '1', limit: '20' },
