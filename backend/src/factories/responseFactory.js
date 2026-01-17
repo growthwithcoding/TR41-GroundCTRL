@@ -134,7 +134,7 @@ function createErrorResponse(error, options = {}) {
 
 /**
  * Create paginated response
- * @param {array} data - Array of items
+ * @param {array} items - Array of items
  * @param {object} pagination - Pagination metadata
  * @param {number} pagination.page - Current page
  * @param {number} pagination.limit - Items per page
@@ -142,22 +142,39 @@ function createErrorResponse(error, options = {}) {
  * @param {object} options - Additional options
  * @returns {object} Mission Control formatted paginated response
  */
-function createPaginatedResponse(data, pagination, options = {}) {
+function createPaginatedResponse(items, pagination, options = {}) {
+  const {
+    callSign = 'SYSTEM',
+    requestId = uuidv4(),
+    statusCode = httpStatus.OK
+  } = options;
+
   const totalPages = Math.ceil(pagination.total / pagination.limit);
+  const lingo = getMissionLingo(statusCode);
   
-  return createSuccessResponse(data, {
-    ...options,
-    meta: {
+  return {
+    status: lingo.phrase,
+    code: statusCode,
+    brief: lingo.brief,
+    payload: {
+      items,  // ✅ Changed from 'data' to 'items' for REST API best practices
       pagination: {
         page: pagination.page,
         limit: pagination.limit,
-        total: pagination.total,
+        totalItems: pagination.total,  // ✅ 'totalItems' aligns with test expectations
         totalPages,
         hasNextPage: pagination.page < totalPages,
         hasPreviousPage: pagination.page > 1
       }
-    }
-  });
+    },
+    telemetry: {
+      missionTime: new Date().toISOString(),
+      operatorCallSign: callSign,
+      stationId: missionControl.stationId,
+      requestId
+    },
+    timestamp: Date.now()
+  };
 }
 
 /**

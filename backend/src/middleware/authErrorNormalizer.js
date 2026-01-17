@@ -77,11 +77,13 @@ function authErrorNormalizer(err, req, res, next) {
       err.code = 'REGISTRATION_FAILED';
       delete err.details;
     } else if (err.statusCode === 422) {
-      // Validation errors - keep them as-is but remove sensitive details
+      // Validation errors - keep status code 422 and structure as-is
+      // Only sanitize messages in production, but preserve the 422 status
       if (err.details && typeof err.details === 'object') {
         // Keep validation structure but sanitize messages
         err.message = 'Validation failed';
       }
+      // DO NOT change the status code - it must remain 422
     }
   }
 
@@ -92,4 +94,4 @@ function authErrorNormalizer(err, req, res, next) {
   next(err);
 }
 
-module.exports = authErrorNormalizer;
+module.exports = { authErrorNormalizer };

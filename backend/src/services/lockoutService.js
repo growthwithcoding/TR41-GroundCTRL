@@ -36,7 +36,7 @@ async function checkAccountLockout(userId, callSign) {
       if (new Date() < lockoutExpiry) {
         const remainingMinutes = Math.ceil((lockoutExpiry - new Date()) / 1000 / 60);
         
-        // Log lockout attempt
+        // Log lockout attempt (non-blocking)
         const auditEntry = auditFactory.createAuditEntry(
           'LOGIN_ATTEMPT_LOCKED',
           'auth',
@@ -51,7 +51,9 @@ async function checkAccountLockout(userId, callSign) {
           }
         );
         
-        await auditRepository.logAudit(auditEntry);
+        auditRepository.logAudit(auditEntry).catch(auditError => {
+          logger.error('Failed to log lockout attempt audit', { auditError: auditError.message });
+        });
         
         logger.warn('Account lockout enforced', {
           userId,
@@ -89,7 +91,10 @@ async function checkAccountLockout(userId, callSign) {
 async function recordLoginAttempt(userId, callSign, success, metadata = {}) {
   try {
     const auditEntry = auditFactory.createLoginAudit(userId, callSign, success, metadata);
-    await auditRepository.logAudit(auditEntry);
+    // Log audit (non-blocking to prevent authentication failures)
+    auditRepository.logAudit(auditEntry).catch(auditError => {
+      logger.error('Failed to log login attempt audit', { auditError: auditError.message, userId });
+    });
     
     if (!success) {
       // Check if this failure triggers lockout

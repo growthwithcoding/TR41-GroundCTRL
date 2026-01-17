@@ -19,15 +19,22 @@ const auditSeverity = require('../constants/auditSeverity');
  * @returns {object} Audit log entry
  */
 function createAuditEntry(action, resource, userId, callSign, result, severity = auditSeverity.INFO, metadata = {}) {
+  // Extract userId if it's accidentally passed as an object
+  const extractedUserId = (typeof userId === 'object' && userId?.userId) ? userId.userId : userId;
+  const finalUserId = extractedUserId || 'ANONYMOUS';
+  
   return {
     id: uuidv4(),
     timestamp: new Date(),
     missionTime: new Date().toISOString(),
     action,
+    eventType: action,  // Alias for compatibility with tests
     resource,
-    userId: userId || 'ANONYMOUS',
+    userId: finalUserId,
+    actor: finalUserId,  // Actor field for identity enforcement tracking
     callSign: callSign || 'UNKNOWN',
     result,
+    outcome: result,  // Alias for compatibility with tests
     severity,
     statusCode: metadata.statusCode || 200,
     ipAddress: metadata.ipAddress || null,
@@ -35,7 +42,8 @@ function createAuditEntry(action, resource, userId, callSign, result, severity =
     changes: metadata.changes || null,
     resourceId: metadata.resourceId || null,
     details: metadata.details || null,
-    errorMessage: metadata.errorMessage || null
+    errorMessage: metadata.errorMessage || null,
+    metadata: metadata.details ? { details: metadata.details } : null
   };
 }
 

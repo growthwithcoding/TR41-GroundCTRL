@@ -63,6 +63,13 @@ httpClient.interceptors.response.use(
       );
     }
 
+    // Handle connection reset errors (treat as timeout)
+    if (error.code === 'ECONNRESET') {
+      return Promise.reject(
+        new AuthError('Request timeout - authentication service unavailable', 503)
+      );
+    }
+
     // Pass through the error for service-level handling
     return Promise.reject(error);
   }

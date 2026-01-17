@@ -26,7 +26,8 @@ router.get('/', (req, res) => {
 
   const response = responseFactory.createSuccessResponse(healthData, {
     callSign: 'SYSTEM',
-    requestId: req.id
+    requestId: req.id,
+    flatten: true  // Flatten the response so status is directly in payload
   });
 
   res.status(200).json(response);

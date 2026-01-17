@@ -34,7 +34,7 @@ class AuthError extends AppError {
  */
 class ValidationError extends AppError {
   constructor(message, errors = null) {
-    super(message, httpStatus.BAD_REQUEST, 'VALIDATION_ERROR');
+    super(message, httpStatus.UNPROCESSABLE_ENTITY, 'VALIDATION_ERROR');
     this.details = errors;
   }
 }

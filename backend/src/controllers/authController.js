@@ -31,7 +31,7 @@ async function register(req, res, next) {
     // Register user
     const result = await authService.register(email, password, callSign, displayName);
     
-    // Log audit
+    // Log audit (non-blocking)
     const auditEntry = auditFactory.createRegisterAudit(
       result.user.uid,
       result.user.callSign,
@@ -41,7 +41,9 @@ async function register(req, res, next) {
         userAgent: req.get('user-agent')
       }
     );
-    await auditRepository.logAudit(auditEntry);
+    auditRepository.logAudit(auditEntry).catch(auditError => {
+      logger.error('Failed to log registration success audit', { auditError: auditError.message });
+    });
     
     logger.info('User registered successfully', { uid: result.user.uid, callSign: result.user.callSign });
     
@@ -55,7 +57,7 @@ async function register(req, res, next) {
     
     res.status(httpStatus.CREATED).json(response);
   } catch (error) {
-    // Log failed registration
+    // Log failed registration (non-blocking)
     if (req.body?.callSign) {
       const auditEntry = auditFactory.createRegisterAudit(
         'UNKNOWN',
@@ -68,7 +70,9 @@ async function register(req, res, next) {
           statusCode: error.statusCode || 500
         }
       );
-      await auditRepository.logAudit(auditEntry);
+      auditRepository.logAudit(auditEntry).catch(auditError => {
+        logger.error('Failed to log registration failure audit', { auditError: auditError.message });
+      });
     }
     
     next(error);
@@ -178,7 +182,7 @@ async function refreshToken(req, res, next) {
     // Refresh token
     const result = await authService.refreshAccessToken(refreshToken);
     
-    // Log audit
+    // Log audit (non-blocking)
     const decoded = require('../utils/jwt').decodeToken(refreshToken);
     if (decoded) {
       const auditEntry = auditFactory.createAuditEntry(
@@ -193,7 +197,9 @@ async function refreshToken(req, res, next) {
           userAgent: req.get('user-agent')
         }
       );
-      await auditRepository.logAudit(auditEntry);
+      auditRepository.logAudit(auditEntry).catch(auditError => {
+        logger.error('Failed to log token refresh audit', { auditError: auditError.message });
+      });
     }
     
     logger.info('Token refreshed successfully', { callSign: result.callSign });
@@ -234,7 +240,7 @@ async function logout(req, res, next) {
     // Logout
     await authService.logout(accessToken, refreshToken);
     
-    // Log audit
+    // Log audit (non-blocking)
     const auditEntry = auditFactory.createLogoutAudit(
       req.user.uid,
       req.callSign,
@@ -243,7 +249,9 @@ async function logout(req, res, next) {
         userAgent: req.get('user-agent')
       }
     );
-    await auditRepository.logAudit(auditEntry);
+    auditRepository.logAudit(auditEntry).catch(auditError => {
+      logger.error('Failed to log logout audit', { auditError: auditError.message });
+    });
     
     logger.info('User logged out', { uid: req.user.uid, callSign: req.callSign });
     
@@ -279,7 +287,7 @@ async function revokeToken(req, res, next) {
     // Revoke token
     const result = await authService.revokeToken(token, userId);
     
-    // Log audit
+    // Log audit (non-blocking)
     const auditEntry = auditFactory.createAuditEntry(
       'TOKEN_REVOKE',
       'auth',
@@ -294,7 +302,9 @@ async function revokeToken(req, res, next) {
         targetUserId: userId
       }
     );
-    await auditRepository.logAudit(auditEntry);
+    auditRepository.logAudit(auditEntry).catch(auditError => {
+      logger.error('Failed to log token revocation audit', { auditError: auditError.message });
+    });
     
     logger.info('Token revoked by admin', {
       admin: req.callSign,

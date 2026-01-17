@@ -44,15 +44,29 @@ async function getAll(options = {}) {
       query = query.where('createdBy', '==', createdBy);
     }
 
-    // Apply sorting
-    query = query.orderBy(sortBy, sortOrder);
-
-    // Get all matching documents
+    // Get all matching documents first
     const snapshot = await query.get();
     let satellites = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
+
+    // Apply sorting in-memory to avoid Firestore index requirements
+    // when combining where clauses with orderBy on different fields
+    satellites.sort((a, b) => {
+      const aVal = a[sortBy];
+      const bVal = b[sortBy];
+      
+      if (sortOrder === 'desc') {
+        if (aVal < bVal) return 1;
+        if (aVal > bVal) return -1;
+        return 0;
+      } else {
+        if (aVal < bVal) return -1;
+        if (aVal > bVal) return 1;
+        return 0;
+      }
+    });
 
     // Calculate pagination
     const total = satellites.length;
