@@ -42,9 +42,16 @@ const apiLimiter = rateLimit({
 /**
  * Login rate limiter
  * Stricter limits for login endpoint
+ * Uses composite key of IP + email for rate limiting (5 requests per minute per IP+email combination)
  */
 const loginLimiter = rateLimit({
   ...rateLimitConfig.loginLimit,
+  keyGenerator: (req) => {
+    // Create composite key using IP address and email
+    const ip = req.ip || 'unknown-ip';
+    const email = req.body?.email || 'no-email';
+    return `${ip}_${email}`;
+  },
   handler: (req, res) => {
     logger.warn('Login rate limit exceeded', {
       ip: req.ip,

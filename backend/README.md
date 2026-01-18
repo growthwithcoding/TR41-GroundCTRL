@@ -8,6 +8,11 @@ A production-ready Node.js/Express API with enterprise-grade security, Firebase 
 
 ## 🆕 Recent Updates
 
+### Critical Test Fixes (January 2026)
+- ✅ **Response Envelope Middleware** - All responses now wrapped in standardized Mission Control envelope format
+- ✅ **Rate Limiting Enhancement** - Login rate limiting uses IP+email composite keys (independent limits per user)
+- ✅ **Authentication Hardening** - Verified login lockout and audit logging working correctly
+
 ### Phase 6: Scenarios Domain (December 2025)
 - ✅ **Scenario Management** - Full CRUD operations with satellite references and initial state
 
@@ -15,7 +20,6 @@ A production-ready Node.js/Express API with enterprise-grade security, Firebase 
 - ✅ **Satellite Management** - Full CRUD operations with ownership scoping and training scenarios
 
 ### Upcoming Phases (Q1 2026)
-- 🔄 **Phase 7: Scenario Steps Domain** - Ordered steps for guided scenarios with objectives
 - 🔄 **Phase 7: Scenario Steps Domain** - Ordered steps for guided scenarios with objectives
 - 🔄 **Phase 8: Sessions & Simulation State** - User scenario sessions and state tracking
 - 🔄 **Phase 9: Mission Commands** - Command logging, validation, and feedback hooks
@@ -483,9 +487,11 @@ Authorization: Bearer {accessToken}
 - Not in common password list
 
 ### Rate Limiting
-- **Login**: 5 attempts per 15 minutes
+- **Login**: 5 attempts per minute per IP+email combination (independent rate limits for each user)
 - **Auth Operations**: 10 attempts per 15 minutes
 - **General API**: 100 requests per 15 minutes
+
+**Note:** Login rate limiting uses composite keys (IP + email), allowing multiple users from the same network (e.g., office, cafe) to login independently.
 
 ### Account Lockout
 - Triggers after 5 failed login attempts within 1 hour

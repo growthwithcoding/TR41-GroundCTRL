@@ -45,8 +45,28 @@ async function register(req, res, next) {
     
     logger.info('User registered successfully', { uid: result.user.uid, callSign: result.user.callSign });
     
+    // SECURITY: Set refresh token as HttpOnly cookie
+    if (result.refreshToken) {
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,        // Cannot be accessed by JavaScript
+        secure: process.env.NODE_ENV === 'production',  // Only sent over HTTPS in production
+        sameSite: 'strict',    // CSRF protection
+        maxAge: 7 * 24 * 60 * 60 * 1000,  // 7 days in milliseconds
+        path: '/api/v1/auth'   // Only sent to auth endpoints
+      });
+    }
+    
+    // Remove refresh token from response payload (security best practice)
+    const responsePayload = {
+      user: result.user,
+      tokens: {
+        accessToken: result.accessToken
+        // refreshToken is in HttpOnly cookie, NOT in JSON
+      }
+    };
+    
     // Send response
-    const response = responseFactory.createSuccessResponse(result, {
+    const response = responseFactory.createSuccessResponse(responsePayload, {
       callSign: result.user.callSign,
       requestId: req.id,
       statusCode: httpStatus.CREATED,
@@ -110,8 +130,28 @@ async function login(req, res, next) {
       
       logger.info('User logged in successfully', { uid: userId, callSign: userCallSign });
       
+      // SECURITY: Set refresh token as HttpOnly cookie
+      if (result.refreshToken) {
+        res.cookie('refreshToken', result.refreshToken, {
+          httpOnly: true,        // Cannot be accessed by JavaScript
+          secure: process.env.NODE_ENV === 'production',  // Only sent over HTTPS in production
+          sameSite: 'strict',    // CSRF protection
+          maxAge: 7 * 24 * 60 * 60 * 1000,  // 7 days in milliseconds
+          path: '/api/v1/auth'   // Only sent to auth endpoints
+        });
+      }
+      
+      // Remove refresh token from response payload (security best practice)
+      const responsePayload = {
+        user: result.user,
+        tokens: {
+          accessToken: result.accessToken
+          // refreshToken is in HttpOnly cookie, NOT in JSON
+        }
+      };
+      
       // Send response
-      const response = responseFactory.createSuccessResponse(result, {
+      const response = responseFactory.createSuccessResponse(responsePayload, {
         callSign: userCallSign,
         requestId: req.id,
         flatten: true  // Flatten auth responses for direct token access
@@ -246,6 +286,14 @@ async function logout(req, res, next) {
     await auditRepository.logAudit(auditEntry);
     
     logger.info('User logged out', { uid: req.user.uid, callSign: req.callSign });
+    
+    // SECURITY: Clear refresh token cookie
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/api/v1/auth'
+    });
     
     // Send response
     const response = responseFactory.createSuccessResponse(

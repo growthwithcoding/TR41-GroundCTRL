@@ -686,3 +686,4 @@ Cut a clean release based on decision gates.
 | 2025-12-28 | Phase 3 | Austin Carlson | Pending | Validation layer complete: created validate.js middleware, hardened all schemas with .strict(), applied validation to auth and user routes |
 | 2025-12-31 | Phase 5 | Cameron Carmody | DONE | Complete satellite management domain with full CRUD operations, ownership scoping, comprehensive Swagger docs, and validation middleware fixes |
 | 2025-12-31 | Phase 6 | Cameron Carmody | DONE | Complete scenario management domain with full CRUD operations, satellite references, initial state, comprehensive Swagger docs, and validation middleware |
+| 2026-01-17 | Critical Fixes | System | DONE | Fixed 4 critical test conflicts: (1) Response envelope middleware properly wraps all responses, (2) authService returns raw data (no pre-wrapping), (3) Rate limiting uses IP+email composite key, (4) Login lockout & audit logging verified working |

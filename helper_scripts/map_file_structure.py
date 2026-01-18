@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 GroundCTRL File Structure Mapper
-Maps out the backend directory structure and creates a text document.
+Maps out the project directory structure and creates a text document.
+Run from project root: python helper_scripts/map_file_structure.py
 """
 
 import os
@@ -85,27 +86,27 @@ def map_directory_structure(root_path, prefix="", is_last=True):
 
 def create_file_structure_doc(output_file="file_structure.txt"):
     """
-    Create a text document mapping the backend file structure.
+    Create a text document mapping the project file structure from root.
     
     Args:
         output_file: Name of the output file
     """
-    # Get the backend root directory (two levels up: scripts -> src -> backend)
+    # Get the project root directory (one level up from helper_scripts)
     script_dir = Path(__file__).parent
-    backend_root = script_dir.parent.parent
+    project_root = script_dir.parent
     
-    print(f"Mapping file structure from: {backend_root}")
+    print(f"Mapping file structure from: {project_root}")
     
     # Generate the structure
-    structure_lines = map_directory_structure(backend_root)
+    structure_lines = map_directory_structure(project_root)
     
     # Create header for the document
     header = [
         "=" * 80,
-        "GroundCTRL - BACKEND FILE STRUCTURE",
+        "GroundCTRL - PROJECT FILE STRUCTURE",
         "=" * 80,
         f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-        f"Root Directory: {backend_root}",
+        f"Root Directory: {project_root}",
         "=" * 80,
         "",
     ]
@@ -113,8 +114,8 @@ def create_file_structure_doc(output_file="file_structure.txt"):
     # Combine header and structure
     full_content = "\n".join(header + structure_lines)
     
-    # Write to file in the backend root
-    output_path = backend_root / output_file
+    # Write to file in the project root
+    output_path = project_root / output_file
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(full_content)
     

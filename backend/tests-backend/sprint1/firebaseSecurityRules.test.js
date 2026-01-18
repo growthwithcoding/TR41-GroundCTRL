@@ -93,7 +93,7 @@ describe('S1 SEC 001 – Firestore Security Rules Enforcement', () => {
             }
           }
         );
-        fail('Should have denied access to another user\'s profile');
+        throw new Error('Should have denied access to another user\'s profile');
       } catch (error) {
         expect([403, 404]).toContain(error.response.status);
         expect(error.response.data.status).toBe('error');
@@ -103,7 +103,7 @@ describe('S1 SEC 001 – Firestore Security Rules Enforcement', () => {
     it('prevents unauthorized access to user profiles', async () => {
       try {
         await axios.get(`${API_BASE_URL}/users/${aliceUser.uid}`);
-        fail('Should have denied unauthenticated access');
+        throw new Error('Should have denied unauthenticated access');
       } catch (error) {
         expect(error.response.status).toBe(401);
         expect(error.response.data.status).toBe('error');
@@ -143,7 +143,7 @@ describe('S1 SEC 001 – Firestore Security Rules Enforcement', () => {
             }
           }
         );
-        fail('Should have denied cross-user update');
+        throw new Error('Should have denied cross-user update');
       } catch (error) {
         expect([403, 404]).toContain(error.response.status);
         expect(error.response.data.status).toBe('error');
@@ -225,7 +225,7 @@ describe('S1 SEC 001 – Firestore Security Rules Enforcement', () => {
             }
           }
         );
-        fail('Should have denied access');
+        throw new Error('Should have denied access');
       } catch (error) {
         expect([403, 404]).toContain(error.response.status);
       }
@@ -256,7 +256,7 @@ describe('S1 SEC 001 – Firestore Security Rules Enforcement', () => {
             }
           }
         );
-        fail('CallSign-based routes should not exist');
+        throw new Error('CallSign-based routes should not exist');
       } catch (error) {
         expect([404, 405]).toContain(error.response.status);
       }
@@ -321,7 +321,7 @@ describe('S1 SEC 001 – Firestore Security Rules Enforcement', () => {
             }
           }
         );
-        fail('Should have rejected invalid token');
+        throw new Error('Should have rejected invalid token');
       } catch (error) {
         expect(error.response.status).toBe(401);
         expect(error.response.data.status).toBe('error');
@@ -378,7 +378,7 @@ describe('S1 SEC 001 – Firestore Security Rules Enforcement', () => {
             }
           }
         );
-        fail('Should have failed');
+        throw new Error('Should have failed');
       } catch (error) {
         // Error should not reveal whether the user exists
         const errorMessage = error.response.data.message.toLowerCase();
@@ -401,7 +401,7 @@ describe('S1 SEC 001 – Firestore Security Rules Enforcement', () => {
             }
           }
         );
-        fail('Should have failed');
+        throw new Error('Should have failed');
       } catch (error) {
         expect([403, 404]).toContain(error.response.status);
         

@@ -4,9 +4,9 @@
  */
 
 module.exports = {
-  // Login endpoint: 5 requests per 15 minutes
+  // Login endpoint: 5 requests per 60 seconds (1 minute)
   loginLimit: {
-    windowMs: parseInt(process.env.LOGIN_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+    windowMs: parseInt(process.env.LOGIN_RATE_LIMIT_WINDOW_MS) || 60 * 1000,
     max: parseInt(process.env.LOGIN_RATE_LIMIT_MAX_REQUESTS) || 5,
     standardHeaders: true,
     legacyHeaders: false

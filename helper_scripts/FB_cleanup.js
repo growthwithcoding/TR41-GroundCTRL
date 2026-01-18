@@ -2,11 +2,13 @@
  * Firebase Cleanup Script
  * Deletes all Firebase Auth users and Firestore collections
  * Use with caution - this will permanently delete all data!
+ * 
+ * Run from project root: node helper_scripts/FB_cleanup.js
  */
 
-require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
+require('dotenv').config({ path: require('path').resolve(__dirname, '../backend/.env') });
 const readline = require('readline');
-const { initializeFirebase, getAuth, getFirestore } = require('../config/firebase');
+const { initializeFirebase, getAuth, getFirestore } = require('../backend/src/config/firebase');
 
 /**
  * Create readline interface for user input

@@ -14,6 +14,7 @@ const auditLogger = require('./middleware/auditLogger');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const authErrorNormalizer = require('./middleware/authErrorNormalizer');
 const { apiLimiter } = require('./middleware/rateLimiter');
+const { responseEnvelopeMiddleware } = require('./middleware/responseEnvelope');
 const routes = require('./routes');
 const logger = require('./utils/logger');
 
@@ -55,6 +56,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Trust proxy (for accurate IP addresses behind reverse proxies like Vercel)
 app.set('trust proxy', 1);
+
+// Response envelope middleware (must be early to wrap all responses)
+app.use(responseEnvelopeMiddleware);
 
 // Global API rate limiter (applied to all routes)
 app.use(apiLimiter);

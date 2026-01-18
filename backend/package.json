@@ -8,6 +8,7 @@
     "dev": "nodemon src/server.js",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
+    "test:emulator": "firebase emulators:exec --only auth,firestore \"npm test\"",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "cleanup": "node src/scripts/FB_cleanup.js"

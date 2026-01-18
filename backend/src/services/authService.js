@@ -9,7 +9,11 @@ const jwtUtil = require('../utils/jwt');
 const tokenBlacklistRepository = require('../repositories/tokenBlacklistRepository');
 const { validatePassword } = require('../utils/passwordValidation');
 const { AuthError, ValidationError, ConflictError } = require('../utils/errors');
+const lockoutService = require('./lockoutService');
+const auditRepository = require('../repositories/auditRepository');
+const auditFactory = require('../factories/auditFactory');
 const logger = require('../utils/logger');
+
 
 /**
  * Verify password using Firebase Identity Toolkit REST API
@@ -44,6 +48,7 @@ async function verifyPassword(email, password) {
   }
 }
 
+
 /**
  * Register new user
  * @param {string} email - User email
@@ -53,6 +58,9 @@ async function verifyPassword(email, password) {
  * @returns {Promise<object>} Created user with tokens
  */
 async function register(email, password, callSign = null, displayName = null) {
+  const db = getFirestore();
+
+
   try {
     // Validate password strength
     const passwordValidation = validatePassword(password);
@@ -68,15 +76,14 @@ async function register(email, password, callSign = null, displayName = null) {
       displayName: displayName || callSign || `Pilot-${email.split('@')[0]}`
     });
     
-    logger.info('Firebase user created', { uid: userRecord.uid, email });
+    const uid = userRecord.uid;
+    const finalCallSign = callSign || `Pilot-${uid}`;
     
-    // Set default call sign if not provided: Pilot-{uuid}
-    const finalCallSign = callSign || `Pilot-${userRecord.uid}`;
+    logger.info('Firebase user created', { uid, email });
     
     // Create user document in Firestore
-    const db = getFirestore();
     const userData = {
-      uid: userRecord.uid,
+      uid,
       email,
       callSign: finalCallSign,
       displayName: displayName || finalCallSign,
@@ -87,17 +94,30 @@ async function register(email, password, callSign = null, displayName = null) {
       isActive: true
     };
     
-    await db.collection('users').doc(userRecord.uid).set(userData);
+    await db.collection('users').doc(uid).set(userData);
     
-    logger.info('User registered', { uid: userRecord.uid, callSign: finalCallSign });
+    logger.info('User registered', { uid, callSign: finalCallSign });
+    
+    // ✅ NEW: Create audit log entry
+    const auditEntry = auditFactory.createAuditEntry(
+      'REGISTER_SUCCESS',
+      'auth',
+      uid,
+      finalCallSign,
+      'success',
+      'INFO',
+      { email, method: 'self_registration' }
+    );
+    await auditRepository.logAudit(auditEntry);
     
     // Generate tokens
-    const accessToken = jwtUtil.createAccessToken(userRecord.uid, finalCallSign, false);
-    const refreshToken = jwtUtil.createRefreshToken(userRecord.uid);
+    const accessToken = jwtUtil.createAccessToken(uid, finalCallSign, false);
+    const refreshToken = jwtUtil.createRefreshToken(uid);
     
+    // Return raw data - envelope middleware will wrap it
     return {
       user: {
-        uid: userRecord.uid,
+        uid,
         email,
         callSign: finalCallSign,
         displayName: displayName || finalCallSign,
@@ -107,12 +127,26 @@ async function register(email, password, callSign = null, displayName = null) {
       refreshToken
     };
   } catch (error) {
+    // CREATE FAILED REGISTRATION AUDIT LOG
     if (error.code === 'auth/email-already-exists') {
+      await auditRepository.logAudit({
+        userId: 'ANONYMOUS',
+        action: 'REGISTER_FAILURE',
+        resource: 'auth',
+        outcome: 'failure',
+        severity: 'WARNING',
+        callSign: 'ANONYMOUS',
+        actor: 'ANONYMOUS',
+        timestamp: new Date(),
+        details: { email, reason: 'Email already registered' }
+      });
+      
       throw new ConflictError('Email already in use');
     }
     throw error;
   }
 }
+
 
 /**
  * Login user
@@ -121,50 +155,114 @@ async function register(email, password, callSign = null, displayName = null) {
  * @returns {Promise<object>} User with tokens
  */
 async function login(email, password) {
-  // Verify password using Firebase Identity Toolkit
-  const uid = await verifyPassword(email, password);
-  
-  // Get user from Firestore
   const db = getFirestore();
-  const userDoc = await db.collection('users').doc(uid).get();
+  let uid = null;
+  let userData = null;
   
-  if (!userDoc.exists) {
-    throw new AuthError('User not found', 401);
-  }
-  
-  const userData = userDoc.data();
-  
-  // Check if user is active
-  if (userData.isActive === false) {
-    throw new AuthError('Account is deactivated', 403);
-  }
-  
-  // Update last login time
-  await db.collection('users').doc(uid).update({
-    lastLoginAt: new Date(),
-    updatedAt: new Date()
-  });
-  
-  // Generate tokens
-  const accessToken = jwtUtil.createAccessToken(
-    uid,
-    userData.callSign,
-    userData.isAdmin || false
-  );
-  const refreshToken = jwtUtil.createRefreshToken(uid);
-  
-  return {
-    user: {
+  try {
+    // Verify password using Firebase Identity Toolkit
+    uid = await verifyPassword(email, password);
+    
+    // Get user from Firestore
+    const userDoc = await db.collection('users').doc(uid).get();
+    
+    if (!userDoc.exists) {
+      throw new AuthError('Invalid email or password', 401);
+    }
+    
+    userData = userDoc.data();
+    
+    // Check lockout BEFORE proceeding
+    await lockoutService.checkAccountLockout(uid, userData.callSign);
+    
+    // Check if user is active
+    if (userData.isActive === false) {
+      const auditEntry = auditFactory.createAuditEntry(
+        'LOGIN_ATTEMPT_DEACTIVATED',
+        'auth',
+        uid,
+        userData.callSign,
+        'failure',
+        'WARNING',
+        { email, reason: 'account_deactivated' }
+      );
+      await auditRepository.logAudit(auditEntry);
+      throw new AuthError('Account is deactivated', 403);
+    }
+    
+    // Update last login time
+    await db.collection('users').doc(uid).update({
+      lastLoginAt: new Date(),
+      updatedAt: new Date()
+    });
+    
+    // Generate tokens
+    const accessToken = jwtUtil.createAccessToken(
       uid,
-      email: userData.email,
-      callSign: userData.callSign,
-      displayName: userData.displayName,
-      isAdmin: userData.isAdmin || false
-    },
-    accessToken,
-    refreshToken
-  };
+      userData.callSign,
+      userData.isAdmin || false
+    );
+    const refreshToken = jwtUtil.createRefreshToken(uid);
+    
+    // Record successful login attempt
+    await lockoutService.recordLoginAttempt(uid, userData.callSign, true, {
+      email,
+      method: 'password'
+    });
+    
+    logger.info('User logged in successfully', {
+      uid,
+      email,
+      callSign: userData.callSign
+    });
+    
+    return {
+      user: {
+        uid,
+        email: userData.email,
+        callSign: userData.callSign,
+        displayName: userData.displayName,
+        isAdmin: userData.isAdmin || false
+      },
+      accessToken,
+      refreshToken
+    };
+    
+  } catch (error) {
+    if (error instanceof AuthError) {
+      if (uid && userData) {
+        try {
+          await lockoutService.recordLoginAttempt(uid, userData.callSign, false, {
+            email,
+            reason: error.message
+          });
+        } catch (err) {
+          // ✅ FIXED: Changed 'auditError' to 'err' (not used, so renaming to avoid lint warning)
+          logger.warn('Failed to record login attempt', {
+            uid,
+            error: err.message
+          });
+        }
+      }
+      throw error;
+    }
+    
+    if (uid && userData) {
+      try {
+        await lockoutService.recordLoginAttempt(uid, userData.callSign, false, {
+          email,
+          reason: 'unexpected_error'
+        });
+      } catch (err) {
+        // ✅ FIXED: Changed 'auditError' to 'err'
+        logger.warn('Failed to record login attempt', { uid, error: err.message });
+      }
+    }
+    
+    throw new AuthError('Invalid email or password', 401);
+  }
 }
+
 
 /**
  * Refresh access token
@@ -222,6 +320,7 @@ async function refreshAccessToken(refreshToken) {
   };
 }
 
+
 /**
  * Logout user (revoke tokens)
  * @param {string} accessToken - Access token to revoke
@@ -251,6 +350,7 @@ async function logout(accessToken, refreshToken = null) {
   
   logger.info('User logged out', { uid: decoded.uid, callSign: decoded.callSign });
 }
+
 
 /**
  * Revoke token (admin operation)
@@ -286,6 +386,7 @@ async function revokeToken(token = null, userId = null) {
     throw new ValidationError('Either token or userId must be provided');
   }
 }
+
 
 module.exports = {
   register,

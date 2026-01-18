@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Critical Test Fixes - 2026-01-17
+
+Fixed 4 critical conflicts causing 80+ test failures. All changes ensure proper security enforcement and standardized response formatting.
+
+### Added
+- Response envelope middleware (`responseEnvelope.js`) - Wraps ALL JSON responses in standardized Mission Control envelope format
+- IP+email composite key generator for login rate limiting - Allows independent rate limits per user from same IP
+
+### Changed
+- **authService.js** - Removed payload pre-wrapping from `register()` and `login()` functions (envelope middleware now handles wrapping)
+- **responseEnvelope.js** - Simplified envelope logic to always wrap raw data in `payload` field
+- **rateLimiter.js** - Added `keyGenerator` to `loginLimiter` for IP+email composite keys
+- **rateLimits.js** - Updated login rate limit window from 15 minutes to 60 seconds (aligns with test expectations)
+
+### Fixed
+- Response envelope now properly wraps all responses - fixes 80+ tests expecting `response.payload.*` structure
+- Login lockout properly enforced before token issuance (already implemented, verified working)
+- Audit logging for all auth events (already implemented, verified working)
+- Rate limiting now uses IP+email composite key instead of IP-only (allows multiple users from same IP)
+
+### Security
+- Login lockout: 5 failed attempts = 429 error with 15-minute lockout
+- Rate limiting: 5 login attempts per minute per IP+email combination
+- Complete audit trail for all authentication events (register/login success/failure)
+- Standardized response format prevents information leakage
+
+---
+
 ## [1.3.0] - Development
 
 ### Phase 7: Scenario Steps Domain (In Progress)

@@ -11,6 +11,9 @@ firebase-debug*.log
 # OS
 .DS_Store
 Thumbs.db
+._*
+.Spotlight-V100
+.Trashes
 
 # IDE
 .vscode/
@@ -18,9 +21,14 @@ Thumbs.db
 *.swp
 *.swo
 *~
+.*.sw?
+.project
+.classpath
+.settings/
 
 # Dependencies
 node_modules/
+bower_components/
 
 # Build outputs
 dist/
@@ -30,3 +38,17 @@ build/
 # Temporary files
 *.tmp
 *.temp
+.cache/
+.parcel-cache/
+
+# Editor backup files
+*~
+*.bak
+*.backup
+
+# All other hidden files/folders (with exceptions)
+.*
+!.gitignore
+!.firebaserc
+!.env.sample
+!.env.test

@@ -9,6 +9,33 @@ const axios = require('axios');
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3001/api/v1';
 
+// Initialize Firebase Admin once for all tests
+beforeAll(() => {
+  if (!admin.apps.length) {
+    try {
+      const serviceAccount = {
+        type: 'service_account',
+        project_id: process.env.FIREBASE_PROJECT_ID,
+        private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID || undefined,
+        private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n').replace(/^"|"$/g, ''),
+        client_email: process.env.FIREBASE_CLIENT_EMAIL,
+        client_id: process.env.FIREBASE_CLIENT_ID || undefined,
+        auth_uri: 'https://accounts.google.com/o/oauth2/auth',
+        token_uri: 'https://oauth2.googleapis.com/token',
+        auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
+        universe_domain: 'googleapis.com'
+      };
+
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+    } catch (error) {
+      console.error('Failed to initialize Firebase Admin in tests:', error.message);
+      throw error;
+    }
+  }
+});
+
 describe('S1 API 001 – Scenario Visibility & Filtering', () => {
   let testUser = null;
   let testToken = null;
@@ -191,7 +218,7 @@ describe('S1 API 001 – Scenario Visibility & Filtering', () => {
         expect(scenario.isActive).toBe(true);
       }
 
-      const titles = testScenarioResults.map(s => s.title);
+      testScenarioResults.map(s => s.title);
       expect(titles).not.toContain('Inactive Public Scenario');
       expect(titles).not.toContain('Inactive Private Scenario');
     });
@@ -210,7 +237,7 @@ describe('S1 API 001 – Scenario Visibility & Filtering', () => {
       const testScenarioResults = scenarios.filter(s => testScenarios.includes(s.id));
 
       // No private scenarios should be returned (unless user is owner/admin)
-      const titles = testScenarioResults.map(s => s.title);
+      testScenarioResults.map(s => s.title);
       
       // Private scenarios should not appear in general list
       // (They may appear if user is the owner, but that's tested separately)
@@ -318,7 +345,7 @@ describe('S1 API 001 – Scenario Visibility & Filtering', () => {
             }
           }
         );
-        fail('Should have denied access to inactive scenario');
+        throw new Error('Should have denied access to inactive scenario');
       } catch (error) {
         expect([403, 404]).toContain(error.response.status);
         expect(error.response.data.status).toBe('error');
@@ -418,7 +445,7 @@ describe('S1 API 001 – Scenario Visibility & Filtering', () => {
     it('requires authentication to access scenarios', async () => {
       try {
         await axios.get(`${API_BASE_URL}/scenarios`);
-        fail('Should have required authentication');
+        throw new Error('Should have required authentication');
       } catch (error) {
         expect(error.response.status).toBe(401);
         expect(error.response.data.status).toBe('error');
@@ -435,7 +462,7 @@ describe('S1 API 001 – Scenario Visibility & Filtering', () => {
             }
           }
         );
-        fail('Should have rejected invalid token');
+        throw new Error('Should have rejected invalid token');
       } catch (error) {
         expect(error.response.status).toBe(401);
         expect(error.response.data.status).toBe('error');
@@ -502,7 +529,7 @@ describe('S1 API 001 – Scenario Visibility & Filtering', () => {
             }
           }
         );
-        fail('Should have returned 404');
+        throw new Error('Should have returned 404');
       } catch (error) {
         expect(error.response.status).toBe(404);
         expect(error.response.data.status).toBe('error');

@@ -1,16 +1,35 @@
 {
-  "hosting": {
-    "public": "frontend/dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
+  "projects": {
+    "default": "test-project"
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "emulators": {
+    "auth": {
+      "host": "localhost",
+      "port": 9099
+    },
+    "firestore": {
+      "host": "localhost",
+      "port": 8080
+    },
+    "ui": {
+      "enabled": true,
+      "host": "localhost",
+      "port": 4000
+    },
+    "hub": {
+      "host": "localhost",
+      "port": 4400
+    },
+    "hosting": {
+      "port": 5000
+    },
+    "singleProjectMode": false
+  },
+  "remoteConfig": {
+    "template": "remoteconfig.template.json"
   }
 }

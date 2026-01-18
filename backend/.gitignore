@@ -3,6 +3,7 @@ node_modules/
 # Note: package-lock.json should be tracked for npm ci consistency
 yarn.lock
 pnpm-lock.yaml
+bower_components/
 
 # Environment variables
 .env
@@ -32,10 +33,27 @@ build/
 .idea/
 *.swp
 *.swo
+*.sw?
+.*.sw?
 *~
 .DS_Store
+._*
+.project
+.classpath
+.settings/
 
 # Misc
 .cache/
 temp/
 tmp/
+.parcel-cache/
+*.bak
+*.backup
+*.tmp
+*.temp
+
+# All other hidden files/folders (with exceptions)
+.*
+!.gitignore
+!.env.sample
+!.env.test

@@ -2,7 +2,7 @@
 """
 CRLF to LF Line Ending Converter
 Converts all files with CRLF line endings to LF line endings.
-Run from backend root: python src/scripts/convert_crlf_to_lf.py
+Run from project root: python helper_scripts/convert_crlf_to_lf.py
 """
 
 import os
@@ -159,13 +159,13 @@ def scan_and_convert(root_dir):
 
 def main():
     """Main entry point for the script."""
-    # Determine root directory (backend root)
+    # Determine root directory (project root - one level up from helper_scripts)
     script_dir = Path(__file__).resolve().parent
-    root_dir = script_dir.parent.parent  # Go up two levels from src/scripts to backend root
+    root_dir = script_dir.parent
     
     print("="*60)
     print("  CRLF to LF Line Ending Converter")
-    print("  GroundCTRL Backend - Line Ending Normalization")
+    print("  GroundCTRL - Line Ending Normalization")
     print("="*60)
     
     if not root_dir.exists():

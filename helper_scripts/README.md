@@ -1,0 +1,116 @@
+# GroundCTRL Helper Scripts
+
+Utility scripts for project maintenance and development operations.
+
+## 📁 Scripts Overview
+
+### 1. `map_file_structure.py`
+**Purpose:** Generate a visual tree map of the entire project structure.
+
+**Usage:**
+```bash
+# From project root
+python helper_scripts/map_file_structure.py
+```
+
+**Output:** Creates `file_structure.txt` in the project root with a complete directory tree.
+
+**What it ignores:** node_modules, .git, build folders, cache directories
+
+---
+
+### 2. `convert_crlf_to_lf.py`
+**Purpose:** Convert all text files from Windows (CRLF) to Unix (LF) line endings.
+
+**Usage:**
+```bash
+# From project root
+python helper_scripts/convert_crlf_to_lf.py
+```
+
+**Scans:** The entire project recursively
+
+**Processes:** .js, .jsx, .ts, .tsx, .json, .md, .py, .yml, .yaml, .css, .html, and config files
+
+**What it ignores:** node_modules, .git, build folders, binary files
+
+---
+
+### 3. `FB_cleanup.js`
+**Purpose:** Delete ALL Firebase data (Auth users + Firestore collections).
+
+⚠️ **DANGER:** This script permanently deletes ALL data! Use with extreme caution.
+
+**Usage:**
+```bash
+# From project root
+node helper_scripts/FB_cleanup.js
+```
+
+**Requires:**
+- Backend `.env` file configured
+- Firebase Admin SDK access
+- Double confirmation prompts
+
+**Use Cases:**
+- Clearing test data
+- Resetting development environment
+- Database cleanup during development
+
+**Safety Features:**
+- Double confirmation required
+- Must type "DELETE ALL DATA" to proceed
+- Displays detailed summary of deletions
+
+---
+
+## 🚀 Prerequisites
+
+**For Python scripts:**
+- Python 3.7 or higher
+- No external dependencies required (uses standard library)
+
+**For JavaScript scripts:**
+- Node.js 16 or higher
+- Backend dependencies installed (`npm install` in `backend/`)
+- Properly configured `.env` file
+
+---
+
+## 📝 Notes
+
+- All scripts are designed to run from the **project root directory**
+- Scripts automatically detect paths relative to their location
+- Safe to run multiple times (idempotent where applicable)
+- Check script headers for detailed documentation
+
+---
+
+## 🔒 Security
+
+- `FB_cleanup.js` requires explicit confirmations
+- Never run cleanup scripts on production databases
+- Review `.env` configuration before running Firebase scripts
+- Line ending converter preserves file permissions
+
+---
+
+## 💡 Tips
+
+1. **Before major refactoring:** Run `map_file_structure.py` to document current structure
+2. **After Windows checkout:** Run `convert_crlf_to_lf.py` to normalize line endings
+3. **Development cleanup:** Use `FB_cleanup.js` to reset test environment
+4. **CI/CD integration:** These scripts can be integrated into automated workflows
+
+---
+
+## 📞 Support
+
+For issues or questions about these scripts:
+- Check script header comments for detailed documentation
+- Review execution output for error messages
+- Ensure all prerequisites are met
+
+---
+
+*Last Updated: January 2026*

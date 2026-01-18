@@ -1,7 +1,9 @@
 /**
- * Centralized HTTP Client
- * Provides a configured axios instance with timeout management,
- * request/response logging, and error transformation
+ * Centralized HTTP Client (FIXED VERSION)
+ * Location: src/utils/httpClient.js
+ * 
+ * FIXED: Added baseURL configuration for consistent API endpoint handling
+ * This ensures all tests and API calls know where the backend API is located
  */
 
 const axios = require('axios');
@@ -10,8 +12,12 @@ const { AuthError } = require('./errors');
 
 /**
  * Create axios instance with centralized configuration
+ * ✅ NOW INCLUDES: baseURL for consistent endpoint routing
  */
 const httpClient = axios.create({
+  // FIXED: Add baseURL for consistent endpoint routing
+  baseURL: process.env.API_BASE_URL || 'http://localhost:3001/api/v1',
+  
   timeout: parseInt(process.env.HTTP_CLIENT_TIMEOUT_MS) || 8000,
   headers: {
     'Content-Type': 'application/json'

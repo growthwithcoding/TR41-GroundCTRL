@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+bower_components
 dist
 dist-ssr
 *.local
@@ -17,8 +18,31 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
+._*
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+.*.sw?
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Cache and temporary files
+.cache/
+.parcel-cache/
+temp/
+tmp/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# All other hidden files/folders (with exceptions)
+.*
+!.gitignore
+!.vscode/extensions.json
