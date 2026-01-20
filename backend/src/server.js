@@ -1,98 +1,46 @@
 /**
  * Server Entry Point
- * Starts the Express server with smart port handling
+ * Starts the Express server with immediate Cloud Run port binding
  */
 
 const app = require('./app');
 const logger = require('./utils/logger');
 
-const PREFERRED_PORT = parseInt(process.env.PORT || '3001', 10);
-const MAX_PORT_ATTEMPTS = 10;
+const PORT = parseInt(process.env.PORT || '3001', 10);
+const HOST = '0.0.0.0';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 /**
- * Find an available port starting from the preferred port
- * @param {number} startPort - Starting port number
- * @param {number} maxAttempts - Maximum number of ports to try
- * @returns {Promise<number>} Available port number
+ * Start the server with immediate port binding
+ * Cloud Run requires immediate binding to PORT environment variable
  */
-async function findAvailablePort(startPort, maxAttempts = MAX_PORT_ATTEMPTS) {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const portToTry = startPort + attempt;
-    
-    try {
-      await new Promise((resolve, reject) => {
-        const testServer = app.listen(portToTry)
-          .once('listening', () => {
-            testServer.close();
-            resolve(portToTry);
-          })
-          .once('error', (err) => {
-            if (err.code === 'EADDRINUSE') {
-              reject(err);
-            } else {
-              reject(err);
-            }
-          });
-      });
-      
-      return portToTry;
-    } catch (err) {
-      if (err.code === 'EADDRINUSE') {
-        if (attempt === 0) {
-          logger.warn(`Port ${portToTry} is already in use, searching for available port...`);
-        } else {
-          logger.debug(`Port ${portToTry} is busy, trying next port...`);
-        }
-        continue;
-      }
-      throw err;
-    }
-  }
-  
-  throw new Error(`Could not find an available port after trying ${maxAttempts} ports starting from ${startPort}`);
-}
-
-/**
- * Start the server with smart port handling
- */
-async function startServer() {
+function startServer() {
   try {
-    // In production (Cloud Run), use the PORT directly without testing
-    // In development, use smart port-finding to avoid conflicts
-    const isProduction = process.env.NODE_ENV === 'production';
-    const PORT = isProduction ? PREFERRED_PORT : await findAvailablePort(PREFERRED_PORT);
-    
-    const server = app.listen(PORT, '0.0.0.0', () => {
-      if (PORT !== PREFERRED_PORT && !isProduction) {
-        logger.info('🔄 Using alternative port', {
-          preferredPort: PREFERRED_PORT,
-          actualPort: PORT,
-          reason: 'Preferred port was in use'
-        });
-      }
-      
+    const server = app.listen(PORT, HOST, () => {
       logger.info('🚀 GroundCTRL Mission Control System ONLINE', {
         port: PORT,
+        host: HOST,
         environment: process.env.NODE_ENV || 'development',
         station: process.env.CALL_SIGN || 'GROUNDCTRL-01',
         nodeVersion: process.version
       });
       
-      const host = isProduction ? `https://${process.env.CALL_SIGN || 'groundctrl'}.web.app` : `http://localhost:${PORT}`;
+      const hostUrl = IS_PRODUCTION ? `https://${process.env.CALL_SIGN || 'groundctrl'}.web.app` : `http://localhost:${PORT}`;
       
       console.log('\n========================================');
       console.log('   🛰️  GROUNDCTRL MISSION CONTROL  🛰️');
       console.log('========================================');
       console.log('Status: GO FOR LAUNCH ✓');
       console.log(`Station: ${process.env.CALL_SIGN || 'GROUNDCTRL-01'}`);
-      console.log(`Port: ${PORT}${PORT !== PREFERRED_PORT && !isProduction ? ` (preferred: ${PREFERRED_PORT})` : ''}`);
+      console.log(`Port: ${PORT}`);
+      console.log(`Host: ${HOST}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log('========================================');
       console.log('Key Endpoints:');
-      console.log(`  API Root:    ${host}/api/v1`);
-      console.log(`  Health:      ${host}/api/v1/health`);
-      console.log(`  DB Health:   ${host}/api/v1/health/db`);
-      console.log(`  Docs:        ${host}/api/v1/docs`);
+      console.log(`  API Root:    ${hostUrl}/api/v1`);
+      console.log(`  Health:      ${hostUrl}/api/v1/health`);
+      console.log(`  DB Health:   ${hostUrl}/api/v1/health/db`);
+      console.log(`  Docs:        ${hostUrl}/api/v1/docs`);
       console.log('========================================\n');
     });
 
@@ -103,14 +51,15 @@ async function startServer() {
   } catch (error) {
     logger.error('Failed to start server', {
       error: error.message,
-      preferredPort: PREFERRED_PORT
+      port: PORT,
+      stack: error.stack
     });
     console.error('\n❌ LAUNCH ABORTED');
     console.error(`Reason: ${error.message}`);
     console.error('\nTroubleshooting:');
-    console.error(`  • Check if ports ${PREFERRED_PORT}-${PREFERRED_PORT + MAX_PORT_ATTEMPTS - 1} are available`);
-    console.error('  • Stop other services that might be using these ports');
-    console.error('  • Set a different PORT in your .env file\n');
+    console.error(`  • Check if port ${PORT} is available`);
+    console.error('  • Verify PORT environment variable is set correctly');
+    console.error('  • Check application logs for initialization errors\n');
     process.exit(1);
   }
 }
