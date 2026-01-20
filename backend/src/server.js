@@ -57,10 +57,13 @@ async function findAvailablePort(startPort, maxAttempts = MAX_PORT_ATTEMPTS) {
  */
 async function startServer() {
   try {
-    const PORT = await findAvailablePort(PREFERRED_PORT);
+    // In production (Cloud Run), use the PORT directly without testing
+    // In development, use smart port-finding to avoid conflicts
+    const isProduction = process.env.NODE_ENV === 'production';
+    const PORT = isProduction ? PREFERRED_PORT : await findAvailablePort(PREFERRED_PORT);
     
-    const server = app.listen(PORT, () => {
-      if (PORT !== PREFERRED_PORT) {
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      if (PORT !== PREFERRED_PORT && !isProduction) {
         logger.info('🔄 Using alternative port', {
           preferredPort: PREFERRED_PORT,
           actualPort: PORT,
@@ -75,14 +78,14 @@ async function startServer() {
         nodeVersion: process.version
       });
       
-      const host = `http://localhost:${PORT}`;
+      const host = isProduction ? `https://${process.env.CALL_SIGN || 'groundctrl'}.web.app` : `http://localhost:${PORT}`;
       
       console.log('\n========================================');
       console.log('   🛰️  GROUNDCTRL MISSION CONTROL  🛰️');
       console.log('========================================');
       console.log('Status: GO FOR LAUNCH ✓');
       console.log(`Station: ${process.env.CALL_SIGN || 'GROUNDCTRL-01'}`);
-      console.log(`Port: ${PORT}${PORT !== PREFERRED_PORT ? ` (preferred: ${PREFERRED_PORT})` : ''}`);
+      console.log(`Port: ${PORT}${PORT !== PREFERRED_PORT && !isProduction ? ` (preferred: ${PREFERRED_PORT})` : ''}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log('========================================');
       console.log('Key Endpoints:');
