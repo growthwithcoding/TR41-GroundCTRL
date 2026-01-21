@@ -489,9 +489,11 @@ router.post('/revoke', authMiddleware, requireAdmin, validate(revokeTokenValidat
  *   post:
  *     tags:
  *       - Authentication
- *     summary: Bootstrap initial admin user (one-time use)
+ *     summary: Bootstrap initial admin user (one-time use) - NOT YET IMPLEMENTED
  *     description: |
- *       Creates the first admin user in a fresh deployment. This endpoint only works if no admin exists.
+ *       **PLACEHOLDER ENDPOINT - Returns 501 Not Implemented**
+ *       
+ *       Future functionality: Creates the first admin user in a fresh deployment. This endpoint only works if no admin exists.
  *       Returns 403 if an admin already exists. Use this after initial deployment to create the system admin.
  *     requestBody:
  *       required: true
@@ -577,9 +579,11 @@ router.post('/bootstrap-admin', authLimiter, validate(registerValidation), authC
  *   post:
  *     tags:
  *       - Authentication
- *     summary: Change password (authenticated user)
+ *     summary: Change password (authenticated user) - NOT YET IMPLEMENTED
  *     description: |
- *       Allows authenticated users to change their own password.
+ *       **PLACEHOLDER ENDPOINT - Returns 501 Not Implemented**
+ *       
+ *       Future functionality: Allows authenticated users to change their own password.
  *       Requires current password verification for security.
  *       Rate limited to 5 attempts per minute.
  *       All existing sessions are invalidated after password change.
@@ -665,9 +669,11 @@ router.post('/change-password', authMiddleware, passwordChangeLimiter, validate(
  *   post:
  *     tags:
  *       - Authentication
- *     summary: Request password reset
+ *     summary: Request password reset - NOT YET IMPLEMENTED
  *     description: |
- *       Initiates password reset flow by sending a reset link to the user's email.
+ *       **PLACEHOLDER ENDPOINT - Returns 501 Not Implemented**
+ *       
+ *       Future functionality: Initiates password reset flow by sending a reset link to the user's email.
  *       Always returns 200 OK regardless of whether email exists (prevents email enumeration).
  *       Rate limited to 3 requests per hour.
  *       Reset tokens expire after 15 minutes.
@@ -718,9 +724,11 @@ router.post('/forgot-password', passwordResetRequestLimiter, validate(forgotPass
  *   post:
  *     tags:
  *       - Authentication
- *     summary: Reset password with token
+ *     summary: Reset password with token - NOT YET IMPLEMENTED
  *     description: |
- *       Completes password reset using token from email link.
+ *       **PLACEHOLDER ENDPOINT - Returns 501 Not Implemented**
+ *       
+ *       Future functionality: Completes password reset using token from email link.
  *       Token must be valid and not expired (15 minute expiry).
  *       All existing sessions are invalidated after password reset.
  *       Rate limited to 5 attempts per 15 minutes.

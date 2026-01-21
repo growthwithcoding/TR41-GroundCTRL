@@ -5,7 +5,8 @@
  * Commands are issued by operators during training sessions
  * 
  * Aligned with Phase 8/9 IMPLEMENTATION_PLAN:
- * - Consistent snake_case field naming
+ * - Consistent camelCase field naming (matching repository layer)
+ * - Foreign key fields use snake_case (session_id, scenario_step_id)
  * - All required fields per Phase 8 spec included
  */
 
@@ -80,37 +81,37 @@ const createCommandSchema = z.object({
       .optional()
       .describe('FK to scenario_steps.id'),
     
-    // Timestamp when command was issued - consistent snake_case
-    issued_at: z.string()
-      .datetime({ message: 'issued_at must be a valid ISO datetime string' })
+    // Timestamp when command was issued - camelCase for consistency with repository
+    issuedAt: z.string()
+      .datetime({ message: 'issuedAt must be a valid ISO datetime string' })
       .describe('When the command was issued (ISO datetime)'),
     
-    // Command identification - consistent snake_case
-    command_name: z.enum(VALID_COMMAND_NAMES, {
-      errorMap: () => ({ message: `command_name must be one of: ${VALID_COMMAND_NAMES.join(', ')}` })
+    // Command identification - camelCase for consistency with repository
+    commandName: z.enum(VALID_COMMAND_NAMES, {
+      errorMap: () => ({ message: `commandName must be one of: ${VALID_COMMAND_NAMES.join(', ')}` })
     }).describe('Command type from valid command registry'),
     
-    // Command payload - consistent snake_case
-    command_payload: z.object({})
+    // Command payload - camelCase for consistency with repository
+    commandPayload: z.object({})
       .passthrough()
       .optional()
       .default({})
-      .describe('Command parameters as JSON (structure varies by command_name)'),
+      .describe('Command parameters as JSON (structure varies by commandName)'),
     
-    // Result fields - consistent snake_case
-    result_status: z.enum(RESULT_STATUS, {
-      errorMap: () => ({ message: `result_status must be one of: ${RESULT_STATUS.join(', ')}` })
+    // Result fields - camelCase for consistency with repository
+    resultStatus: z.enum(RESULT_STATUS, {
+      errorMap: () => ({ message: `resultStatus must be one of: ${RESULT_STATUS.join(', ')}` })
     }).optional()
       .describe('Command execution result status'),
     
-    result_message: z.string()
-      .max(1000, 'result_message must be 1000 characters or fewer')
+    resultMessage: z.string()
+      .max(1000, 'resultMessage must be 1000 characters or fewer')
       .trim()
       .optional()
       .describe('Detailed result/error message'),
     
-    // Validation flag - consistent snake_case
-    is_valid: z.boolean()
+    // Validation flag - camelCase for consistency with repository
+    isValid: z.boolean()
       .default(true)
       .describe('Whether command passed validation'),
     
@@ -150,13 +151,13 @@ const listCommandsSchema = z.object({
     page: z.string().optional().transform(val => val ? parseInt(val, 10) : 1),
     limit: z.string().optional().transform(val => val ? parseInt(val, 10) : 20),
     cursor: z.string().optional().describe('Cursor for pagination'),
-    sortBy: z.enum(['issued_at', 'createdAt', 'updatedAt', 'command_name', 'result_status']).optional().default('issued_at'),
+    sortBy: z.enum(['issuedAt', 'createdAt', 'updatedAt', 'commandName', 'resultStatus']).optional().default('issuedAt'),
     sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
     session_id: z.string().optional().describe('Filter by session ID'),
     scenario_step_id: z.string().optional().describe('Filter by scenario step ID'),
-    command_name: z.string().optional().describe('Filter by command name'),
-    result_status: z.enum(RESULT_STATUS).optional().describe('Filter by result status'),
-    is_valid: z.string().optional().transform(val => val === 'true').describe('Filter by validity'),
+    commandName: z.string().optional().describe('Filter by command name'),
+    resultStatus: z.enum(RESULT_STATUS).optional().describe('Filter by result status'),
+    isValid: z.string().optional().transform(val => val === 'true').describe('Filter by validity'),
   }).strict(),
 }).strict();
 
