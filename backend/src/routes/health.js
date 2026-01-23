@@ -74,16 +74,23 @@ const missionControl = require('../config/missionControl');
  *               timestamp: 1704067200000
  */
 router.get('/', (req, res) => {
+  // Check Firebase initialization status from app.locals
+  const firebaseInitialized = req.app.locals.firebaseInitialized !== false;
+  
   const healthData = {
     status: 'GO',
-    statusDetail: 'All systems operational',
+    statusDetail: firebaseInitialized ? 'All systems operational' : 'Running in degraded mode (Firebase unavailable)',
     service: 'GroundCTRL API',
     version: missionControl.version,
     station: missionControl.stationId,
     uptime: process.uptime(),
     uptimeFormatted: formatUptime(process.uptime()),
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    firebase: {
+      initialized: firebaseInitialized,
+      status: firebaseInitialized ? 'connected' : 'failed'
+    }
   };
 
   const response = responseFactory.createSuccessResponse(healthData, {

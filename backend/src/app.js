@@ -21,13 +21,27 @@ const logger = require('./utils/logger');
 // Initialize Express app
 const app = express();
 
-// Initialize Firebase
+// Initialize Firebase with graceful error handling
+// Don't exit process on failure - let server start for Cloud Run health checks
+let firebaseInitialized = false;
 try {
   initializeFirebase();
+  firebaseInitialized = true;
+  logger.info('Firebase initialized successfully');
 } catch (error) {
-  logger.error('Failed to initialize Firebase', { error: error.message });
-  process.exit(1);
+  logger.error('Failed to initialize Firebase - server will start in degraded mode', { 
+    error: error.message,
+    stack: error.stack 
+  });
+  console.error('⚠️  WARNING: Firebase initialization failed');
+  console.error('    Server will start but Firebase features will be unavailable');
+  console.error('    Error:', error.message);
+  // Don't exit - let the server start so Cloud Run health checks pass
+  // Firebase errors will be handled by individual endpoints
 }
+
+// Expose Firebase status for health checks
+app.locals.firebaseInitialized = firebaseInitialized;
 
 // CORS configuration
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
