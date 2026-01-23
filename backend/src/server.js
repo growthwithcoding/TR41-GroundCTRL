@@ -6,7 +6,7 @@
 const app = require('./app');
 const logger = require('./utils/logger');
 
-const PORT = parseInt(process.env.PORT || '3001', 10);
+const PORT = parseInt(process.env.PORT || '8080', 10);
 const HOST = '0.0.0.0';
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
