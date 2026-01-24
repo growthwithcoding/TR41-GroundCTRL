@@ -579,8 +579,9 @@ async function forgotPassword(email) {
     
     try {
       userRecord = await auth.getUserByEmail(email);
-    } catch (error) {
+    } catch (_error) {
       // User not found - return success anyway to prevent email enumeration
+      // Error intentionally not used to prevent email enumeration attacks
       logger.debug('Password reset requested for non-existent email', { email });
       return {
         message: 'If an account exists with this email, a password reset link has been sent.'
