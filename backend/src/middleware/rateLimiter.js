@@ -195,11 +195,45 @@ const passwordResetLimiter = rateLimit({
   }
 });
 
+/**
+ * Create a custom rate limiter with the given configuration
+ * @param {object} config - Rate limit configuration
+ * @returns {function} Express middleware
+ */
+function createRateLimiter(config) {
+  return rateLimit({
+    ...config,
+    handler: (req, res) => {
+      logger.warn('Rate limit exceeded', {
+        ip: req.ip,
+        path: req.path,
+        userId: req.user?.uid,
+        callSign: req.callSign
+      });
+      
+      const error = {
+        statusCode: 429,
+        code: 'RATE_LIMIT_EXCEEDED',
+        message: 'Too many requests. Please try again later.',
+        details: 'Rate limit exceeded'
+      };
+      
+      const response = responseFactory.createErrorResponse(error, {
+        callSign: req.callSign || 'UNKNOWN',
+        requestId: req.id || uuidv4()
+      });
+      
+      res.status(429).json(response);
+    }
+  });
+}
+
 module.exports = {
   apiLimiter,
   loginLimiter,
   authLimiter,
   passwordChangeLimiter,
   passwordResetRequestLimiter,
-  passwordResetLimiter
+  passwordResetLimiter,
+  createRateLimiter
 };

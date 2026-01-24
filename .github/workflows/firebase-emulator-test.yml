@@ -1,5 +1,19 @@
 name: Firebase Emulator Tests
-on: pull_request
+on: 
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/firebase-emulator-test.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+
+# Cancel previous test runs when new commits are pushed
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -10,20 +24,81 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
       
       - name: Install backend dependencies
         working-directory: ./backend
         run: npm ci
       
+      - name: Run linter
+        working-directory: ./backend
+        run: npm run lint || echo "⚠️ Linting completed with warnings"
+        continue-on-error: true
+      
       - name: Run sanity tests
         working-directory: ./backend
-        run: npx jest tests-backend/sanity.test.js
+        run: npx jest tests-backend/sanity.test.js --verbose
         env:
           NODE_ENV: test
       
       - name: Validate backend structure
         working-directory: ./backend
         run: |
-          echo "✓ Backend dependencies installed successfully"
-          echo "✓ Sanity tests passed"
-          echo "✓ PR checks completed successfully"
+          echo "✅ Backend dependencies installed successfully"
+          echo "✅ Sanity tests passed"
+          
+          # Check for critical files
+          if [ ! -f "src/app.js" ]; then
+            echo "❌ Missing src/app.js"
+            exit 1
+          fi
+          if [ ! -f "src/server.js" ]; then
+            echo "❌ Missing src/server.js"
+            exit 1
+          fi
+          
+          echo "✅ Backend structure validated"
+      
+      - name: Test summary
+        if: always()
+        run: |
+          echo "## 📊 Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ All tests passed successfully!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Some tests failed. Please review the logs." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow:** [${{ github.workflow }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Comment on PR with test results
+        if: github.event_name == 'pull_request' && failure()
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            const body = `❌ **Backend Tests Failed**
+
+            The backend tests did not pass for this PR.
+
+            📊 **Test Status:**
+            - **Sanity Tests:** Failed
+            - **Backend Structure:** May have issues
+
+            🔍 **Next Steps:**
+            1. Review the [test logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            2. Fix failing tests locally
+            3. Run \`npm test\` in the backend directory
+            4. Push fixes to this PR
+
+            **Commit:** \`${context.sha.substring(0, 7)}\``;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
