@@ -45,6 +45,7 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: groundctrl-c8860
+          channelId: pr-${{ github.event.pull_request.number }}-fix
       
       - name: Comment on PR - Deployment Skipped
         if: steps.check_secret.outputs.secret_configured == 'false'
