@@ -1,6 +1,6 @@
 'use client'
 
-import { cva, } from '14'
+import { cva } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'

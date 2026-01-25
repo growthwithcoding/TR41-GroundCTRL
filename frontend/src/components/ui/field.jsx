@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { cva, } from '46'
+import { cva } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'

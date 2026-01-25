@@ -78,7 +78,7 @@ export function MissionProgress() {
             }`}
           >
             {/* Status Icon */}
-            <div className="flex-shrink-0">
+            <div className="shrink-0">
               {mission.status === "completed" ? (
                 <CheckCircle2 className="w-5 h-5 text-status-nominal" />
               ) : mission.status === "in-progress" ? (
@@ -118,7 +118,7 @@ export function MissionProgress() {
 
       {/* Footer */}
       <div className="px-5 py-3 border-t border-border bg-muted/30">
-        <Link to="/missions" className="text-xs text-primary hover:underline">
+        <Link to="/missions" className="text-xs text-primary hover:underline px-2 py-1 inline-block">
           View all missions
         </Link>
       </div>

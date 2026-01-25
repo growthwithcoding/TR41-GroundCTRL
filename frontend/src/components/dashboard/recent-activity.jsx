@@ -58,7 +58,7 @@ export function RecentActivity() {
       <div className="divide-y divide-border">
         {activities.map((activity) => (
           <div key={activity.id} className="px-5 py-3 flex items-start gap-3">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
               typeStyles[activity.type] || typeStyles.info
             }`}>
               <activity.icon className="w-3.5 h-3.5" />
@@ -73,7 +73,7 @@ export function RecentActivity() {
 
       {/* Footer */}
       <div className="px-5 py-3 border-t border-border bg-muted/30">
-        <button className="text-xs text-primary hover:underline">View all activity</button>
+        <button className="text-xs text-primary hover:underline px-2 py-1">View all activity</button>
       </div>
     </div>
   )
