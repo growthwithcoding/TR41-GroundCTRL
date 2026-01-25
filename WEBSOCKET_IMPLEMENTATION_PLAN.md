@@ -649,26 +649,44 @@ VITE_WEBSOCKET_URL=http://localhost:8080
 
 ---
 
-## Rollout Strategy
+## Rollout Strategy (Accelerated Timeline)
 
-### Week 1: Backend Foundation
-- Days 1-2: Install socket.io, create WebSocket server
-- Days 3-4: Implement authentication and session manager
-- Day 5: Create telemetry and command handlers
+### Day 1: Backend Foundation (6-8 hours)
+- **Hours 1-2**: Install socket.io, create WebSocket server structure
+- **Hours 3-4**: Implement authentication middleware and session manager
+- **Hours 5-6**: Create telemetry handler with basic state broadcasting
+- **Hours 7-8**: Create command handler with execution flow
 
-### Week 2: Simulation Engine
-- Days 1-3: Build orbital mechanics calculations
-- Days 4-5: Implement subsystem state updates
+### Day 2: Simulation Engine (6-8 hours)
+- **Hours 1-3**: Build orbital mechanics calculations (altitude, inclination, position)
+- **Hours 4-6**: Implement subsystem state updates (power, thermal, attitude, etc.)
+- **Hours 7-8**: Integrate simulation engine with session manager
 
-### Week 3: Frontend Integration
-- Days 1-2: Install socket.io-client, create WebSocket context
-- Days 3-4: Update MissionPanel and WorldMap components
-- Day 5: Implement command transmission UI
+### Day 3: Frontend Integration (6-8 hours)
+- **Hours 1-2**: Install socket.io-client, create WebSocket context
+- **Hours 3-4**: Update MissionPanel to consume real-time data
+- **Hours 5-6**: Update WorldMap and launch animation with actual altitude
+- **Hours 7-8**: Implement subsystem status indicators from scenario structure
 
-### Week 4: Testing & Polish
-- Days 1-2: Backend and frontend unit tests
-- Days 3-4: Integration testing and bug fixes
-- Day 5: Performance testing and documentation
+### Day 4: Command System & Testing (6-8 hours)
+- **Hours 1-2**: Implement command transmission UI
+- **Hours 3-4**: Add command status tracking and visual feedback
+- **Hours 5-6**: Integration testing (end-to-end flows)
+- **Hours 7-8**: Bug fixes, performance optimization, documentation
+
+### Alternative: Sprint Timeline (2-3 Days Intensive)
+
+**Day 1 (Full Day - 8-10 hours):**
+- Morning: Backend WebSocket infrastructure + authentication
+- Afternoon: Session manager, telemetry/command handlers, basic simulation
+
+**Day 2 (Full Day - 8-10 hours):**
+- Morning: Enhanced simulation engine with orbital mechanics
+- Afternoon: Frontend WebSocket integration, real-time data display
+
+**Day 3 (Half Day - 4-6 hours):**
+- Morning: Command system UI, testing, bug fixes
+- Afternoon: Documentation and deployment preparation
 
 ---
 
