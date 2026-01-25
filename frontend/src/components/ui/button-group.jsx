@@ -1,0 +1,81 @@
+import { Slot } from '@radix-ui/react-slot'
+import { cva, } from '44'
+
+import { cn } from '@/lib/utils'
+import { Separator } from '@/components/ui/separator'
+
+const buttonGroupVariants = cva(
+  "flex w-fit items-stretch [&>*])]:w-fit [&>input]:flex-1 has-[select[aria-hidden=true]:last-child]:[&>[data-slot=select-trigger]:last-of-type]:rounded-r-md has-[>[data-slot=button-group]]:gap-2",
+  {
+    variants: {
+      orientation: {
+        horizontal:
+          '[&>*:not()]:rounded-l-none [&>*:not()]:border-l-0 [&>*:not()]:rounded-r-none',
+        vertical:
+          'flex-col [&>*:not()]:rounded-t-none [&>*:not()]:border-t-0 [&>*:not()]:rounded-b-none',
+      },
+    },
+    defaultVariants: {
+      orientation: 'horizontal',
+    },
+  },
+)
+
+function ButtonGroup({
+  className,
+  orientation,
+  ...props
+}) {
+  return (
+    <div
+      role="group"
+      data-slot="button-group"
+      data-orientation={orientation}
+      className={cn(buttonGroupVariants({ orientation }), className)}
+      {...props}
+    />
+  )
+}
+
+function ButtonGroupText({
+  className,
+  asChild = false,
+  ...props
+}) {
+  const Comp = asChild ? Slot : 'div'
+
+  return (
+    <Comp
+      className={cn(
+        "bg-muted flex items-center gap-2 rounded-md border px-4 text-sm font-medium shadow-xs [&_svg])]:size-4",
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+function ButtonGroupSeparator({
+  className,
+  orientation = 'vertical',
+  ...props
+}) {
+  return (
+    <Separator
+      data-slot="button-group-separator"
+      orientation={orientation}
+      className={cn(
+        'bg-input relative !m-0 self-stretch data-[orientation=vertical],
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+export {
+  ButtonGroup,
+  ButtonGroupSeparator,
+  ButtonGroupText,
+  buttonGroupVariants,
+}
