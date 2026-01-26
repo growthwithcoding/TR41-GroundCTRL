@@ -44,18 +44,18 @@ export function QuickActions() {
       </div>
 
       {/* Actions */}
-      <div className="p-4 space-y-2">
+      <div className="p-4 space-y-3">
         {actions.map((action) => (
           <Link key={action.label} to={action.href}>
             <Button
               variant={action.variant}
-              className={`w-full justify-start gap-3 h-auto py-3 ${
+              className={`w-full justify-start gap-4 h-auto py-4 px-4 ${
                 action.variant === "default" ? "" : "hover:bg-accent"
               }`}
             >
-              <action.icon className="w-4 h-4" />
+              <action.icon className="w-5 h-5 shrink-0" />
               <div className="flex-1 text-left">
-                <div className="text-sm font-medium">{action.label}</div>
+                <div className="text-sm font-medium mb-0.5">{action.label}</div>
                 <div className="text-xs text-muted-foreground">{action.description}</div>
               </div>
             </Button>

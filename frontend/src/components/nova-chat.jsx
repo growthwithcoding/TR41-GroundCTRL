@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 // API endpoint for NOVA chat
-const NOVA_API_URL = "https://api.missionctrl.org/api/v1/nova/chat"
+const NOVA_API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/nova/chat`
 
 // Fallback responses when API is unavailable
 const fallbackResponses = {

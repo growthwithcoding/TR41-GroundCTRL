@@ -16,9 +16,11 @@ const COMMON_PASSWORDS = [
 
 /**
  * Password validation rules
+ * Updated to align with SECURITY_REQUIREMENTS_CHECKLIST_UPDATED.md
+ * Minimum 12 characters as per security document by Mohana
  */
 const PASSWORD_RULES = {
-  minLength: 8,
+  minLength: 12,
   maxLength: 128,
   requireUppercase: true,
   requireLowercase: true,

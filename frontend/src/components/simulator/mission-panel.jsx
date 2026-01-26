@@ -13,20 +13,35 @@ import {
   Satellite
 } from "lucide-react"
 
-import { initialTelemetry, initialMission, updateTelemetry } from "@/lib/simulator-state"
+import { useSimulatorState } from "@/contexts/SimulatorStateContext"
 import { WorldMap, latLonToSvg, generateGroundTrack, getSatellitePosition } from "./world-map"
+import { Loader2, AlertCircle } from "lucide-react"
 
 export function MissionPanel() {
-  const [telemetry, setTelemetry] = useState(initialTelemetry)
-  const [mission] = useState(initialMission)
-
-  // Simulate real-time telemetry updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTelemetry((current) => updateTelemetry(current))
-    }, 2000)
-    return () => clearInterval(interval)
-  }, [])
+  // Use telemetry and mission data from context - NO FALLBACK DATA
+  const { 
+    telemetry, 
+    steps, 
+    currentStepIndex, 
+    missionProgress,
+    scenario,
+    connected
+  } = useSimulatorState()
+  
+  // Telemetry automatically updates from WebSocket
+  // Show loading state if telemetry not yet received
+  if (!telemetry) {
+    return (
+      <main className="flex-1 min-w-0 flex flex-col border-r border-border bg-card overflow-hidden">
+        <div className="flex-1 flex flex-col items-center justify-center space-y-4">
+          <Loader2 className="w-12 h-12 text-primary animate-spin" />
+          <p className="text-muted-foreground">
+            {connected ? 'Receiving telemetry data...' : 'Connecting to satellite...'}
+          </p>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="flex-1 min-w-0 flex flex-col border-r border-border bg-card overflow-hidden">
@@ -35,9 +50,9 @@ export function MissionPanel() {
         {/* Top Row */}
         <div className="flex items-center gap-6 mb-2">
           {/* Mission Title & Status */}
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
             <h2 className="text-sm font-semibold text-foreground">
-              {mission.title}
+              {scenario?.name || 'Mission in Progress'}
             </h2>
             <div className="flex items-center gap-1.5 px-1.5 py-0.5 bg-primary/10 rounded text-[10px] font-mono text-primary">
               <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
@@ -45,27 +60,27 @@ export function MissionPanel() {
             </div>
           </div>
 
-          {/* Progress */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Progress from context */}
+          <div className="flex items-center gap-2 shrink-0">
             <span className="text-[10px] text-muted-foreground">Progress</span>
             <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
               <div 
                 className="h-full bg-primary rounded-full transition-all duration-500" 
-                style={{ width: `${(mission.progress || 0)}%` }}
+                style={{ width: `${missionProgress}%` }}
               />
             </div>
-            <span className="font-mono text-[10px] font-medium text-foreground">{mission.progress || 0}%</span>
+            <span className="font-mono text-[10px] font-medium text-foreground">{missionProgress}%</span>
           </div>
 
-          {/* Step indicators */}
+          {/* Step indicators from context */}
           <div className="flex items-center gap-2">
-            {mission.steps.map((step) => (
+            {steps.map((step, idx) => (
               <div 
                 key={step.id} 
                 className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium ${
                   step.completed 
                     ? "bg-status-nominal text-white" 
-                    : step.active 
+                    : idx === currentStepIndex 
                       ? "bg-primary text-white" 
                       : "bg-muted text-muted-foreground"
                 }`}
@@ -77,9 +92,9 @@ export function MissionPanel() {
 
           {/* Current Step Text */}
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[10px] text-muted-foreground flex-shrink-0">Current:</span>
+            <span className="text-[10px] text-muted-foreground shrink-0">Current:</span>
             <span className="text-xs text-foreground truncate">
-              {mission.steps.find(s => s.active)?.text || "All steps completed"}
+              {steps[currentStepIndex]?.text || "All steps completed"}
             </span>
           </div>
         </div>
@@ -92,35 +107,61 @@ export function MissionPanel() {
           <h4 className="font-semibold text-sm text-foreground">Orbit Parameters</h4>
         </div>
         <div className="grid grid-cols-6 gap-4">
-          <OrbitParam label="Altitude" value={telemetry.orbit.altitude.toFixed(1)} unit="km" />
-          <OrbitParam label="Perigee" value={telemetry.orbit.perigee.toFixed(1)} unit="km" />
-          <OrbitParam label="Apogee" value={telemetry.orbit.apogee.toFixed(1)} unit="km" />
-          <OrbitParam label="Inclination" value={telemetry.orbit.inclination.toFixed(1)} unit="°" />
-          <OrbitParam label="Period" value={telemetry.orbit.period.toFixed(1)} unit="min" />
-          <OrbitParam label="Eccentricity" value={telemetry.orbit.eccentricity.toFixed(4)} unit="" />
+          <OrbitParam 
+            label="Altitude" 
+            value={(telemetry.orbit?.altitude_km || telemetry.orbit?.altitude || 0).toFixed(1)} 
+            unit="km" 
+          />
+          <OrbitParam 
+            label="Perigee" 
+            value={(telemetry.orbit?.perigee_km || telemetry.orbit?.perigee || 0).toFixed(1)} 
+            unit="km" 
+          />
+          <OrbitParam 
+            label="Apogee" 
+            value={(telemetry.orbit?.apogee_km || telemetry.orbit?.apogee || 0).toFixed(1)} 
+            unit="km" 
+          />
+          <OrbitParam 
+            label="Inclination" 
+            value={(telemetry.orbit?.inclination_degrees || telemetry.orbit?.inclination || 0).toFixed(1)} 
+            unit="°" 
+          />
+          <OrbitParam 
+            label="Period" 
+            value={(telemetry.orbit?.period_minutes || telemetry.orbit?.period || 0).toFixed(1)} 
+            unit="min" 
+          />
+          <OrbitParam 
+            label="Eccentricity" 
+            value={(telemetry.orbit?.eccentricity || 0).toFixed(4)} 
+            unit="" 
+          />
         </div>
       </div>
 
       {/* Ground Track Map - Always visible with minimum height */}
-      <div className="flex-1 min-h-[200px] relative overflow-hidden bg-muted/10">
+      <div className="flex-1 min-h-50 relative overflow-hidden bg-muted/10">
         {/* Connection Status Panel */}
         <div className="absolute right-3 top-3 bg-card/95 backdrop-blur border border-border rounded-lg p-2.5 shadow-lg z-20">
           <div className="flex items-center gap-2.5">
             <div className={`p-1.5 rounded ${
-              telemetry.communications.status === "nominal" 
+              telemetry.communications?.status === "nominal" 
                 ? "bg-status-nominal/10" 
                 : "bg-status-warning/10"
             }`}>
               <Signal className={`w-4 h-4 ${
-                telemetry.communications.status === "nominal"
+                telemetry.communications?.status === "nominal"
                   ? "text-status-nominal"
                   : "text-status-warning"
               }`} />
             </div>
             <div>
-              <div className="font-semibold text-xs text-foreground">CONNECTED</div>
+              <div className="font-semibold text-xs text-foreground">
+                {connected ? 'CONNECTED' : 'CONNECTING...'}
+              </div>
               <div className="text-[10px] text-muted-foreground">
-                {telemetry.communications.groundStation} | {telemetry.communications.signalStrength.toFixed(0)} dBm
+                {telemetry.communications?.groundStation || 'N/A'} | {(telemetry.communications?.signalStrength || 0).toFixed(0)} dBm
               </div>
             </div>
           </div>
@@ -135,8 +176,8 @@ export function MissionPanel() {
 
         {/* World Map with Ground Track */}
         <GroundTrackVisualization 
-          inclination={telemetry.orbit.inclination}
-          altitude={telemetry.orbit.altitude}
+          inclination={telemetry.orbit?.inclination_degrees || telemetry.orbit?.inclination || 51.6}
+          altitude={telemetry.orbit?.altitude_km || telemetry.orbit?.altitude || 400}
         />
       </div>
 
@@ -145,28 +186,28 @@ export function MissionPanel() {
         <div className="grid grid-cols-4 gap-6">
           <StatusBar 
             label="Fuel" 
-            value={telemetry.subsystems.propulsion.fuelRemaining} 
+            value={telemetry.subsystems?.propulsion?.fuelRemaining || 0} 
             icon={<Zap className="w-3.5 h-3.5" />}
-            status={telemetry.subsystems.propulsion.fuelRemaining > 50 ? "nominal" : telemetry.subsystems.propulsion.fuelRemaining > 25 ? "warning" : "critical"}
+            status={(telemetry.subsystems?.propulsion?.fuelRemaining || 0) > 50 ? "nominal" : (telemetry.subsystems?.propulsion?.fuelRemaining || 0) > 25 ? "warning" : "critical"}
           />
           <StatusBar 
             label="Battery" 
-            value={telemetry.subsystems.power.batterySoc} 
+            value={telemetry.subsystems?.power?.batterySoc || 0} 
             icon={<Battery className="w-3.5 h-3.5" />}
-            status={telemetry.subsystems.power.status}
+            status={telemetry.subsystems?.power?.status || "offline"}
           />
           <StatusBar 
             label="Solar" 
-            value={Math.round((telemetry.subsystems.power.solarArrayOutput / 2000) * 100)} 
+            value={Math.round(((telemetry.subsystems?.power?.solarArrayOutput || 0) / 2000) * 100)} 
             icon={<Sun className="w-3.5 h-3.5" />}
             status="nominal"
           />
           <StatusBar 
             label="Thermal" 
-            value={telemetry.subsystems.thermal.status === "nominal" ? 100 : telemetry.subsystems.thermal.status === "warning" ? 75 : 50}
+            value={(telemetry.subsystems?.thermal?.status || "offline") === "nominal" ? 100 : (telemetry.subsystems?.thermal?.status || "offline") === "warning" ? 75 : 50}
             icon={<Thermometer className="w-3.5 h-3.5" />}
-            status={telemetry.subsystems.thermal.status}
-            displayText={telemetry.subsystems.thermal.status.charAt(0).toUpperCase() + telemetry.subsystems.thermal.status.slice(1)}
+            status={telemetry.subsystems?.thermal?.status || "offline"}
+            displayText={(telemetry.subsystems?.thermal?.status || "offline").charAt(0).toUpperCase() + (telemetry.subsystems?.thermal?.status || "offline").slice(1)}
           />
         </div>
       </div>
@@ -230,7 +271,7 @@ function GroundTrackVisualization({
   return (
     <svg 
       viewBox="0 0 720 360" 
-      className="w-full h-full min-h-[200px]"
+      className="w-full h-full min-h-50"
       preserveAspectRatio="xMidYMid meet"
     >
       {/* Accurate World Map */}

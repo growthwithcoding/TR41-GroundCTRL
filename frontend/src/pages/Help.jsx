@@ -79,14 +79,14 @@ export default function HelpPage() {
       <AppHeader />
 
       <div className="flex-1 flex">
-        {/* Nova Chat Sidebar */}
-        <NovaChat sessionId={`help-${sessionId}`} context="help" className="hidden lg:block sticky top-16" />
+        {/* Nova Chat Sidebar - Fixed to take full column height */}
+        <NovaChat sessionId={`help-${sessionId}`} context="help" className="hidden lg:flex h-[calc(100vh-4rem)] sticky top-16" />
 
         <main className="flex-1">
           {/* Hero Section - Compact Single Row */}
           <section className="bg-card border-b border-border py-4 px-6">
             <div className="max-w-6xl mx-auto flex items-center gap-6">
-              <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="flex items-center gap-3 shrink-0">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <HelpCircle className="w-5 h-5 text-primary" />
                 </div>
@@ -160,7 +160,7 @@ export default function HelpPage() {
                         to={`/help/article/${article.title.toLowerCase().replace(/\s+/g, "-")}`}
                         className="flex items-center gap-3 p-4 bg-card border border-border rounded-lg hover:border-primary/50 transition-colors group"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
                           <Icon className="w-5 h-5 text-primary" />
                         </div>
                         <div className="min-w-0">
@@ -201,7 +201,7 @@ export default function HelpPage() {
                           className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors text-left"
                         >
                           <div
-                            className={`w-12 h-12 rounded-lg ${category.bgColor} flex items-center justify-center flex-shrink-0`}
+                            className={`w-12 h-12 rounded-lg ${category.bgColor} flex items-center justify-center shrink-0`}
                           >
                             <Icon className={`w-6 h-6 ${category.color}`} />
                           </div>
@@ -260,7 +260,7 @@ export default function HelpPage() {
                         className="w-full flex items-start gap-3 p-4 hover:bg-muted/50 transition-colors text-left"
                       >
                         <ChevronRight
-                          className={`w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0 transition-transform ${
+                          className={`w-4 h-4 text-muted-foreground mt-0.5 shrink-0 transition-transform ${
                             expandedFaq === index ? "rotate-90" : ""
                           }`}
                         />

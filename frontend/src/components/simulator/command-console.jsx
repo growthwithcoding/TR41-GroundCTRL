@@ -16,8 +16,7 @@ import {
   Target
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-
-import { simulateCommandExecution } from "@/lib/simulator-state"
+import { useSimulatorState } from "@/contexts/SimulatorStateContext"
 
 const commands = [
   {
@@ -59,38 +58,35 @@ const commands = [
 
 export function CommandConsole() {
   const [selectedCommand, setSelectedCommand] = useState("raise-perigee")
-  const [executingCommand, setExecutingCommand] = useState(null)
-  const [commandStatus, setCommandStatus] = useState(null)
-  const [commandHistory, setCommandHistory] = useState([])
+  
+  // Use simulator state for command execution
+  const { 
+    executeCommand, 
+    commands: commandHistory, 
+    commandsInProgress 
+  } = useSimulatorState()
 
   const handleExecuteCommand = (commandId) => {
-    if (executingCommand) return
+    const command = commands.find(c => c.id === commandId)
     
-    setExecutingCommand(commandId)
-    setCommandStatus("queued")
-
-    const command = {
-      id: `cmd-${Date.now()}`,
-      type: "orbital-maneuver",
-      name: commands.find(c => c.id === commandId)?.title || "",
-      params: {},
-      status: "queued",
-      timestamp: Date.now()
+    // Determine command type and parameters based on command ID
+    let commandType = "orbital-maneuver"
+    let parameters = {}
+    
+    if (commandId.includes("orient") || commandId.includes("sun-pointing")) {
+      commandType = "attitude-control"
+    } else if (commandId.includes("link")) {
+      commandType = "communication"
     }
-
-    simulateCommandExecution(command, (status, ack) => {
-      setCommandStatus(status)
-      if (status === "completed" || status === "failed") {
-        setCommandHistory(prev => [{
-          id: commandId,
-          status: status === "completed" ? "completed" : "failed",
-          time: new Date().toLocaleTimeString("en-US", { hour12: false })
-        }, ...prev.slice(0, 4)])
-        setTimeout(() => {
-          setExecutingCommand(null)
-          setCommandStatus(null)
-        }, 1000)
-      }
+    
+    if (commandId === "raise-perigee") {
+      parameters = { targetAltitude: 400 }
+    }
+    
+    executeCommand({
+      type: commandType,
+      name: command?.title || "",
+      parameters
     })
   }
 
@@ -99,7 +95,7 @@ export function CommandConsole() {
   const communications = commands.filter(c => c.category === "comms")
 
   return (
-    <aside className="w-72 flex-shrink-0 bg-card flex flex-col border-l border-border overflow-hidden">
+    <aside className="w-72 shrink-0 bg-card flex flex-col border-l border-border overflow-hidden">
       {/* Header */}
       <div className="p-4 border-b border-border bg-muted/30">
         <div className="flex items-center gap-2">
@@ -112,18 +108,12 @@ export function CommandConsole() {
       </div>
 
       {/* Command execution status */}
-      {executingCommand && commandStatus && (
+      {commandsInProgress.size > 0 && (
         <div className="p-3 border-b border-border bg-primary/5">
           <div className="flex items-center gap-2 text-sm">
-            {commandStatus === "completed" ? (
-              <CheckCircle2 className="w-4 h-4 text-status-nominal" />
-            ) : commandStatus === "failed" ? (
-              <AlertCircle className="w-4 h-4 text-status-critical" />
-            ) : (
-              <Loader2 className="w-4 h-4 text-primary animate-spin" />
-            )}
+            <Loader2 className="w-4 h-4 text-primary animate-spin" />
             <span className="font-mono text-xs text-foreground uppercase">
-              {commandStatus.replace("-", " ")}
+              Executing {commandsInProgress.size} command{commandsInProgress.size > 1 ? 's' : ''}
             </span>
           </div>
         </div>
@@ -137,7 +127,7 @@ export function CommandConsole() {
               key={item.id}
               item={item}
               selected={selectedCommand === item.id}
-              executing={executingCommand === item.id}
+              executing={commandsInProgress.size > 0}
               onClick={() => setSelectedCommand(item.id)}
               onExecute={() => handleExecuteCommand(item.id)}
             />
@@ -151,7 +141,7 @@ export function CommandConsole() {
               key={item.id}
               item={item}
               selected={selectedCommand === item.id}
-              executing={executingCommand === item.id}
+              executing={commandsInProgress.size > 0}
               onClick={() => setSelectedCommand(item.id)}
               onExecute={() => handleExecuteCommand(item.id)}
             />
@@ -165,33 +155,37 @@ export function CommandConsole() {
               key={item.id}
               item={item}
               selected={selectedCommand === item.id}
-              executing={executingCommand === item.id}
+              executing={commandsInProgress.size > 0}
               onClick={() => setSelectedCommand(item.id)}
               onExecute={() => handleExecuteCommand(item.id)}
             />
           ))}
         </CommandSection>
 
-        {/* Command History */}
+        {/* Command History - from context */}
         {commandHistory.length > 0 && (
           <div className="p-4 pt-2">
             <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
               Recent Commands
             </h3>
             <div className="space-y-1">
-              {commandHistory.map((cmd, i) => (
-                <div key={i} className="flex items-center justify-between text-xs py-1">
+              {commandHistory.slice(-5).reverse().map((cmd) => (
+                <div key={cmd.id} className="flex items-center justify-between text-xs py-1">
                   <div className="flex items-center gap-2">
                     {cmd.status === "completed" ? (
                       <CheckCircle2 className="w-3 h-3 text-status-nominal" />
-                    ) : (
+                    ) : cmd.status === "failed" ? (
                       <AlertCircle className="w-3 h-3 text-status-critical" />
+                    ) : (
+                      <Loader2 className="w-3 h-3 text-primary animate-spin" />
                     )}
                     <span className="text-muted-foreground font-mono">
-                      {commands.find(c => c.id === cmd.id)?.title}
+                      {cmd.name}
                     </span>
                   </div>
-                  <span className="text-muted-foreground font-mono">{cmd.time}</span>
+                  <span className="text-muted-foreground font-mono">
+                    {new Date(cmd.timestamp).toLocaleTimeString()}
+                  </span>
                 </div>
               ))}
             </div>

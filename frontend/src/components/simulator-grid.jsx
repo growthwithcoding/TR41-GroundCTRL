@@ -1,14 +1,99 @@
 "use client"
 
-import { Satellite, Rocket, Radio, Gauge, Play, Clock } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Satellite, Rocket, Radio, Gauge, Play, Clock, Lock, Loader2, AlertCircle } from "lucide-react"
 import { AuthForm } from "@/components/auth-form"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Link } from "react-router-dom"
+import { fetchPublishedScenarios } from "@/lib/firebase/scenariosService"
+import { 
+  fetchUserProgress, 
+  getCompletedScenarioCodes, 
+  getInProgressSession,
+  getActiveSession,
+  getNextAvailableMission,
+  getNextLockedMission
+} from "@/lib/firebase/userProgressService"
 
 export function SimulatorGrid({ authView, onAuthViewChange, authError }) {
   const { user } = useAuth()
+  const [scenarios, setScenarios] = useState([])
+  const [userSessions, setUserSessions] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  // Fetch scenarios and user progress when user logs in
+  useEffect(() => {
+    async function loadData() {
+      if (!user) {
+        setScenarios([])
+        setUserSessions([])
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError(null)
+
+        // Fetch scenarios first (this should work)
+        const scenariosData = await fetchPublishedScenarios()
+        setScenarios(scenariosData)
+
+        // Try to fetch user progress, but don't fail if it errors
+        try {
+          const sessionsData = await fetchUserProgress(user.uid)
+          setUserSessions(sessionsData)
+        } catch (progressErr) {
+          console.warn('Could not load user progress (this is okay):', progressErr)
+          // Continue without user progress - just show all missions
+          setUserSessions([])
+        }
+      } catch (err) {
+        console.error('Error loading missions:', err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [user])
+
+  // Calculate mission suggestions based on user progress
+  const getMissionSuggestions = () => {
+    if (!user || scenarios.length === 0) {
+      return { inProgressMission: null, inProgressSession: null, nextMission: null, lockedMission: null }
+    }
+
+    const completedCodes = getCompletedScenarioCodes(userSessions)
+    
+    // Use getActiveSession to include both IN_PROGRESS and NOT_STARTED sessions
+    const activeSession = getActiveSession(userSessions)
+    
+    // Find the active mission (in-progress or not-started)
+    let inProgressMission = null
+    if (activeSession) {
+      inProgressMission = scenarios.find(
+        s => s._firestore?.code === activeSession.scenario_id || s.id === activeSession.scenario_id
+      )
+    }
+
+    // Find next available mission (exclude the active session's scenario)
+    const nextMission = getNextAvailableMission(
+      scenarios, 
+      completedCodes, 
+      activeSession?.scenario_id
+    )
+
+    // Find next locked mission if no available mission
+    const lockedMission = !nextMission ? getNextLockedMission(scenarios, completedCodes) : null
+
+    return { inProgressMission, inProgressSession: activeSession, nextMission, lockedMission }
+  }
+
+  const { inProgressMission, inProgressSession, nextMission, lockedMission } = getMissionSuggestions()
 
   return (
     <main className="flex-1 flex">
@@ -115,50 +200,140 @@ export function SimulatorGrid({ authView, onAuthViewChange, authError }) {
                 <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider">
                   Suggested Missions
                 </h3>
-                
-                <Card className="border-primary/20 hover:border-primary/40 transition-colors cursor-pointer">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Play className="w-4 h-4 text-primary" />
-                      First Contact
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Beginner • 15 min
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Learn the basics of satellite operations and establish your first connection.
-                    </p>
-                    <Button asChild size="sm" className="w-full">
-                      <Link to="/simulator">
-                        Start Mission
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
 
-                <Card className="border-border hover:border-primary/20 transition-colors cursor-pointer">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      Orbital Mechanics 101
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Intermediate • 30 min
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Master orbital dynamics and trajectory planning.
+                {/* Loading State */}
+                {loading && (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                  </div>
+                )}
+
+                {/* Error State */}
+                {error && (
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs text-destructive font-semibold">🛰️ Signal Lost</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Like a satellite in eclipse, our connection to Mission Control is temporarily dark.
+                      </p>
+                      {/* Only show technical details in development */}
+                      {import.meta.env.DEV && (
+                        <p className="text-xs text-muted-foreground/60 mt-1 font-mono">
+                          Dev: {error}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty State - No Missions Available */}
+                {!loading && !error && scenarios.length === 0 && (
+                  <div className="bg-card border border-border rounded-lg p-6 text-center">
+                    <Satellite className="w-12 h-12 text-muted-foreground mx-auto mb-3 animate-pulse" />
+                    <h4 className="text-sm font-semibold text-foreground mb-2">
+                      🚀 Mission Database Offline
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      Our training scenarios are currently being deployed. 
+                      Check back soon for new missions!
                     </p>
-                    <Button asChild variant="outline" size="sm" className="w-full">
-                      <Link to="/missions">
-                        View Details
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
+                  </div>
+                )}
+
+                {/* Active Mission - Show if IN_PROGRESS (not NOT_STARTED) */}
+                {!loading && inProgressMission && inProgressSession && inProgressSession.status === 'IN_PROGRESS' && (
+                  <Card className="border-primary/40 bg-primary/5 hover:border-primary/60 transition-colors">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Play className="w-4 h-4 text-primary animate-pulse" />
+                        {inProgressMission.name}
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        {inProgressMission.difficultyLabel} • {inProgressMission.estimatedDuration} min • In Progress
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-3">
+                      <p className="text-xs text-muted-foreground mb-3">
+                        {inProgressMission.description}
+                      </p>
+                      <Button asChild size="sm" className="w-full">
+                        <Link to={`/mission-briefing/${inProgressMission.id}?session=${inProgressSession.id}`}>
+                          Continue Mission
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Next Available Mission - Show even if there's in-progress */}
+                {!loading && nextMission && (
+                  <Card className="border-primary/20 hover:border-primary/40 transition-colors">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Rocket className="w-4 h-4 text-primary" />
+                        {nextMission.name}
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        {nextMission.difficultyLabel} • {nextMission.estimatedDuration} min
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-3">
+                      <p className="text-xs text-muted-foreground mb-3">
+                        {nextMission.description}
+                      </p>
+                      <Button asChild variant="outline" size="sm" className="w-full">
+                        <Link to={`/mission-briefing/${nextMission.id}`}>
+                          View Briefing
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Locked Mission (if no available mission) */}
+                {!loading && !nextMission && lockedMission && (
+                  <Card className="border-border/50 opacity-75">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Lock className="w-4 h-4 text-muted-foreground" />
+                        {lockedMission.name}
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        {lockedMission.difficultyLabel} • {lockedMission.estimatedDuration} min • Locked
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-3">
+                      <p className="text-xs text-muted-foreground mb-3">
+                        {lockedMission.description}
+                      </p>
+                      <div className="text-xs text-amber-600 dark:text-amber-500 mb-3">
+                        Complete required missions to unlock
+                      </div>
+                      <Button asChild variant="outline" size="sm" className="w-full" disabled>
+                        <span>Locked</span>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* No missions available */}
+                {!loading && !inProgressMission && !nextMission && !lockedMission && scenarios.length > 0 && (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-muted-foreground">
+                      You've completed all available missions! 🎉
+                    </p>
+                  </div>
+                )}
+
+                {/* Browse all missions link */}
+                {!loading && scenarios.length > 0 && (
+                  <Button asChild variant="ghost" size="sm" className="w-full">
+                    <Link to="/missions">
+                      Browse All Missions →
+                    </Link>
+                  </Button>
+                )}
               </div>
             </div>
           )}

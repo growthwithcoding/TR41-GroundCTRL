@@ -16,6 +16,7 @@ const ContactPage = lazy(() => import('@/pages/Contact.jsx'))
 const HelpPage = lazy(() => import('@/pages/Help.jsx'))
 const HelpArticlePage = lazy(() => import('@/pages/HelpArticle.jsx'))
 const MissionBriefingPage = lazy(() => import('@/pages/MissionBriefing.jsx'))
+const WebSocketTestPage = lazy(() => import('@/pages/WebSocketTest.jsx'))
 const PrivacyPage = lazy(() => import('@/pages/Privacy.jsx'))
 const TermsPage = lazy(() => import('@/pages/Terms.jsx'))
 const NotFoundPage = lazy(() => import('@/pages/NotFound.jsx'))
@@ -44,6 +45,7 @@ function App() {
           <Route path="/help" element={<HelpPage />} />
           <Route path="/help/article/:slug" element={<HelpArticlePage />} />
           <Route path="/mission-briefing/:id" element={<MissionBriefingPage />} />
+          <Route path="/websocket-test" element={<WebSocketTestPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="*" element={<NotFoundPage />} />

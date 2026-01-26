@@ -6,9 +6,6 @@ export function Footer() {
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <p>© 2026 GroundCTRL. All rights reserved.</p>
         <div className="flex gap-6">
-          <Link to="/help" className="hover:text-primary transition-colors">
-            Help
-          </Link>
           <Link to="/privacy" className="hover:text-primary transition-colors">
             Privacy Policy
           </Link>

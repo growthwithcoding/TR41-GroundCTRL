@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { Bot, Sparkles, Lightbulb, HelpCircle, Send, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useSimulatorState } from "@/contexts/SimulatorStateContext"
 
 // API endpoint for NOVA chat
-const NOVA_API_URL = "https://api.missionctrl.org/api/v1/nova/chat"
+const NOVA_API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/nova/chat`
 
 // Fallback responses when API is unavailable
 const fallbackResponses = [
@@ -33,6 +34,34 @@ export function NovaAssistant({ sessionId, stepId }) {
       content: "Hello I'm Nova, your AI assistant. I'm here to help you understand satellite operations and guide you through your missions. What would you like to learn about?"
     }
   ])
+  
+  // Use simulator state for step guidance
+  const { 
+    steps, 
+    currentStepIndex,
+    missionProgress 
+  } = useSimulatorState()
+  
+  // Add guidance message when step changes
+  useEffect(() => {
+    const currentStep = steps[currentStepIndex]
+    if (currentStep && !currentStep.completed && currentStep.text) {
+      const stepGuidanceMessage = {
+        id: `step-guidance-${currentStep.id}`,
+        type: "assistant",
+        content: `📍 Current objective: ${currentStep.text}${currentStep.requiredCommands?.length > 0 ? ` (Required commands: ${currentStep.requiredCommands.join(', ')})` : ''}`
+      }
+      
+      // Only add if not already present
+      setMessages(prev => {
+        const exists = prev.some(msg => msg.id === stepGuidanceMessage.id)
+        if (!exists) {
+          return [...prev, stepGuidanceMessage]
+        }
+        return prev
+      })
+    }
+  }, [currentStepIndex, steps])
 
   const quickActions = [
     { label: "Explain", icon: HelpCircle, prompt: "Can you explain the current command?" },
@@ -93,7 +122,7 @@ export function NovaAssistant({ sessionId, stepId }) {
   }, [inputValue, isLoading, sessionId, stepId])
 
   return (
-    <aside className="w-72 flex-shrink-0 border-r border-border flex flex-col bg-card overflow-hidden">
+    <aside className="w-72 shrink-0 border-r border-border flex flex-col bg-card overflow-hidden">
       {/* Header */}
       <div className="p-4 border-b border-border bg-muted/50">
         <div className="flex items-center gap-2">

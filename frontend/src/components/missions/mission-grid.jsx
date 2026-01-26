@@ -44,7 +44,7 @@ const iconMap = {
 const difficultyLabels = ["", "Beginner", "Easy", "Intermediate", "Advanced", "Expert"]
 const difficultyColors = ["", "text-status-nominal", "text-teal", "text-status-warning", "text-orange", "text-status-critical"]
 
-export function MissionGrid({ missions, selectedCategory, searchQuery, isLoggedOut = false }) {
+export function MissionGrid({ missions, selectedCategory, searchQuery, isLoggedOut = false, userSessions = [] }) {
   // Filter missions based on category and search
   const filteredMissions = missions.filter(mission => {
     const matchesCategory = selectedCategory === "All Missions" || mission.category === selectedCategory
@@ -72,17 +72,22 @@ export function MissionGrid({ missions, selectedCategory, searchQuery, isLoggedO
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {filteredMissions.map((mission) => (
-        <MissionCard key={mission.id} mission={mission} isLoggedOut={isLoggedOut} />
+        <MissionCard key={mission.id} mission={mission} isLoggedOut={isLoggedOut} userSessions={userSessions} />
       ))}
     </div>
   )
 }
 
-function MissionCard({ mission, isLoggedOut = false }) {
+function MissionCard({ mission, isLoggedOut = false, userSessions = [] }) {
   // For logged-out users, treat all missions as available for preview
   const isLocked = !isLoggedOut && mission.status === "locked"
   const isCompleted = !isLoggedOut && mission.status === "completed"
   const isInProgress = !isLoggedOut && mission.status === "in-progress"
+  
+  // Find in-progress session for this mission
+  const inProgressSession = userSessions.find(
+    session => session.status === 'IN_PROGRESS' && session.scenario_id === mission.id
+  )
   
   const IconComponent = iconMap[mission.icon] || Rocket
 
@@ -222,8 +227,8 @@ function MissionCard({ mission, isLoggedOut = false }) {
               <ChevronRight className="w-3 h-3 ml-1" />
             </Button>
           </Link>
-        ) : isInProgress ? (
-          <Link to={`/simulator?mission=${mission.id}`}>
+        ) : inProgressSession ? (
+          <Link to={`/mission-briefing/${mission.id}?session=${inProgressSession.id}`}>
             <Button size="sm" className="w-full text-xs">
               Continue Mission
               <ChevronRight className="w-3 h-3 ml-1" />

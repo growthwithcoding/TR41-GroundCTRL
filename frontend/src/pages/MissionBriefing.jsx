@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import AppHeader from "@/components/app-header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -17,46 +17,34 @@ import {
   CheckCircle2,
   Circle,
   Rocket,
-  Satellite
+  Satellite,
+  Loader2,
+  Compass,
+  RotateCw,
+  Sun,
+  Radio,
+  Shield,
+  Camera,
+  Boxes,
+  ArrowLeft
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { fetchPublishedScenarios, fetchScenarioById } from "@/lib/firebase/scenariosService"
+import { createSession } from "@/lib/firebase/sessionService"
+import { useAuth } from "@/hooks/use-auth"
 
-// Mock mission data - in production this would come from an API
-const MISSION_DATA = {
-  "power-management": {
-    category: "POWER SYSTEMS",
-    title: "Power Management",
-    icon: Zap,
-    description: "Satellites depend on careful power management to survive. In this mission, you'll learn how to optimize solar panel orientation, manage battery charge cycles, and prioritize power distribution when resources are limited. You'll face scenarios where you must make critical decisions about which systems to power.",
-    duration: "25 min",
-    objectives: 6,
-    difficulty: 2,
-    reward: "+200 MP",
-    prerequisites: "Completion of 'Stable Orbit & First Ground Pass' recommended.",
-    phases: [
-      {
-        title: "PHASE 1: SOLAR POWER BASICS",
-        objectives: [
-          { id: 1, title: "Solar Panel Orientation", completed: false },
-          { id: 2, title: "Optimize Panel Angle", completed: false }
-        ]
-      },
-      {
-        title: "PHASE 2: BATTERY MANAGEMENT",
-        objectives: [
-          { id: 3, title: "Monitor Eclipse Entry", completed: false },
-          { id: 4, title: "Survive Eclipse Period", completed: false }
-        ]
-      },
-      {
-        title: "PHASE 3: POWER DISTRIBUTION",
-        objectives: [
-          { id: 5, title: "Power Priority Quiz", completed: false, active: true },
-          { id: 6, title: "Handle Power Emergency", completed: false }
-        ]
-      }
-    ]
-  }
+// Icon mapping for scenarios
+const iconMap = {
+  'Compass': Compass,
+  'Zap': Zap,
+  'RotateCw': RotateCw,
+  'Sun': Sun,
+  'Radio': Radio,
+  'Shield': Shield,
+  'Target': Target,
+  'Camera': Camera,
+  'Boxes': Boxes,
+  'Rocket': Rocket,
 }
 
 // Background Stars Component
@@ -104,6 +92,9 @@ function StarField() {
 export default function MissionBriefingPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const [searchParams] = useSearchParams()
+  const existingSessionId = searchParams.get("session")
   
   // State management
   const [phase, setPhase] = useState("briefing") // briefing | countdown | launch | orbit-insertion | complete
@@ -112,12 +103,99 @@ export default function MissionBriefingPage() {
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [showContent, setShowContent] = useState(false)
   const [currentObjective, setCurrentObjective] = useState(0)
+  const [mission, setMission] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(null)
+  const [sessionError, setSessionError] = useState(null)
+  const [creatingSession, setCreatingSession] = useState(false)
+  const [sessionId, setSessionId] = useState(null)
+  const [sessionData, setSessionData] = useState(null)
   
-  const mission = MISSION_DATA[id] || MISSION_DATA["power-management"]
-  const MissionIcon = mission.icon
+  // If there's an existing session, skip briefing and go straight to simulator
+  useEffect(() => {
+    if (existingSessionId && user) {
+      console.log('Existing session detected, skipping briefing:', existingSessionId)
+      navigate(`/simulator?session=${existingSessionId}`)
+    }
+  }, [existingSessionId, user, navigate])
+  
+  // Fetch mission data from Firestore
+  useEffect(() => {
+    async function loadMission() {
+      try {
+        setLoading(true)
+        const scenarios = await fetchPublishedScenarios()
+        const foundMission = scenarios.find(s => s.id === id)
+        
+        if (!foundMission) {
+          setLoadError("Mission not found")
+          return
+        }
+        
+        // Transform mission data to match briefing page format
+        const transformedMission = {
+          category: foundMission.category.toUpperCase(),
+          title: foundMission.name,
+          icon: iconMap[foundMission.icon] || Rocket,
+          description: foundMission.description,
+          duration: `${foundMission.estimatedDuration} min`,
+          objectives: foundMission._firestore?.objectives?.length || 0,
+          difficulty: foundMission.difficulty,
+          reward: `+${foundMission.rewards.mp} MP`,
+          prerequisites: foundMission.prerequisites.length > 0
+            ? `Requires completion of: ${foundMission.prerequisites.map(p => p.missionName).join(', ')}`
+            : "No prerequisites required.",
+          phases: transformMissionPhases(foundMission)
+        }
+        
+        setMission(transformedMission)
+      } catch (err) {
+        console.error('Error loading mission:', err)
+        setLoadError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadMission()
+  }, [id])
+  
+  // Transform Firestore objectives into phases
+  function transformMissionPhases(mission) {
+    const objectives = mission._firestore?.objectives || []
+    
+    if (objectives.length === 0) {
+      return [{
+        title: "MISSION OBJECTIVES",
+        objectives: [
+          { id: 1, title: "Complete the mission", completed: false }
+        ]
+      }]
+    }
+    
+    // Group objectives into phases (every 2-3 objectives)
+    const phases = []
+    const phaseSize = Math.ceil(objectives.length / Math.ceil(objectives.length / 3))
+    
+    for (let i = 0; i < objectives.length; i += phaseSize) {
+      const phaseObjectives = objectives.slice(i, i + phaseSize)
+      phases.push({
+        title: `PHASE ${phases.length + 1}: ${phaseObjectives[0].toUpperCase().substring(0, 20)}...`,
+        objectives: phaseObjectives.map((obj, idx) => ({
+          id: i + idx + 1,
+          title: obj,
+          completed: false
+        }))
+      })
+    }
+    
+    return phases
+  }
+  
+  const MissionIcon = mission?.icon || Rocket
   
   // Get all objectives for cycling
-  const allObjectives = mission.phases.flatMap(p => p.objectives)
+  const allObjectives = mission?.phases?.flatMap(p => p.objectives) || []
   
   // Trigger entrance animations
   useEffect(() => {
@@ -153,37 +231,180 @@ export default function MissionBriefingPage() {
         setLaunchProgress((prev) => Math.min(prev + 2, 100))
       }, 50)
       return () => clearInterval(timer)
-    } else if (phase === "launch" && launchProgress >= 100) {
-      setPhase("orbit-insertion")
-    }
-  }, [phase, launchProgress])
-  
-  // Orbit insertion phase
-  useEffect(() => {
-    if (phase === "orbit-insertion") {
+    } else if (phase === "launch" && launchProgress >= 100 && sessionId) {
+      // Navigate directly to simulator after launch completes
       const timer = setTimeout(() => {
-        setPhase("complete")
-      }, 2000)
+        navigate(`/simulator?session=${sessionId}`)
+      }, 500)
       return () => clearTimeout(timer)
     }
-  }, [phase])
+  }, [phase, launchProgress, sessionId, navigate])
   
-  // Complete phase - navigate to simulator
-  useEffect(() => {
-    if (phase === "complete") {
-      const timer = setTimeout(() => {
-        navigate(`/simulator?mission=${id}`)
-      }, 1500)
-      return () => clearTimeout(timer)
+  const handleStartMission = async () => {
+    if (!user) {
+      alert('Please sign in to start a mission.')
+      navigate('/?view=login')
+      return
     }
-  }, [phase, navigate, id])
-  
-  const handleStartMission = () => {
-    setPhase("countdown")
+    
+    setCreatingSession(true)
+    
+    try {
+      // Fetch the full scenario data
+      const scenario = await fetchScenarioById(id)
+      
+      if (!scenario) {
+        throw new Error('Scenario not found')
+      }
+      
+      console.log('Full scenario data:', scenario)
+      console.log('Scenario _firestore:', scenario._firestore)
+      
+      // Get steps from the right location - check both places
+      const scenarioSteps = scenario._firestore?.steps || scenario.steps || []
+      console.log('Scenario steps:', scenarioSteps)
+      
+      // Create session document directly in Firestore
+      // This creates a snapshot of the scenario at this point in time
+      const sessionData = {
+        user_id: user.uid,
+        scenario_id: id,
+        scenario: {
+          title: scenario.name || scenario.title,
+          description: scenario.description,
+          category: scenario.category,
+          difficulty: scenario.difficulty,
+        },
+        steps: scenarioSteps,
+        satellite: scenario._firestore?.satellite_id ? {
+          id: scenario._firestore.satellite_id,
+          name: 'SAT-01', // Default name
+          orbit: {
+            altitude_km: 415,
+            inclination_degrees: 51.6,
+            eccentricity: 0.0
+          },
+          power: {
+            currentCharge_percent: 95,
+            solarPower_watts: 1800,
+            consumption_watts: 450
+          },
+          thermal: {
+            temperature_celsius: 20
+          },
+          propulsion: {
+            fuel_percent: 100
+          },
+          payload: {
+            status: 'nominal'
+          }
+        } : null,
+        status: 'NOT_STARTED',
+        currentStepOrder: 0,
+        completedSteps: [],
+        total_hints_used: 0,
+        total_errors: 0,
+        attemptNumber: 1,
+        state: {},
+        version: 1
+      }
+      
+      // Create the session in Firestore
+      const newSessionId = await createSession(sessionData)
+      
+      setSessionId(newSessionId)
+      setSessionData(sessionData) // Store session data for launch animation
+      setPhase("countdown")
+      setCreatingSession(false)
+    } catch (err) {
+      console.error('Error creating session:', err)
+      console.error('Full error:', err)
+      setSessionError(`Failed to create session: ${err.message}`)
+      setCreatingSession(false)
+      
+      // Show alert to user
+      alert(`Failed to start mission: ${err.message}\n\nPlease check the console for details.`)
+    }
   }
   
-  const handleSkipBriefing = () => {
-    navigate(`/simulator?mission=${id}`)
+  const handleSkipBriefing = async () => {
+    if (!user) {
+      alert('Please sign in to start a mission.')
+      navigate('/?view=login')
+      return
+    }
+    
+    setCreatingSession(true)
+    
+    try {
+      // Fetch the full scenario data
+      const scenario = await fetchScenarioById(id)
+      
+      if (!scenario) {
+        throw new Error('Scenario not found')
+      }
+      
+      // Get steps from the right location - check both places
+      const scenarioSteps = scenario._firestore?.steps || scenario.steps || []
+      
+      // Create session document directly in Firestore
+      const sessionData = {
+        user_id: user.uid,
+        scenario_id: id,
+        scenario: {
+          title: scenario.name || scenario.title,
+          description: scenario.description,
+          category: scenario.category,
+          difficulty: scenario.difficulty,
+        },
+        steps: scenarioSteps,
+        satellite: scenario._firestore?.satellite_id ? {
+          id: scenario._firestore.satellite_id,
+          name: 'SAT-01', // Default name
+          orbit: {
+            altitude_km: 415,
+            inclination_degrees: 51.6,
+            eccentricity: 0.0
+          },
+          power: {
+            currentCharge_percent: 95,
+            solarPower_watts: 1800,
+            consumption_watts: 450
+          },
+          thermal: {
+            temperature_celsius: 20
+          },
+          propulsion: {
+            fuel_percent: 100
+          },
+          payload: {
+            status: 'nominal'
+          }
+        } : null,
+        status: 'NOT_STARTED',
+        currentStepOrder: 0,
+        completedSteps: [],
+        total_hints_used: 0,
+        total_errors: 0,
+        attemptNumber: 1,
+        state: {},
+        version: 1
+      }
+      
+      // Create the session in Firestore
+      const newSessionId = await createSession(sessionData)
+      
+      setSessionData(sessionData) // Store session data
+      navigate(`/simulator?session=${newSessionId}`)
+    } catch (err) {
+      console.error('Error creating session:', err)
+      console.error('Full error:', err)
+      setSessionError(`Failed to create session: ${err.message}`)
+      setCreatingSession(false)
+      
+      // Show alert to user
+      alert(`Failed to start mission: ${err.message}\n\nPlease check the console for details.`)
+    }
   }
   
   const renderStars = (count) => {
@@ -199,6 +420,42 @@ export default function MissionBriefingPage() {
   }
   
   const systems = ["POWER", "COMMS", "ATTITUDE", "PAYLOAD"]
+  
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <StarField />
+        <AppHeader />
+        <main className="flex-1 flex flex-col items-center justify-center px-6">
+          <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+          <p className="text-muted-foreground">Loading mission briefing...</p>
+        </main>
+      </div>
+    )
+  }
+  
+  // Error state - only for mission loading errors
+  if (loadError || (!loading && !mission)) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <StarField />
+        <AppHeader />
+        <main className="flex-1 flex flex-col items-center justify-center px-6">
+          <div className="text-center space-y-4">
+            <AlertTriangle className="w-16 h-16 text-destructive mx-auto" />
+            <h2 className="text-2xl font-bold">Mission Not Found</h2>
+            <p className="text-muted-foreground">
+              {loadError || "The requested mission could not be found."}
+            </p>
+            <Button asChild>
+              <a href="/missions">Return to Missions</a>
+            </Button>
+          </div>
+        </main>
+      </div>
+    )
+  }
 
   // Phase-specific renderers
   if (phase === "countdown") {
@@ -206,6 +463,42 @@ export default function MissionBriefingPage() {
       <div className="min-h-screen flex flex-col bg-background">
         <StarField />
         <AppHeader />
+        
+        {/* Top Bar - Keep navigation visible */}
+        <div className="h-14 border-b border-border bg-card flex items-center justify-between px-6 relative z-10">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/missions')}
+              className="text-sm"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Return to Missions
+            </Button>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span className="text-sm font-medium text-primary tracking-wide">
+                MISSION BRIEFING
+              </span>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="h-8 w-8"
+            >
+              {soundEnabled ? (
+                <Volume2 className="h-4 w-4" />
+              ) : (
+                <VolumeOff className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
         
         <main className="flex-1 flex flex-col items-center justify-center px-6 relative">
           <div className="text-center space-y-8 max-w-2xl">
@@ -246,12 +539,50 @@ export default function MissionBriefingPage() {
   }
   
   if (phase === "launch") {
-    const altitude = Math.floor(launchProgress * 4.15) // 0-415 km
+    // Get target altitude from session data, default to 415 if not available
+    const targetAltitude = sessionData?.satellite?.orbit?.altitude_km || 415
+    const altitude = Math.floor(launchProgress * (targetAltitude / 100)) // Scale to target altitude
     
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <StarField />
         <AppHeader />
+        
+        {/* Top Bar - Keep navigation visible */}
+        <div className="h-14 border-b border-border bg-card flex items-center justify-between px-6 relative z-10">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/missions')}
+              className="text-sm"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Return to Missions
+            </Button>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span className="text-sm font-medium text-primary tracking-wide">
+                MISSION BRIEFING
+              </span>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="h-8 w-8"
+            >
+              {soundEnabled ? (
+                <Volume2 className="h-4 w-4" />
+              ) : (
+                <VolumeOff className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
         
         <main className="flex-1 flex flex-col items-center justify-end px-6 relative overflow-hidden">
           {/* Rocket */}
@@ -369,11 +700,22 @@ export default function MissionBriefingPage() {
       
       {/* Top Bar */}
       <div className="h-14 border-b border-border bg-card flex items-center justify-between px-6 relative z-10">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-          <span className="text-sm font-medium text-primary tracking-wide">
-            MISSION BRIEFING
-          </span>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/missions')}
+            className="text-sm"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Return to Missions
+          </Button>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-sm font-medium text-primary tracking-wide">
+              MISSION BRIEFING
+            </span>
+          </div>
         </div>
         
         <div className="flex items-center gap-3">
@@ -393,8 +735,9 @@ export default function MissionBriefingPage() {
             variant="ghost"
             onClick={handleSkipBriefing}
             className="text-sm"
+            disabled={creatingSession}
           >
-            Skip Briefing
+            {creatingSession ? 'Starting...' : 'Skip Briefing'}
           </Button>
         </div>
       </div>
@@ -549,9 +892,19 @@ export default function MissionBriefingPage() {
                   onClick={handleStartMission}
                   size="lg"
                   className="w-full sm:w-auto text-base px-8 py-6 bg-primary hover:bg-primary/90 group"
+                  disabled={creatingSession}
                 >
-                  <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                  Begin Mission
+                  {creatingSession ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Creating Session...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                      Begin Mission
+                    </>
+                  )}
                 </Button>
               </div>
             </div>

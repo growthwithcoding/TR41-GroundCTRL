@@ -1,9 +1,11 @@
 /**
  * Server Entry Point
- * Starts the Express server with immediate Cloud Run port binding
+ * Starts the Express server with Socket.IO for real-time communication
  */
 
+const http = require('http');
 const app = require('./app');
+const { initializeWebSocket } = require('./websocket/server');
 const logger = require('./utils/logger');
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
@@ -11,12 +13,21 @@ const HOST = '0.0.0.0';
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 /**
- * Start the server with immediate port binding
+ * Start the server with Socket.IO support
  * Cloud Run requires immediate binding to PORT environment variable
  */
 function startServer() {
   try {
-    const server = app.listen(PORT, HOST, () => {
+    // Create HTTP server
+    const server = http.createServer(app);
+    
+    // Initialize Socket.IO
+    const io = initializeWebSocket(server);
+    
+    // Store io instance for potential use in routes
+    app.set('io', io);
+    
+    server.listen(PORT, HOST, () => {
       logger.info('🚀 GroundCTRL Mission Control System ONLINE', {
         port: PORT,
         host: HOST,
@@ -41,6 +52,12 @@ function startServer() {
       console.log(`  Health:      ${hostUrl}/api/v1/health`);
       console.log(`  DB Health:   ${hostUrl}/api/v1/health/db`);
       console.log(`  Docs:        ${hostUrl}/api/v1/docs`);
+      console.log(`  WebSocket:   ${hostUrl}/socket.io/`);
+      console.log('========================================');
+      console.log('Real-time Features:');
+      console.log('  🔌 Socket.IO: ENABLED');
+      console.log('  📡 Telemetry: /telemetry namespace');
+      console.log('  🎮 Commands:  /commands namespace');
       console.log('========================================\n');
     });
 

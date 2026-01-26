@@ -1,24 +1,39 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Clock, Lightbulb, Orbit, Radio, HelpCircle, Activity } from "lucide-react"
+import { Clock, Lightbulb, Orbit, Radio, HelpCircle, Activity, Terminal } from "lucide-react"
+import { useSimulatorState } from "@/contexts/SimulatorStateContext"
 
 export function SimulatorFooter({ 
   missionTime,
   hintsUsed = 2,
   totalHints = 5,
-  orbitStatus = "Analyzing",
-  commStatus = "connected"
+  orbitStatus = "Analyzing"
 }) {
-  const [elapsedSeconds, setElapsedSeconds] = useState(754) // Start at 12:34
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
   
-  // Simulate mission timer
+  // Use simulator state for connection status and command count
+  const { 
+    connected, 
+    commands, 
+    sessionStartTime,
+    missionStarted
+  } = useSimulatorState()
+  
+  // Calculate elapsed time from session start
   useEffect(() => {
+    if (!missionStarted || !sessionStartTime) {
+      setElapsedSeconds(0)
+      return
+    }
+    
     const interval = setInterval(() => {
-      setElapsedSeconds(prev => prev + 1)
+      const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000)
+      setElapsedSeconds(elapsed)
     }, 1000)
+    
     return () => clearInterval(interval)
-  }, [])
+  }, [sessionStartTime, missionStarted])
 
   const formatTime = (seconds) => {
     const hrs = Math.floor(seconds / 3600)
@@ -27,17 +42,8 @@ export function SimulatorFooter({
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
-  const commStatusColor = {
-    connected: "text-status-nominal",
-    intermittent: "text-status-warning",
-    disconnected: "text-status-critical"
-  }
-
-  const commStatusLabel = {
-    connected: "Connected",
-    intermittent: "Intermittent",
-    disconnected: "No Signal"
-  }
+  const commStatusColor = connected ? "text-status-nominal" : "text-status-critical"
+  const commStatusLabel = connected ? "Connected" : "Disconnected"
 
   return (
     <footer className="border-t border-border px-6 py-3 bg-muted/50">
@@ -46,7 +52,19 @@ export function SimulatorFooter({
           {/* Mission Time */}
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary" />
-            <span className="text-xs text-muted-foreground">Mission Time: 00:00</span>
+            <span className="text-xs text-muted-foreground">Mission Time:</span>
+            <span className="font-mono text-sm font-semibold text-foreground">
+              {formatTime(elapsedSeconds)}
+            </span>
+          </div>
+          
+          {/* Commands Executed */}
+          <div className="flex items-center gap-2">
+            <Terminal className="w-4 h-4 text-primary" />
+            <span className="text-xs text-muted-foreground">Commands:</span>
+            <span className="font-mono text-sm font-semibold text-foreground">
+              {commands.length}
+            </span>
           </div>
           
           {/* Hints */}
@@ -69,12 +87,12 @@ export function SimulatorFooter({
             </span>
           </div>
           
-          {/* Comm Link */}
+          {/* WebSocket Connection Status */}
           <div className="flex items-center gap-2">
-            <Radio className={`w-4 h-4 ${commStatusColor[commStatus]}`} />
-            <span className="text-xs text-muted-foreground">Comm Link:</span>
-            <span className={`text-sm font-semibold ${commStatusColor[commStatus]}`}>
-              {commStatusLabel[commStatus]}
+            <Radio className={`w-4 h-4 ${commStatusColor}`} />
+            <span className="text-xs text-muted-foreground">WS Connection:</span>
+            <span className={`text-sm font-semibold ${commStatusColor}`}>
+              {commStatusLabel}
             </span>
           </div>
 
