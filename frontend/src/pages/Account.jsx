@@ -8,7 +8,21 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, User, Mail, Shield, Trash2, Satellite, Award, Clock, Rocket } from "lucide-react"
 import { Footer } from "@/components/footer"
-import { updateProfile, sendPasswordResetEmail } from "firebase/auth"
+import { sendPasswordResetEmail } from "firebase/auth"
+
+// Add API call helper
+async function updateUserProfile(userId, data) {
+  const res = await fetch(`/users/${userId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+    credentials: "include", // if you use cookies/session auth
+  })
+  if (!res.ok) throw new Error("Failed to update profile")
+  return res.json()
+}
 
 export default function AccountPage() {
   // Password reset state
@@ -36,12 +50,13 @@ export default function AccountPage() {
 
   const handleSaveProfile = async () => {
     if (!user) return
-    
     setSaving(true)
     try {
-      await firebaseUpdateProfile(user, { displayName })
+      // PATCH to backend instead of Firebase
+      const updated = await updateUserProfile(user.uid, { displayName })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
+      // Optionally update local user state here if needed
     } catch (error) {
       console.error("Error updating profile:", error)
     }
