@@ -104,10 +104,13 @@ function initializeFirebase() {
         projectId: process.env.FIREBASE_PROJECT_ID || 'test-project',
       });
     }
-    // Production mode: Use Application Default Credentials
-    else if (isProduction && !hasPrivateKey) {
-      // Firebase App Hosting provides credentials automatically via ADC
-      logger.info('Using Application Default Credentials for Firebase Admin');
+    // Production mode: Always use Application Default Credentials
+    // Firebase App Hosting / Cloud Run provides credentials automatically
+    else if (isProduction) {
+      logger.info('Using Application Default Credentials for Firebase Admin (production)', {
+        projectId: process.env.FIREBASE_PROJECT_ID,
+      });
+      
       admin.initializeApp({
         projectId: process.env.FIREBASE_PROJECT_ID,
       });
