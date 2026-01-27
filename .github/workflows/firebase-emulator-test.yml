@@ -58,37 +58,51 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
       
-      - name: Start Firebase Emulators and run tests
+      - name: Start Firebase Emulators
+        working-directory: .
         run: |
-          # Start emulators in background
+          # Start emulators in background from root directory
           firebase emulators:start --only auth,firestore --project demo-test &
           EMULATOR_PID=$!
+          echo $EMULATOR_PID > emulator.pid
           
-          # Wait for emulators to be ready (max 30 seconds)
+          # Wait for emulators to be ready (max 60 seconds)
           echo "Waiting for Firebase emulators to start..."
-          for i in {1..30}; do
+          READY=0
+          for i in {1..60}; do
             if curl -s http://127.0.0.1:9099 > /dev/null 2>&1 && \
                curl -s http://127.0.0.1:8080 > /dev/null 2>&1; then
               echo "✅ Emulators are ready!"
+              READY=1
               break
             fi
-            echo "Waiting for emulators... ($i/30)"
+            echo "Waiting for emulators... ($i/60)"
             sleep 1
           done
           
-          # Run tests
-          npm test
-          TEST_EXIT_CODE=$?
-          
-          # Stop emulators
-          kill $EMULATOR_PID || true
-          
-          # Exit with test result
-          exit $TEST_EXIT_CODE
+          if [ $READY -eq 0 ]; then
+            echo "❌ Emulators failed to start"
+            kill $EMULATOR_PID || true
+            exit 1
+          fi
+        env:
+          NODE_ENV: test
+      
+      - name: Run tests
+        run: npm test
         env:
           NODE_ENV: test
           FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
           FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+      
+      - name: Stop emulators
+        if: always()
+        working-directory: .
+        run: |
+          if [ -f emulator.pid ]; then
+            kill $(cat emulator.pid) || true
+            rm emulator.pid
+          fi
       
       - name: Upload test results
         if: always() && hashFiles('backend/coverage/**') != ''
