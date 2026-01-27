@@ -197,6 +197,27 @@ const updateSessionHintsSchema = z.object({
   }).strict(),
 }).strict();
 
+// ---------- ASK HELP QUESTION schema (Public NOVA endpoint) ----------
+// For unauthenticated help queries
+
+const askHelpQuestionSchema = z.object({
+  body: z.object({
+    content: z.string()
+      .min(1, 'Question content is required')
+      .max(1000, 'Question must be 1000 characters or fewer')
+      .describe('User help question'),
+    
+    context: z.string()
+      .optional()
+      .describe('Optional help article slug for context'),
+    
+    conversationId: z.string()
+      .optional()
+      .describe('Optional conversation ID for multi-turn chat (generated on first request)'),
+    
+  }).strict(),
+}).strict();
+
 module.exports = {
   // Schemas
   createMessageSchema,
@@ -205,6 +226,7 @@ module.exports = {
   postUserMessageSchema,
   aiMessageDocumentSchema,
   updateSessionHintsSchema,
+  askHelpQuestionSchema,
   
   // Enums
   MessageRole,

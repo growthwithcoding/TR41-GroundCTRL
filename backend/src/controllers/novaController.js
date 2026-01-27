@@ -294,6 +294,49 @@ async function deleteConversation(req, res, next) {
   }
 }
 
+/**
+ * POST /ai/help/ask
+ * Ask NOVA a help question (public endpoint, no authentication required)
+ */
+async function askHelpQuestion(req, res, next) {
+  try {
+    const { content, context, conversationId } = req.body;
+    const userId = req.user?.uid; // Optional - will be null for anonymous users
+
+    // Generate help response
+    const novaResponse = await novaService.generateHelpResponse(content, {
+      userId,
+      context,
+      conversationId,
+    });
+
+    const response = responseFactory.createSuccessResponse(
+      {
+        message: {
+          role: 'assistant',
+          content: novaResponse.content,
+          is_fallback: novaResponse.is_fallback,
+        },
+        conversationId: novaResponse.conversationId,
+        userId: novaResponse.userId,
+      },
+      {
+        callSign: req.callSign || 'GUEST',
+        requestId: req.id,
+        statusCode: httpStatus.CREATED,
+      }
+    );
+
+    res.status(httpStatus.CREATED).json(response);
+  } catch (error) {
+    logger.error('Failed to process help question', {
+      error: error.message,
+      content: req.body?.content,
+    });
+    next(error);
+  }
+}
+
 module.exports = {
   listConversation,
   postMessage,
@@ -301,4 +344,5 @@ module.exports = {
   getContext,
   getStats,
   deleteConversation,
+  askHelpQuestion,
 };

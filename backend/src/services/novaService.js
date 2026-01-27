@@ -14,6 +14,9 @@ const commandRepository = require('../repositories/commandRepository');
 const scenarioSessionRepository = require('../repositories/scenarioSessionRepository');
 const scenarioStepRepository = require('../repositories/scenarioStepRepository');
 const scenarioRepository = require('../repositories/scenarioRepository');
+const helpArticleRepository = require('../repositories/helpArticleRepository');
+const helpFaqRepository = require('../repositories/helpFaqRepository');
+const { generateAnonymousId, generateHelpSessionId } = require('../utils/anonymousId');
 const logger = require('../utils/logger');
 
 // Gemini configuration
@@ -253,10 +256,10 @@ async function fetchContext(sessionId, stepId = null) {
  * Uses step hint_suggestion or generic fallback
  * 
  * @param {object} context - Context object
- * @param {string} userMessage - User's message
+ * @param {string} _userMessage - User's message (unused but kept for API consistency)
  * @returns {object} Fallback response object
  */
-function getFallbackResponse(context, userMessage) {
+function getFallbackResponse(context, _userMessage) {
   let response;
   let hintType = 'FALLBACK';
 
@@ -452,11 +455,283 @@ async function getSessionHistory(sessionId, options = {}) {
   return aiMessagesRepository.getMessagesBySession(sessionId, options);
 }
 
+/**
+ * Build help-aware prompt for NOVA
+ * For public help queries with relevant help articles
+ * 
+ * @param {object} context - Context object with help articles, FAQs, history
+ * @param {string} userMessage - User's question
+ * @returns {string} Formatted prompt
+ */
+function buildHelpAwarePrompt(context, userMessage) {
+  const { helpArticles, faqs, conversationHistory } = context;
+
+  let contextSection = '<context>\n';
+
+  // Help articles context
+  if (helpArticles && helpArticles.length > 0) {
+    contextSection += '<relevant_help_articles>\n';
+    helpArticles.forEach((article, i) => {
+      contextSection += `${i + 1}. ${article.title}\n`;
+      if (article.excerpt) {
+        contextSection += `   Excerpt: ${article.excerpt}\n`;
+      }
+      if (article.content) {
+        // Truncate content to first 500 chars
+        const truncated = article.content.substring(0, 500);
+        contextSection += `   Content: ${truncated}${article.content.length > 500 ? '...' : ''}\n`;
+      }
+    });
+    contextSection += '</relevant_help_articles>\n';
+  }
+
+  // FAQs context
+  if (faqs && faqs.length > 0) {
+    contextSection += '<relevant_faqs>\n';
+    faqs.forEach((faq, i) => {
+      contextSection += `${i + 1}. Q: ${faq.question}\n`;
+      contextSection += `   A: ${faq.answer}\n`;
+    });
+    contextSection += '</relevant_faqs>\n';
+  }
+
+  // Conversation history
+  if (conversationHistory && conversationHistory.length > 0) {
+    contextSection += '<conversation_history>\n';
+    conversationHistory.forEach(msg => {
+      contextSection += `[${msg.role.toUpperCase()}]: ${msg.content}\n`;
+    });
+    contextSection += '</conversation_history>\n';
+  }
+
+  contextSection += '</context>\n';
+
+  // User query
+  const querySection = `<user_query>${userMessage}</user_query>\n`;
+
+  // Instructions
+  const instructionsSection = `<instructions>
+You are NOVA, an AI assistant for satellite ground control help and support. Your role is to help users understand satellite operations, troubleshoot issues, and learn about ground control systems.
+
+Guidelines:
+1. Be helpful, clear, and concise
+2. Reference the relevant help articles and FAQs provided in the context when applicable
+3. Use professional but friendly language
+4. If the user's question relates to a specific help article, mention it by name
+5. If you don't have enough information in the provided context, say so clearly
+6. Encourage users to explore related help articles for more details
+7. Keep responses under 300 words unless explaining complex concepts
+8. For procedural questions, provide step-by-step guidance
+9. For troubleshooting, ask clarifying questions if needed
+
+Remember: You're helping users learn about satellite ground control operations. Be supportive and educational.
+</instructions>`;
+
+  return contextSection + querySection + instructionsSection;
+}
+
+/**
+ * Fetch help context for public NOVA queries
+ * Searches help articles and FAQs relevant to user question
+ * 
+ * @param {string} userMessage - User's question
+ * @param {string} articleSlug - Optional specific article slug
+ * @param {string} conversationId - Optional conversation ID for history
+ * @returns {Promise<object>} Context object with help content
+ */
+async function fetchHelpContext(userMessage, articleSlug = null, conversationId = null) {
+  const context = {
+    helpArticles: [],
+    faqs: [],
+    conversationHistory: [],
+  };
+
+  try {
+    // If specific article slug provided, fetch it
+    if (articleSlug) {
+      const article = await helpArticleRepository.getBySlug(articleSlug);
+      if (article) {
+        context.helpArticles.push(article);
+      }
+    }
+
+    // Search for relevant help articles (limit to top 3)
+    const searchResults = await helpArticleRepository.search(userMessage, {}, 3);
+    context.helpArticles.push(...searchResults);
+
+    // Remove duplicates if article was both directly fetched and in search results
+    context.helpArticles = Array.from(
+      new Map(context.helpArticles.map(a => [a.id, a])).values()
+    );
+
+    // Search for relevant FAQs (limit to top 3)
+    const allFaqs = await helpFaqRepository.getAll({ status: 'PUBLISHED', isActive: true });
+    const lowerQuery = userMessage.toLowerCase();
+    context.faqs = allFaqs
+      .filter(faq => 
+        faq.question.toLowerCase().includes(lowerQuery) ||
+        faq.answer.toLowerCase().includes(lowerQuery) ||
+        (faq.tags && faq.tags.some(tag => lowerQuery.includes(tag.toLowerCase())))
+      )
+      .slice(0, 3);
+
+    // Get conversation history if conversationId provided
+    if (conversationId) {
+      const history = await aiMessagesRepository.getRecentMessages(conversationId, MAX_HISTORY_MESSAGES);
+      context.conversationHistory = history;
+    }
+
+  } catch (error) {
+    logger.error('Failed to fetch help context', { error: error.message, userMessage });
+    // Continue with partial context
+  }
+
+  return context;
+}
+
+/**
+ * Generate NOVA help response for public queries
+ * Handles anonymous users and provides help-focused responses
+ * 
+ * @param {string} userMessage - User's question
+ * @param {object} options - Additional options
+ * @param {string} options.userId - User ID (or null for anonymous)
+ * @param {string} options.context - Optional help article slug
+ * @param {string} options.conversationId - Optional conversation ID
+ * @returns {Promise<object>} Response object with content and metadata
+ */
+async function generateHelpResponse(userMessage, options = {}) {
+  const { userId: providedUserId, context: articleSlug, conversationId: providedConversationId } = options;
+
+  // Generate anonymous ID if no user ID provided
+  const userId = providedUserId || generateAnonymousId();
+  
+  // Generate or use provided conversation ID
+  const conversationId = providedConversationId || generateHelpSessionId();
+
+  // Store user message
+  await aiMessagesRepository.addMessage(conversationId, userId, 'user', userMessage, {
+    metadata: {
+      message_type: 'HELP',
+      article_context: articleSlug || null,
+    },
+  });
+
+  // Fetch help context
+  const helpContext = await fetchHelpContext(userMessage, articleSlug, conversationId);
+
+  // Get Gemini model
+  const model = getGeminiModel();
+
+  if (!model) {
+    // Fallback response without AI
+    const fallbackContent = helpContext.helpArticles.length > 0
+      ? `I'm experiencing some connectivity issues, but I found these help articles that might assist you:\n\n${helpContext.helpArticles.map((a, i) => `${i + 1}. ${a.title}`).join('\n')}\n\nPlease check these articles for more information.`
+      : 'I\'m experiencing connectivity issues. Please try browsing our help articles or FAQs for assistance, or try again in a moment.';
+
+    await storeResponse(conversationId, userId, fallbackContent, {
+      is_fallback: true,
+      hint_type: 'FALLBACK',
+      metadata: {
+        message_type: 'HELP',
+      },
+    });
+
+    return {
+      content: fallbackContent,
+      conversationId,
+      is_fallback: true,
+      userId,
+    };
+  }
+
+  // Build prompt
+  const fullPrompt = buildHelpAwarePrompt(helpContext, userMessage);
+
+  // Try to get response with retries
+  let lastError = null;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout')), REQUEST_TIMEOUT_MS);
+      });
+
+      const generatePromise = model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+        generationConfig: GENERATION_CONFIG,
+      });
+
+      const result = await Promise.race([generatePromise, timeoutPromise]);
+      const responseText = result.response.text();
+
+      // Store assistant response
+      await storeResponse(conversationId, userId, responseText, {
+        is_fallback: false,
+        metadata: {
+          message_type: 'HELP',
+          model: GEMINI_MODEL,
+          attempt,
+          articles_referenced: helpContext.helpArticles.length,
+          faqs_referenced: helpContext.faqs.length,
+        },
+      });
+
+      return {
+        content: responseText,
+        conversationId,
+        is_fallback: false,
+        userId,
+      };
+
+    } catch (error) {
+      lastError = error;
+      logger.warn(`Help NOVA generation attempt ${attempt} failed`, {
+        error: error.message,
+        conversationId,
+        attempt,
+      });
+
+      if (attempt < MAX_RETRIES) {
+        await sleep(BASE_DELAY_MS * Math.pow(2, attempt - 1));
+      }
+    }
+  }
+
+  // All retries failed - use fallback
+  logger.error('Help NOVA generation failed after all retries', {
+    error: lastError?.message,
+    conversationId,
+  });
+
+  const fallbackContent = helpContext.helpArticles.length > 0
+    ? `I'm experiencing some connectivity issues, but I found these help articles that might assist you:\n\n${helpContext.helpArticles.map((a, i) => `${i + 1}. ${a.title}`).join('\n')}\n\nPlease check these articles for more information.`
+    : 'I\'m experiencing connectivity issues. Please try browsing our help articles or FAQs for assistance, or try again in a moment.';
+
+  await storeResponse(conversationId, userId, fallbackContent, {
+    is_fallback: true,
+    hint_type: 'FALLBACK',
+    metadata: {
+      message_type: 'HELP',
+    },
+  });
+
+  return {
+    content: fallbackContent,
+    conversationId,
+    is_fallback: true,
+    userId,
+    error: lastError?.message,
+  };
+}
+
 module.exports = {
   generateNovaResponse,
+  generateHelpResponse,
   storeResponse,
   getSessionHistory,
   fetchContext,
+  fetchHelpContext,
   buildStepAwarePrompt,
+  buildHelpAwarePrompt,
   incrementSessionHints,
 };

@@ -88,18 +88,76 @@ function initializeFirebase() {
 
   try {
     const isProduction = process.env.NODE_ENV === 'production';
-    const hasPrivateKey = !!process.env.FIREBASE_PRIVATE_KEY;
+    const isTest = process.env.NODE_ENV === 'test';
+    const hasEmulators = !!(process.env.FIRESTORE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST);
 
-    // In production (Firebase App Hosting/Cloud Run), use Application Default Credentials
-    // In development, use service account credentials from environment variables
-    if (isProduction && !hasPrivateKey) {
-      // Firebase App Hosting provides credentials automatically via ADC
-      logger.info('Using Application Default Credentials for Firebase Admin');
+    // Test mode with emulators: No credentials needed, emulators handle everything
+    if (isTest && hasEmulators) {
+      logger.info('Using Firebase emulators for testing (no credentials required)', {
+        projectId: process.env.FIREBASE_PROJECT_ID || 'test-project',
+        firestoreEmulator: process.env.FIRESTORE_EMULATOR_HOST,
+        authEmulator: process.env.FIREBASE_AUTH_EMULATOR_HOST,
+      });
+      
+      admin.initializeApp({
+        projectId: process.env.FIREBASE_PROJECT_ID || 'test-project',
+      });
+    }
+    // Production mode: Always use Application Default Credentials
+    // Firebase App Hosting / Cloud Run provides credentials automatically
+    else if (isProduction) {
+      logger.info('Using Application Default Credentials for Firebase Admin (production)', {
+        projectId: process.env.FIREBASE_PROJECT_ID,
+      });
+      
       admin.initializeApp({
         projectId: process.env.FIREBASE_PROJECT_ID,
       });
-    } else {
+    }
+    // Development mode: Use explicit service account credentials
+    else {
       // Development mode: use explicit service account credentials
+      // Validate required credentials before attempting initialization
+      const privateKey = process.env.FIREBASE_PRIVATE_KEY
+        ? process.env.FIREBASE_PRIVATE_KEY
+          .replace(/\\n/g, '\n')
+          .replace(/^"|"$/g, '')
+        : null;
+
+      if (!privateKey || typeof privateKey !== 'string' || privateKey.trim() === '') {
+        const errorMsg = [
+          '❌ Firebase Service Account Credentials Missing or Invalid',
+          '',
+          'FIREBASE_PRIVATE_KEY is required but not properly set.',
+          '',
+          'Please ensure:',
+          ' 1. FIREBASE_PRIVATE_KEY is set in your environment',
+          ' 2. The private key is properly formatted (including \\n for newlines)',
+          ' 3. The key is enclosed in quotes if it contains special characters',
+          '',
+          'For production deployment, consider using Application Default Credentials',
+          'by NOT setting FIREBASE_PRIVATE_KEY in production environment.',
+          '',
+          'See FIREBASE_SETUP.md for configuration instructions.',
+        ].join('\n');
+        
+        logger.error('Firebase private key validation failed', {
+          hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+          privateKeyType: typeof privateKey,
+          isEmpty: privateKey ? privateKey.trim() === '' : true,
+        });
+        
+        throw new Error(errorMsg);
+      }
+
+      if (!process.env.FIREBASE_CLIENT_EMAIL) {
+        throw new Error('FIREBASE_CLIENT_EMAIL is required for service account authentication');
+      }
+
+      if (!process.env.FIREBASE_PROJECT_ID) {
+        throw new Error('FIREBASE_PROJECT_ID is required for Firebase initialization');
+      }
+
       const serviceAccount = {
         type: 'service_account',
         project_id: process.env.FIREBASE_PROJECT_ID,
@@ -107,6 +165,7 @@ function initializeFirebase() {
         private_key: process.env.FIREBASE_PRIVATE_KEY
           ? Buffer.from(process.env.FIREBASE_PRIVATE_KEY, 'base64').toString('utf8')
           : undefined,
+        private_key: privateKey,
         client_email: process.env.FIREBASE_CLIENT_EMAIL,
         client_id: process.env.FIREBASE_CLIENT_ID || undefined,
         auth_uri: 'https://accounts.google.com/o/oauth2/auth',
@@ -115,6 +174,11 @@ function initializeFirebase() {
           'https://www.googleapis.com/oauth2/v1/certs',
         universe_domain: 'googleapis.com',
       };
+
+      logger.info('Using service account credentials for Firebase Admin', {
+        projectId: serviceAccount.project_id,
+        clientEmail: serviceAccount.client_email,
+      });
 
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),

@@ -13,12 +13,15 @@
 const express = require('express');
 const router = express.Router();
 const novaController = require('../controllers/novaController');
-const { authMiddleware } = require('../middleware/authMiddleware');
+const { authMiddleware, optionalAuth } = require('../middleware/authMiddleware');
 const { validate } = require('../middleware/validate');
+const { createRateLimiter } = require('../middleware/rateLimiter');
+const { helpAiLimit } = require('../config/rateLimits');
 const {
   listMessagesSchema,
   postUserMessageSchema,
   storeResponseSchema,
+  askHelpQuestionSchema,
 } = require('../schemas/novaSchemas');
 
 /**
@@ -501,6 +504,82 @@ router.delete(
   '/conversations/:session_id',
   authMiddleware,
   novaController.deleteConversation
+);
+
+/**
+ * @swagger
+ * /ai/help/ask:
+ *   post:
+ *     summary: Ask NOVA a help question (Public)
+ *     description: Public endpoint for help queries. No authentication required. Generates anonymous user ID if not logged in. All conversations stored for training.
+ *     tags: [AI]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - content
+ *             properties:
+ *               content:
+ *                 type: string
+ *                 description: User's help question
+ *                 example: 'How do I deploy solar arrays on a satellite?'
+ *               context:
+ *                 type: string
+ *                 description: Optional help article slug for context
+ *                 example: 'solar-array-deployment'
+ *               conversationId:
+ *                 type: string
+ *                 description: Optional conversation ID for multi-turn chat (generated on first request)
+ *                 example: 'help_sess_abc123'
+ *     responses:
+ *       201:
+ *         description: GO - Help response generated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/MissionControlResponse'
+ *                 - type: object
+ *                   properties:
+ *                     payload:
+ *                       type: object
+ *                       properties:
+ *                         data:
+ *                           type: object
+ *                           properties:
+ *                             message:
+ *                               type: object
+ *                               properties:
+ *                                 role:
+ *                                   type: string
+ *                                   example: 'assistant'
+ *                                 content:
+ *                                   type: string
+ *                                   example: 'To deploy solar arrays...'
+ *                                 is_fallback:
+ *                                   type: boolean
+ *                                   example: false
+ *                             conversationId:
+ *                               type: string
+ *                               example: 'help_sess_xyz789'
+ *                             userId:
+ *                               type: string
+ *                               example: 'anon_abc123'
+ *       422:
+ *         $ref: '#/components/responses/ValidationError'
+ *       429:
+ *         description: Too Many Requests - Rate limit exceeded
+ */
+router.post(
+  '/help/ask',
+  createRateLimiter(helpAiLimit),
+  optionalAuth,
+  validate(askHelpQuestionSchema),
+  novaController.askHelpQuestion
 );
 
 module.exports = router;

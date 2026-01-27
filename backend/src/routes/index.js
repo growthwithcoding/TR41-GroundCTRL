@@ -18,6 +18,7 @@ const scenarioSessionRoutes = require('./scenarioSessions');
 const aiRoutes = require('./ai');
 const commandRoutes = require('./commands');
 const helpRoutes = require('./help');
+const websocketLogsRoutes = require('./websocket-logs');
 
 /**
  * API v1 Routes
@@ -85,5 +86,8 @@ router.use('/commands', commandRoutes);
 
 // Help routes
 router.use('/help', helpRoutes);
+
+// WebSocket logs routes (development only)
+router.use('/websocket-logs', websocketLogsRoutes);
 
 module.exports = router;

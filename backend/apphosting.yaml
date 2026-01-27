@@ -27,8 +27,6 @@ runConfig:
 env:
   - variable: NODE_ENV
     value: production
-  - variable: PORT
-    value: "8080"
   - variable: CALL_SIGN
     value: GROUNDCTRL-01
   - variable: FIREBASE_PROJECT_ID

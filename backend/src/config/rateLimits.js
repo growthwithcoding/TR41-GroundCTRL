@@ -27,5 +27,13 @@ module.exports = {
     max: parseInt(process.env.API_RATE_LIMIT_MAX_REQUESTS) || 10000,
     standardHeaders: true,
     legacyHeaders: false
+  },
+
+  // Help AI endpoint: 20 requests per 5 minutes (stricter for anonymous users)
+  helpAiLimit: {
+    windowMs: 5 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false
   }
 };

@@ -36,7 +36,39 @@ python helper_scripts/convert_crlf_to_lf.py
 
 ---
 
-### 3. `FB_cleanup.js`
+### 3. `use_new_syntax.py`
+**Purpose:** Automatically fix Tailwind CSS canonical class name warnings from VS Code.
+
+**Usage:**
+```bash
+# 1. Copy Problems panel JSON (View → Problems → Ctrl+A → Copy)
+# 2. Paste into helper_scripts/problems.json
+# 3. Run from project root
+python helper_scripts/use_new_syntax.py
+```
+
+**What it does:**
+- Parses VS Code Problems JSON export
+- Identifies Tailwind CSS IntelliSense `suggestCanonicalClasses` warnings
+- Automatically replaces old class syntax with canonical versions
+- Examples: `flex-grow-0` → `grow-0`, `flex-shrink-0` → `shrink-0`
+
+**Processes:**
+- .jsx, .tsx, .html files with Tailwind classes
+- Exact location-based replacements (line, column)
+- Handles Windows path formats from VS Code
+
+**Output:**
+```
+🔍 Found 15 Tailwind fixes to apply...
+✅ Fixed badge.jsx:12:45: 'flex-grow-0' → 'grow-0'
+✅ Fixed button.jsx:8:20: 'flex-shrink-0' → 'shrink-0'
+🎉 Done! Check files, then: npm run dev
+```
+
+---
+
+### 4. `FB_cleanup.js`
 **Purpose:** Delete ALL Firebase data (Auth users + Firestore collections).
 
 ⚠️ **DANGER:** This script permanently deletes ALL data! Use with extreme caution.

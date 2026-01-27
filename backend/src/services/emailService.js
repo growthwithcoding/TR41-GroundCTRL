@@ -15,7 +15,7 @@ const logger = require('../utils/logger');
 const EMAIL_CONFIG = {
   fromAddress: process.env.EMAIL_FROM_ADDRESS || 'noreply@groundctrl.io',
   fromName: process.env.EMAIL_FROM_NAME || 'GroundCTRL Mission Control',
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
   enabled: process.env.EMAIL_ENABLED === 'true'
 };
 

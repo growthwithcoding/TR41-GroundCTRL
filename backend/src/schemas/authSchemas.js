@@ -18,13 +18,14 @@ const loginSchema = z.object({
 
 /**
  * Register schema
+ * Updated to align with SECURITY_REQUIREMENTS_CHECKLIST_UPDATED.md
  */
 const registerSchema = z.object({
   email: z.string()
     .min(1, 'Email is required')
     .email('Invalid email format'),
   password: z.string()
-    .min(8, 'Password must be at least 8 characters')
+    .min(12, 'Password must be at least 12 characters')
     .max(128, 'Password must not exceed 128 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
@@ -73,7 +74,7 @@ const changePasswordSchema = z.object({
   currentPassword: z.string()
     .min(1, 'Current password is required'),
   newPassword: z.string()
-    .min(8, 'New password must be at least 8 characters')
+    .min(12, 'New password must be at least 12 characters')
     .max(128, 'New password must not exceed 128 characters')
     .regex(/[A-Z]/, 'New password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'New password must contain at least one lowercase letter')
@@ -105,7 +106,7 @@ const resetPasswordSchema = z.object({
   token: z.string()
     .min(1, 'Reset token is required'),
   newPassword: z.string()
-    .min(8, 'New password must be at least 8 characters')
+    .min(12, 'New password must be at least 12 characters')
     .max(128, 'New password must not exceed 128 characters')
     .regex(/[A-Z]/, 'New password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'New password must contain at least one lowercase letter')

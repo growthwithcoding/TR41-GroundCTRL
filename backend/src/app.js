@@ -27,11 +27,23 @@ const app = express();
 console.log('DEBUG: App starting, about to initialize Firebase');
 
 // Initialize Firebase
+// Initialize Firebase with graceful error handling
+// Don't exit process on failure - let server start for Cloud Run health checks
+let firebaseInitialized = false;
 try {
   initializeFirebase();
+  firebaseInitialized = true;
+  logger.info('Firebase initialized successfully');
 } catch (error) {
-  logger.error('Failed to initialize Firebase', { error: error.message });
-  process.exit(1);
+  logger.error('Failed to initialize Firebase - server will start in degraded mode', { 
+    error: error.message,
+    stack: error.stack 
+  });
+  console.error('⚠️  WARNING: Firebase initialization failed');
+  console.error('    Server will start but Firebase features will be unavailable');
+  console.error('    Error:', error.message);
+  // Don't exit - let the server start so Cloud Run health checks pass
+  // Firebase errors will be handled by individual endpoints
 }
 
 // Security headers middleware
@@ -89,6 +101,29 @@ if (process.env.NODE_ENV !== 'test') {
 
   console.log('DEBUG: CORS allowedOrigins:', allowedOrigins);
 }
+// Expose Firebase status for health checks
+app.locals.firebaseInitialized = firebaseInitialized;
+
+// CORS configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : ['http://localhost:5173'];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));

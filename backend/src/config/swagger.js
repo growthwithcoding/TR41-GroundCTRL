@@ -62,7 +62,7 @@ All timestamps use ISO 8601 format. Telemetry includes:
         description: 'Development Server',
         variables: {
           port: {
-            default: '3001',
+            default: '8080',
             description: 'Server port (configured in .env)'
           }
         }
