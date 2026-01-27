@@ -12,6 +12,11 @@ concurrency:
   group: production-deployment
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
@@ -83,7 +88,7 @@ jobs:
             🔍 **Workflow:** [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
 
             // Try to find related PR and comment there
-            const { data: prs } = await github.rest.repos.listPullRequests({
+            const { data: prs } = await github.rest.pulls.list({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'closed',
@@ -180,7 +185,7 @@ jobs:
             console.log(`✅ Created issue #${issue.data.number}`);
             
             // Try to comment on related PR if exists
-            const { data: prs } = await github.rest.repos.listPullRequests({
+            const { data: prs } = await github.rest.pulls.list({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'closed',

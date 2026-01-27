@@ -18,4 +18,16 @@ export default defineConfig({
     port: 5173,
     open: true,
   },
+  build: {
+    rollupOptions: {
+      // Ensure socket.io-client is bundled properly
+      external: [],
+    },
+    commonjsOptions: {
+      include: [/node_modules/],
+    },
+  },
+  optimizeDeps: {
+    include: ['socket.io-client'],
+  },
 })

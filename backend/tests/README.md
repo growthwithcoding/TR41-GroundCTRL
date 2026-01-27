@@ -2,6 +2,27 @@
 
 This directory contains all automated tests for the GroundCTRL backend, organized by test type and consolidated to eliminate duplication.
 
+## Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Run all tests
+npm test
+
+# Run specific test suites
+npm run test:unit           # Unit tests only
+npm run test:integration    # Integration tests (SuperTest)
+npm run test:security       # Security tests only
+
+# Run with coverage
+npm run test:coverage
+
+# Watch mode for development
+npm run test:watch
+```
+
 ## Directory Structure
 
 ```
@@ -16,7 +37,10 @@ tests/
 │   └── services/           # Service layer unit tests (business logic)
 │       ├── authService.test.js
 │       └── userService.test.js
-├── integration/            # Integration tests (API endpoint testing)
+├── integration/            # Integration tests (API endpoint testing with SuperTest)
+│   ├── api/               # NEW: Comprehensive API endpoint tests
+│   │   ├── users.test.js        # User CRUD operations
+│   │   └── satellites.test.js   # Satellite management
 │   ├── auth/              # Authentication integration tests
 │   │   └── authentication.test.js
 │   ├── rate-limiting/     # Rate limiter integration tests
@@ -29,7 +53,7 @@ tests/
 │       ├── satellites.test.js
 │       ├── help.test.js
 │       └── ai-help.test.js
-├── e2e/                    # End-to-end tests (full user flows)
+├── e2e/                    # End-to-end tests (placeholder - actual E2E tests in frontend/e2e/)
 │   ├── ui/                # UI navigation and interaction tests
 │   │   └── navigation.test.js
 │   └── workflows/         # Complete workflow tests

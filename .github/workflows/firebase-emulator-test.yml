@@ -7,18 +7,9 @@ on:
       - 'backend/**'
       - 'firebase.json'
       - '.firebaserc'
-  push:
-    branches: [main]
-    paths:
-      - 'backend/**'
-on: 
-  pull_request:
-    paths:
-      - 'backend/**'
       - '.github/workflows/firebase-emulator-test.yml'
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'backend/**'
 
@@ -43,7 +34,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          node-version: '20'
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
       
