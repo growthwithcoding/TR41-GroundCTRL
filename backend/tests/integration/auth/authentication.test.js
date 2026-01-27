@@ -30,9 +30,10 @@ describe('Authentication - Integration Tests', () => {
         .send(userData)
         .expect(201);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toHaveProperty('uid');
-      expect(response.body.data).toHaveProperty('token');
+      expect(response.body).toHaveProperty('payload');
+      expect(response.body.payload).toHaveProperty('data');
+      expect(response.body.payload.data).toHaveProperty('uid');
+      expect(response.body.payload.data).toHaveProperty('token');
     });
   });
 
@@ -55,9 +56,10 @@ describe('Authentication - Integration Tests', () => {
         })
         .expect(401);
 
-      expect(response.body).toHaveProperty('error');
-      expect(response.body.error.message).toBe('Invalid credentials');
-      expect(response.body.error.message).not.toContain('auth/user-not-found');
+      expect(response.body).toHaveProperty('payload');
+      expect(response.body.payload).toHaveProperty('error');
+      expect(response.body.payload.error.message).toBe('Invalid credentials');
+      expect(response.body.payload.error.message).not.toContain('auth/user-not-found');
 
       process.env.NODE_ENV = originalEnv;
     });
@@ -75,8 +77,9 @@ describe('Authentication - Integration Tests', () => {
         })
         .expect(401);
 
-      expect(response.body).toHaveProperty('error');
-      expect(response.body.error).toHaveProperty('code');
+      expect(response.body).toHaveProperty('payload');
+      expect(response.body.payload).toHaveProperty('error');
+      expect(response.body.payload.error).toHaveProperty('code');
     });
   });
 
@@ -86,8 +89,9 @@ describe('Authentication - Integration Tests', () => {
         .get('/api/v1/health')
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body).not.toHaveProperty('error');
+      expect(response.body).toHaveProperty('payload');
+      expect(response.body.payload).toHaveProperty('data');
+      expect(response.body.payload).not.toHaveProperty('error');
     });
 
     it('should return error responses in envelope structure', async () => {
@@ -95,9 +99,10 @@ describe('Authentication - Integration Tests', () => {
         .get('/api/v1/nonexistent')
         .expect(404);
 
-      expect(response.body).toHaveProperty('error');
-      expect(response.body.error).toHaveProperty('message');
-      expect(response.body).not.toHaveProperty('data');
+      expect(response.body).toHaveProperty('payload');
+      expect(response.body.payload).toHaveProperty('error');
+      expect(response.body.payload.error).toHaveProperty('message');
+      expect(response.body.payload).not.toHaveProperty('data');
     });
   });
 });

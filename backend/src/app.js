@@ -151,6 +151,15 @@ app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 // API Routes (versioned)
 app.use('/api/v1', routes);
 
+// Health endpoint at root level for tests and quick checks
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'GO',
+    service: 'GroundCTRL API',
+    version: missionControl.version
+  });
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({

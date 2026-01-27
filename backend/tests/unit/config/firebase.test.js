@@ -50,6 +50,9 @@ describe('Firebase Configuration - Unit Tests', () => {
 
   describe('FIRE-006: Production ADC Usage', () => {
     it('should use Application Default Credentials in production', () => {
+      // Clear emulator environment variables for production test
+      delete process.env.FIREBASE_AUTH_EMULATOR_HOST;
+      delete process.env.FIRESTORE_EMULATOR_HOST;
       process.env.NODE_ENV = 'production';
       process.env.FIREBASE_PROJECT_ID = 'test-project';
       delete process.env.FIREBASE_PRIVATE_KEY;
@@ -62,11 +65,17 @@ describe('Firebase Configuration - Unit Tests', () => {
           projectId: 'test-project',
         })
       );
+      
+      // Restore emulator environment variables
+      process.env.FIREBASE_AUTH_EMULATOR_HOST = 'localhost:9099';
+      process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
     });
   });
 
   describe('FIRE-007: Development Service Account Usage', () => {
     it('should load service account file in development', () => {
+      delete process.env.FIREBASE_AUTH_EMULATOR_HOST;
+      delete process.env.FIRESTORE_EMULATOR_HOST;
       process.env.NODE_ENV = 'development';
       process.env.FIREBASE_PROJECT_ID = 'test-project';
       process.env.FIREBASE_PRIVATE_KEY = Buffer.from('test-key').toString('base64');
@@ -75,7 +84,12 @@ describe('Firebase Configuration - Unit Tests', () => {
       const { initializeFirebase } = require('../../../src/config/firebase');
       initializeFirebase();
 
+      // In development with service account, cert should be called
       expect(admin.credential.cert).toHaveBeenCalled();
+      
+      // Restore emulator environment variables
+      process.env.FIREBASE_AUTH_EMULATOR_HOST = 'localhost:9099';
+      process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
     });
   });
 

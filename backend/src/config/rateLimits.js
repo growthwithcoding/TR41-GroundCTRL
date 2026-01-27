@@ -1,14 +1,13 @@
 /**
  * Rate Limiting Configuration
  * Centralized rate limit settings for different endpoints
- * TEMPORARILY INCREASED FOR TESTING
  */
 
 module.exports = {
-  // Login endpoint: 100 requests per 60 seconds (1 minute)
+  // Login endpoint: 5 requests per 60 seconds (1 minute) in production, can be overridden for testing
   loginLimit: {
     windowMs: parseInt(process.env.LOGIN_RATE_LIMIT_WINDOW_MS) || 60 * 1000,
-    max: parseInt(process.env.LOGIN_RATE_LIMIT_MAX_REQUESTS) || 100,
+    max: parseInt(process.env.LOGIN_RATE_LIMIT_MAX_REQUESTS) || 5,
     standardHeaders: true,
     legacyHeaders: false
   },
@@ -21,10 +20,10 @@ module.exports = {
     legacyHeaders: false
   },
 
-  // General API: 10000 requests per 15 minutes
+  // General API: 100 requests per 15 minutes
   apiLimit: {
     windowMs: parseInt(process.env.API_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-    max: parseInt(process.env.API_RATE_LIMIT_MAX_REQUESTS) || 10000,
+    max: parseInt(process.env.API_RATE_LIMIT_MAX_REQUESTS) || 100,
     standardHeaders: true,
     legacyHeaders: false
   },

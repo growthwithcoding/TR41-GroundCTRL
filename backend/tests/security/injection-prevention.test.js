@@ -20,7 +20,7 @@ describe('Injection Prevention - Security Tests', () => {
         .query({ callSign: 'KNOWN' })
         .expect(404);
 
-      expect(response.body.error).toHaveProperty('message');
+      expect(response.body.payload.error).toHaveProperty('message');
     });
   });
 
@@ -35,7 +35,7 @@ describe('Injection Prevention - Security Tests', () => {
         .send(largePayload)
         .expect(400);
 
-      expect(response.body.error.message).toContain('length');
+      expect(response.body.payload.error.message).toContain('length');
     });
 
     it('should sanitize malicious script tags', async () => {
@@ -48,8 +48,8 @@ describe('Injection Prevention - Security Tests', () => {
         .send(maliciousPayload)
         .expect(200);
 
-      expect(response.body.data.answer).not.toContain('<script>');
-      expect(response.body.data.answer).not.toContain('alert(1)');
+      expect(response.body.payload.data.answer).not.toContain('<script>');
+      expect(response.body.payload.data.answer).not.toContain('alert(1)');
     });
   });
 });

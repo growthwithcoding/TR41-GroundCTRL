@@ -25,9 +25,3 @@ if (process.env.SUPPRESS_TEST_LOGS === 'true') {
 
 // Set longer timeout for all tests
 jest.setTimeout(10000);
-
-// Global cleanup after all tests
-afterAll(async () => {
-  // Allow time for async operations to complete
-  await new Promise(resolve => setTimeout(resolve, 500));
-});

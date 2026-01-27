@@ -10,6 +10,13 @@ describe('Performance - Load Tests', () => {
 
   beforeAll(() => {
     process.env.NODE_ENV = 'test';
+    // Initialize Firebase before loading app
+    const { initializeFirebase } = require('../../../src/config/firebase');
+    try {
+      initializeFirebase();
+    } catch (error) {
+      // Already initialized in setup
+    }
     app = require('../../../src/app');
   });
 

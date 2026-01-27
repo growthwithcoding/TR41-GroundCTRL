@@ -10,6 +10,13 @@ describe('Security - Injection Tests', () => {
 
   beforeAll(() => {
     process.env.NODE_ENV = 'test';
+    // Initialize Firebase before loading app
+    const { initializeFirebase } = require('../../../src/config/firebase');
+    try {
+      initializeFirebase();
+    } catch (error) {
+      // Already initialized in setup
+    }
     app = require('../../../src/app');
   });
 
@@ -20,7 +27,7 @@ describe('Security - Injection Tests', () => {
         .query({ callSign: 'KNOWN' })
         .expect(404);
 
-      expect(response.body.error).toHaveProperty('message');
+      expect(response.body.payload.error).toHaveProperty('message');
     });
   });
 
@@ -35,7 +42,7 @@ describe('Security - Injection Tests', () => {
         .send(largePayload)
         .expect(400);
 
-      expect(response.body.error.message).toContain('length');
+      expect(response.body.payload.error.message).toContain('length');
     });
   });
 
@@ -50,8 +57,8 @@ describe('Security - Injection Tests', () => {
         .send(maliciousPayload)
         .expect(200);
 
-      expect(response.body.data.answer).not.toContain('<script>');
-      expect(response.body.data.answer).not.toContain('alert(1)');
+      expect(response.body.payload.data.answer).not.toContain('<script>');
+      expect(response.body.payload.data.answer).not.toContain('alert(1)');
     });
   });
 
@@ -64,9 +71,10 @@ describe('Security - Injection Tests', () => {
         .post('/api/v1/intentional-error-route')
         .expect(500);
 
-      expect(response.body).toHaveProperty('error');
-      expect(response.body.error.message).toBe('Internal server error');
-      expect(response.body.error).not.toHaveProperty('stack');
+      expect(response.body).toHaveProperty('payload');
+      expect(response.body.payload).toHaveProperty('error');
+      expect(response.body.payload.error.message).toBe('Internal server error');
+      expect(response.body.payload.error).not.toHaveProperty('stack');
 
       process.env.NODE_ENV = originalEnv;
     });
