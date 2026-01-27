@@ -75,17 +75,15 @@ cd backend
 npm install
 npm test
 
-# Frontend E2E tests  
-cd frontend
-npm install
-npx playwright install --with-deps
-npm run test:e2e:ui
+# Frontend E2E tests (CURRENTLY DISABLED)
+# E2E tests have been temporarily removed to prevent interference with development
+# They will be re-implemented in a future update when the frontend is more stable
 ```
 
 ### Test Categories
 - **Unit Tests**: Jest for isolated component testing
 - **Integration Tests**: SuperTest for API endpoint testing  
-- **E2E Tests**: Playwright for complete user workflows
+- **E2E Tests**: ⚠️ Temporarily disabled (future implementation planned)
 - **Security Tests**: Security vulnerability testing
 - **CI/CD**: Automated testing on every PR
 
@@ -97,15 +95,15 @@ npm run test:integration   # Integration tests (requires emulators)
 npm run test:security      # Security tests
 npm run test:coverage      # With coverage report
 
-# Frontend E2E testing
-npm run test:e2e          # Headless E2E tests
-npm run test:e2e:ui       # Interactive UI mode
-npm run test:e2e:headed   # See browser during tests
+# Frontend E2E testing - TEMPORARILY DISABLED
+# npm run test:e2e          # (Removed - will be restored in future update)
+# npm run test:e2e:ui       # (Removed - will be restored in future update)
+# npm run test:e2e:headed   # (Removed - will be restored in future update)
 ```
 
 ### CI/CD Integration
 - ✅ Automated testing on every Pull Request
-- ✅ Multi-browser E2E testing (Chrome, Firefox, Safari)
+- ⚠️ Multi-browser E2E testing (temporarily disabled)
 - ✅ Test result summaries and artifact collection
 - ✅ Firebase emulator integration for isolated testing
 

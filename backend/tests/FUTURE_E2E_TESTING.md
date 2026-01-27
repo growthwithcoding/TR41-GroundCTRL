@@ -1,8 +1,20 @@
-# E2E Testing Setup - Playwright Guide
+# E2E Testing Setup - Playwright Guide (FUTURE IMPLEMENTATION)
 
 ## Overview
 
+**⚠️ NOTICE: E2E tests have been temporarily removed from this project as of January 2026 to prevent interference with frontend development. This document is preserved for future implementation.**
+
 This guide covers setting up and running End-to-End (E2E) tests for GroundCTRL using Playwright. E2E tests verify complete user workflows from the browser perspective.
+
+## Status
+
+- **Current State**: E2E tests removed
+- **Reason**: Potential interference with frontend development
+- **Future Plan**: Re-implement when frontend is more stable
+- **Files Removed**: 
+  - `frontend/e2e/` directory (authentication.spec.js, navigation.spec.js, workflows.spec.js)
+  - `frontend/playwright.config.js`
+  - Playwright dependencies from package.json
 
 ## Prerequisites
 
