@@ -1,7 +1,7 @@
 /**
  * Rate Limiting Integration and Security Tests
  * Tests: AUTH-004, AUTH-005, AUTH-006, LIM-001 to LIM-005, SEC-003
- * Consolidated from: sprint0/backendPhase2SecurityQuickWins.test.js
+ * Consolidated from: sprint0/backendPhase2SecurityQuickWins.test.js and security/rate-limiting.test.js
  */
 
 // IMPORTANT: Set rate limit env vars BEFORE requiring anything
