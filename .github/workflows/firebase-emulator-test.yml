@@ -46,20 +46,43 @@ jobs:
       - name: Run linter
         run: npm run lint
       
+      - name: Install Java (required for Firebase Emulators)
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+      
       - name: Start Firebase Emulators and run tests
         run: |
-          firebase emulators:exec --only auth,firestore --project demo-test "npm test" || exit 1
-      - name: Run linter
-        working-directory: ./backend
-        run: npm run lint || echo "⚠️ Linting completed with warnings"
-        continue-on-error: true
-      
-      - name: Run sanity tests
-        working-directory: ./backend
-        run: npx jest tests-backend/sanity.test.js --verbose
+          # Start emulators in background
+          firebase emulators:start --only auth,firestore --project demo-test &
+          EMULATOR_PID=$!
+          
+          # Wait for emulators to be ready (max 30 seconds)
+          echo "Waiting for Firebase emulators to start..."
+          for i in {1..30}; do
+            if curl -s http://127.0.0.1:9099 > /dev/null 2>&1 && \
+               curl -s http://127.0.0.1:8080 > /dev/null 2>&1; then
+              echo "✅ Emulators are ready!"
+              break
+            fi
+            echo "Waiting for emulators... ($i/30)"
+            sleep 1
+          done
+          
+          # Run tests
+          npm test
+          TEST_EXIT_CODE=$?
+          
+          # Stop emulators
+          kill $EMULATOR_PID || true
+          
+          # Exit with test result
+          exit $TEST_EXIT_CODE
         env:
           NODE_ENV: test
-          SUPPRESS_TEST_LOGS: true
+          FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
       
       - name: Upload test results
         if: always()
@@ -67,23 +90,6 @@ jobs:
         with:
           name: test-results
           path: backend/coverage/
-      - name: Validate backend structure
-        working-directory: ./backend
-        run: |
-          echo "✅ Backend dependencies installed successfully"
-          echo "✅ Sanity tests passed"
-          
-          # Check for critical files
-          if [ ! -f "src/app.js" ]; then
-            echo "❌ Missing src/app.js"
-            exit 1
-          fi
-          if [ ! -f "src/server.js" ]; then
-            echo "❌ Missing src/server.js"
-            exit 1
-          fi
-          
-          echo "✅ Backend structure validated"
       
       - name: Test summary
         if: always()
