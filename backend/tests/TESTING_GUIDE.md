@@ -248,6 +248,71 @@ Validates PR:
 3. **Coverage Reports**: Uploaded to Codecov
 4. **Test Summary**: View in GitHub Actions summary
 
+---
+
+## CodeQL Security Analysis
+
+### Overview
+
+CodeQL is GitHub's semantic code analysis engine that automatically runs security scans on the GroundCTRL codebase to identify vulnerabilities and coding errors.
+
+### Configuration
+
+**File**: [`.github/workflows/codeql-analysis.yml`](../../.github/workflows/codeql-analysis.yml)
+
+Key features:
+- **Languages**: JavaScript/TypeScript analysis
+- **Triggers**: Push to main/sprint2tests, Pull requests, Weekly schedule  
+- **Queries**: Security-and-quality query suite for comprehensive analysis
+- **Dependencies**: Installs both backend and frontend dependencies for complete analysis
+
+### What CodeQL Detects
+
+CodeQL analyzes code semantically to find:
+- **Injection vulnerabilities**: SQL injection, XSS, command injection
+- **Authentication flaws**: Weak password policies, insecure token handling
+- **Data flow issues**: Sensitive data exposure, improper validation
+- **Code quality**: Dead code, unreachable code, type mismatches
+
+### Workflow Integration
+
+```yaml
+# Runs automatically on:
+on:
+  push:
+    branches: [ main, sprint2tests ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '25 3 * * 1'  # Weekly on Mondays
+```
+
+### Permissions Fixed
+
+The workflow includes proper permissions to avoid common errors:
+```yaml
+permissions:
+  contents: read
+  security-events: write  # Required for uploading SARIF results
+  actions: read          # Required for private repositories
+```
+
+### Viewing Results
+
+CodeQL results are available in:
+1. **GitHub Security tab**: Repository-level security advisories
+2. **Pull Request checks**: Inline security feedback on PRs  
+3. **Actions artifacts**: SARIF files for detailed analysis
+
+### Integration with Testing
+
+CodeQL complements existing tests:
+- **Unit/Integration Tests**: Functional correctness
+- **CodeQL Analysis**: Security vulnerabilities and code quality  
+- **Combined Coverage**: Comprehensive validation
+
+This provides an additional security layer beyond manual testing.
+
 ### Running Tests Locally Like CI
 
 ```bash
