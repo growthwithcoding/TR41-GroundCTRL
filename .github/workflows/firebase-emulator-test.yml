@@ -130,9 +130,9 @@ jobs:
 
             **Commit:** \`${context.sha.substring(0, 7)}\``;
 
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
-              repo: context.repo.name,
+              repo: context.repo.repo,
               body: body
             });
