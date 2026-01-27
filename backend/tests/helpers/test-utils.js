@@ -5,6 +5,28 @@
 
 const admin = require('firebase-admin');
 
+let appInstance = null;
+
+/**
+ * Get or create the test Express app instance
+ * This ensures Firebase is only initialized once across all tests
+ * @returns {Express} The Express app instance
+ */
+function getTestApp() {
+  if (!appInstance) {
+    // Set emulator hosts before requiring the app
+    process.env.NODE_ENV = 'test';
+    process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
+    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
+    
+    // Clear the require cache to ensure fresh initialization
+    delete require.cache[require.resolve('../../src/app')];
+    
+    appInstance = require('../../src/app');
+  }
+  return appInstance;
+}
+
 /**
  * Create a test user in Firebase Auth Emulator
  * @param {string} email - User email
@@ -116,6 +138,7 @@ function generateUniqueEmail(prefix = 'test') {
 }
 
 module.exports = {
+  getTestApp,
   createTestUser,
   deleteTestUser,
   generateTestToken,

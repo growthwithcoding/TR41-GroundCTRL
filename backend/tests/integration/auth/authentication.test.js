@@ -4,18 +4,17 @@
  */
 
 const request = require('supertest');
+const { getTestApp } = require('../../helpers/test-utils');
 
 describe('Authentication - Integration Tests', () => {
   let app;
 
   beforeAll(async () => {
-    // Initialize test app with Firebase emulators
-    process.env.NODE_ENV = 'test';
-    process.env.FIREBASE_AUTH_EMULATOR_HOST = 'localhost:9099';
-    process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
-    
-    app = require('../../../src/app');
-  });
+    // Use the test helper to get app instance
+    app = getTestApp();
+    // Add delay to ensure emulators are ready
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }, 60000);
 
   describe('AUTH-001: CreateUser with duplicate callSign', () => {
     it('should create user successfully even with duplicate callSign', async () => {
@@ -23,18 +22,20 @@ describe('Authentication - Integration Tests', () => {
         email: `test-${Date.now()}@example.com`,
         password: 'TestPassword123!',
         callSign: 'DUPLICATE',
+        displayName: 'Duplicate Test User',
       };
 
       const response = await request(app)
-        .post('/api/v1/users')
+        .post('/api/v1/auth/register')
         .send(userData)
         .expect(201);
 
       expect(response.body).toHaveProperty('payload');
-      expect(response.body.payload).toHaveProperty('data');
-      expect(response.body.payload.data).toHaveProperty('uid');
-      expect(response.body.payload.data).toHaveProperty('token');
-    });
+      expect(response.body.payload).toHaveProperty('user');
+      expect(response.body.payload.user).toHaveProperty('uid');
+      expect(response.body.payload).toHaveProperty('tokens');
+      expect(response.body.payload.tokens).toHaveProperty('accessToken');
+    }, 60000); // Increase timeout to 60s for Firebase emulator
   });
 
   describe('AUTH-002: UpdateUser with duplicate callSign', () => {

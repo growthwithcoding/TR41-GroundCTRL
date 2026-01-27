@@ -16,6 +16,7 @@ permissions:
   contents: read
   issues: write
   pull-requests: write
+  security-events: read  # Required for CodeQL integration
 
 jobs:
   build_and_deploy:

@@ -28,37 +28,6 @@
 - **Quality Assurance**  
   - Adam Colyer — [@AColyer13](https://github.com/AColyer13)
 
-## Testing
-
-The backend test suite is located in `backend/tests/` and organized by test type:
-
-```bash
-# Navigate to backend
-cd backend
-
-# Install dependencies
-npm install
-
-# Start Firebase emulators (required for integration tests)
-firebase emulators:start
-
-# Run all tests
-npm test
-
-# Run specific test suites
-npm run test:unit          # Unit tests only
-npm run test:integration   # Integration tests (requires emulators)
-npm run test:e2e          # End-to-end tests
-npm run test:security     # Security tests
-npm run test:performance  # Performance tests
-
-# Run with coverage
-npm run test:coverage
-```
-
-For detailed testing documentation, see [backend/tests/README.md](backend/tests/README.md).
----
-
 ## ✨ Implemented Features
 
 ### 🎮 Simulator State Management (January 2026)
@@ -94,3 +63,53 @@ Migrated from hardcoded mock data to Firebase-backed real data.
 Comprehensive Firestore index configuration for optimized queries.
 
 📚 Documentation: [FIRESTORE_INDEX_FIX.md](./FIRESTORE_INDEX_FIX.md)
+
+## 🧪 Automated Testing Suite (January 2026)
+
+Comprehensive testing automation with Jest, SuperTest, and Playwright:
+
+### Quick Start
+```bash
+# Backend tests
+cd backend
+npm install
+npm test
+
+# Frontend E2E tests (CURRENTLY DISABLED)
+# E2E tests have been temporarily removed to prevent interference with development
+# They will be re-implemented in a future update when the frontend is more stable
+```
+
+### Test Categories
+- **Unit Tests**: Jest for isolated component testing
+- **Integration Tests**: SuperTest for API endpoint testing  
+- **E2E Tests**: ⚠️ Temporarily disabled (future implementation planned)
+- **Security Tests**: Security vulnerability testing
+- **CI/CD**: Automated testing on every PR
+
+### Available Commands
+```bash
+# Backend testing
+npm run test:unit          # Unit tests only
+npm run test:integration   # Integration tests (requires emulators)
+npm run test:security      # Security tests
+npm run test:coverage      # With coverage report
+
+# Frontend E2E testing - TEMPORARILY DISABLED
+# npm run test:e2e          # (Removed - will be restored in future update)
+# npm run test:e2e:ui       # (Removed - will be restored in future update)
+# npm run test:e2e:headed   # (Removed - will be restored in future update)
+```
+
+### CI/CD Integration
+- ✅ Automated testing on every Pull Request
+- ⚠️ Multi-browser E2E testing (temporarily disabled)
+- ✅ Test result summaries and artifact collection
+- ✅ Firebase emulator integration for isolated testing
+
+📚 **Complete Testing Documentation**: [backend/tests/](backend/tests/)
+- **[Quick Start Guide](backend/tests/QUICKSTART.md)** - Get started in 5 minutes
+- **[Installation Guide](backend/tests/INSTALLATION.md)** - Complete setup instructions
+- **[Testing Guide](backend/tests/TESTING_GUIDE.md)** - Comprehensive documentation
+- **[E2E Testing](backend/tests/E2E_TESTING.md)** - Playwright setup and usage
+---

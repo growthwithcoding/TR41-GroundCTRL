@@ -1,8 +1,22 @@
-# Test Suite Organization
+# GroundCTRL Testing Documentation Hub
 
-This directory contains all automated tests for the GroundCTRL backend, organized by test type and consolidated to eliminate duplication.
+**🎯 Complete Testing Suite for GroundCTRL Platform**
 
-## Quick Start
+This directory contains all automated tests and comprehensive testing documentation for the GroundCTRL backend, organized by test type and consolidated to eliminate duplication.
+
+## 📚 Documentation Index
+
+### Quick References
+- **[QUICKSTART.md](./QUICKSTART.md)** - Fast setup and common commands
+- **[INSTALLATION.md](./INSTALLATION.md)** - Complete setup guide
+- **[TESTING_GUIDE.md](./TESTING_GUIDE.md)** - Comprehensive testing documentation
+
+### Specialized Guides  
+- **[E2E_TESTING.md](./E2E_TESTING.md)** - Playwright E2E testing setup
+- **[TESTING_STRATEGY.md](./TESTING_STRATEGY.md)** - Strategy and coverage analysis
+- **[AUTOMATION_SUMMARY.md](./AUTOMATION_SUMMARY.md)** - What's been automated
+
+## 🚀 Quick Start
 
 ```bash
 # Install dependencies

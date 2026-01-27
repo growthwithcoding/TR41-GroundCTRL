@@ -46,8 +46,13 @@ build/
 *.bak
 *.backup
 
-# All other hidden files/folders (with exceptions)
-.*
+# Specific hidden files/folders to ignore (but allow .github/)
+.firebase/
+.vscode/
+.idea/
+.DS_Store
+.cache/
+.parcel-cache/
 !.gitignore
 !.firebaserc
 !.env.sample
@@ -57,3 +62,4 @@ build/
 tests-backend/
 coverage/
 .nyc_output/
+backend/.env.test

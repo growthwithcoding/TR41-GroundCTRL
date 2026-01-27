@@ -91,21 +91,22 @@ const request = require('supertest');
 
 describe('User API Tests', () => {
   let app;
-  let authToken;
-
-  beforeAll(async () => {
-    process.env.NODE_ENV = 'test';
+  
+  beforeAll(() => {
     app = require('../../../src/app');
   });
 
-  it('should create a new user', async () => {
+  it('should create user successfully', async () => {
     const response = await request(app)
       .post('/api/v1/users')
-      .send({ email: 'test@example.com', password: 'Test123!' })
+      .send({
+        email: 'test@example.com',
+        password: 'password123',
+        callSign: 'TestPilot'
+      })
       .expect(201);
 
-    expect(response.body).toHaveProperty('payload.data.uid');
-    authToken = response.body.payload.data.token;
+    expect(response.body.payload.data).toHaveProperty('uid');
   });
 });
 ```
@@ -188,15 +189,17 @@ test('user login flow', async ({ page }) => {
   // Navigate to login page
   await page.goto('/login');
   
-  // Fill form
+  // Fill login form
   await page.fill('input[type="email"]', 'test@example.com');
-  await page.fill('input[type="password"]', 'password');
+  await page.fill('input[type="password"]', 'password123');
   
-  // Submit
+  // Submit form
   await page.click('button[type="submit"]');
   
-  // Verify success
-  await expect(page).toHaveURL(/.*dashboard/);
+  // Verify redirect to dashboard
+  await expect(page).toHaveURL(/dashboard/);
+  
+  // Verify user avatar appears
   await expect(page.locator('[data-testid="user-avatar"]')).toBeVisible();
 });
 ```
@@ -245,6 +248,71 @@ Validates PR:
 3. **Coverage Reports**: Uploaded to Codecov
 4. **Test Summary**: View in GitHub Actions summary
 
+---
+
+## CodeQL Security Analysis
+
+### Overview
+
+CodeQL is GitHub's semantic code analysis engine that automatically runs security scans on the GroundCTRL codebase to identify vulnerabilities and coding errors.
+
+### Configuration
+
+**File**: [`.github/workflows/codeql-analysis.yml`](../../.github/workflows/codeql-analysis.yml)
+
+Key features:
+- **Languages**: JavaScript/TypeScript analysis
+- **Triggers**: Push to main/sprint2tests, Pull requests, Weekly schedule  
+- **Queries**: Security-and-quality query suite for comprehensive analysis
+- **Dependencies**: Installs both backend and frontend dependencies for complete analysis
+
+### What CodeQL Detects
+
+CodeQL analyzes code semantically to find:
+- **Injection vulnerabilities**: SQL injection, XSS, command injection
+- **Authentication flaws**: Weak password policies, insecure token handling
+- **Data flow issues**: Sensitive data exposure, improper validation
+- **Code quality**: Dead code, unreachable code, type mismatches
+
+### Workflow Integration
+
+```yaml
+# Runs automatically on:
+on:
+  push:
+    branches: [ main, sprint2tests ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '25 3 * * 1'  # Weekly on Mondays
+```
+
+### Permissions Fixed
+
+The workflow includes proper permissions to avoid common errors:
+```yaml
+permissions:
+  contents: read
+  security-events: write  # Required for uploading SARIF results
+  actions: read          # Required for private repositories
+```
+
+### Viewing Results
+
+CodeQL results are available in:
+1. **GitHub Security tab**: Repository-level security advisories
+2. **Pull Request checks**: Inline security feedback on PRs  
+3. **Actions artifacts**: SARIF files for detailed analysis
+
+### Integration with Testing
+
+CodeQL complements existing tests:
+- **Unit/Integration Tests**: Functional correctness
+- **CodeQL Analysis**: Security vulnerabilities and code quality  
+- **Combined Coverage**: Comprehensive validation
+
+This provides an additional security layer beyond manual testing.
+
 ### Running Tests Locally Like CI
 
 ```bash
@@ -270,56 +338,57 @@ npm run test:e2e
 
 1. **Use descriptive test names**:
    ```javascript
-   it('should return 401 when authentication token is missing', async () => {
-     // test code
+   it('should return 404 when user does not exist', async () => {
+     // Test implementation
    });
    ```
 
 2. **Setup and teardown**:
    ```javascript
-   beforeAll(async () => {
-     // Initialize app, connect to emulators
+   beforeEach(async () => {
+     // Clean database state
    });
-
-   afterAll(async () => {
-     // Cleanup
+   
+   afterEach(async () => {
+     // Cleanup resources
    });
    ```
 
 3. **Use factories for test data**:
    ```javascript
    const testUser = {
-     email: `test-${Date.now()}@example.com`,
-     password: 'TestPassword123!',
-     callSign: `TEST-${Date.now()}`,
+     email: 'test@example.com',
+     password: 'password123',
+     callSign: 'TestPilot'
    };
    ```
 
 4. **Test error cases**:
    ```javascript
-   await request(app)
-     .post('/api/v1/users')
-     .send({ email: 'invalid' })
-     .expect(400);
+   it('should handle invalid email format', async () => {
+     await request(app)
+       .post('/api/v1/users')
+       .send({ email: 'invalid-email' })
+       .expect(400);
+   });
    ```
 
 #### E2E Tests
 
 1. **Use data-testid attributes**:
    ```javascript
-   await page.locator('[data-testid="submit-button"]').click();
+   await page.click('[data-testid="login-button"]');
    ```
 
 2. **Wait for network idle**:
    ```javascript
-   await page.waitForLoadState('networkidle');
+   await page.goto('/dashboard', { waitUntil: 'networkidle' });
    ```
 
 3. **Handle async operations**:
    ```javascript
-   await expect(async () => {
-     await page.locator('.loading').waitFor({ state: 'hidden' });
-   }).toPass({ timeout: 10000 });
+   await expect(page.locator('.loading')).toBeHidden();
+   await expect(page.locator('.content')).toBeVisible();
    ```
 
 4. **Test mobile viewports**:
@@ -390,114 +459,172 @@ npx playwright install --with-deps
 **Solution**: Increase timeout in test:
 ```javascript
 test('slow operation', async ({ page }) => {
-  test.setTimeout(60000); // 60 seconds
-  // test code
+  test.setTimeout(30000); // 30 seconds
+  // Test implementation
 });
 ```
 
-#### Mock Data Conflicts
+#### Firebase Admin Initialization
 
-**Problem**: Tests fail due to duplicate data
+**Problem**: Firebase Admin SDK initialization errors
 
-**Solution**: Use unique identifiers:
+**Solution**:
+```bash
+# Set environment variables
+export FIREBASE_AUTH_EMULATOR_HOST=localhost:9099
+export FIRESTORE_EMULATOR_HOST=localhost:8080
+export FIREBASE_PROJECT_ID=groundctrl-test
+```
+
+#### Memory Leaks in Tests
+
+**Problem**: Jest reports memory leaks or open handles
+
+**Solution**:
 ```javascript
-const uniqueEmail = `test-${Date.now()}@example.com`;
-const uniqueCallSign = `TEST-${Date.now()}`;
+afterAll(async () => {
+  // Close database connections
+  await admin.app().delete();
+  // Close server
+  if (server) {
+    await server.close();
+  }
+});
 ```
 
 ### Debug Mode
 
 #### Backend Tests
 ```bash
-# Run single test file
-npm test -- tests/integration/api/users.test.js
+# Run with debug output
+DEBUG=* npm test
 
-# Run with verbose output
-npm test -- --verbose
-
-# Run with debugger
-node --inspect-brk node_modules/.bin/jest --runInBand
+# Run specific test with verbose output
+npm test -- --verbose users.test.js
 ```
 
 #### E2E Tests
 ```bash
-# Debug mode (pauses at each step)
+# Run in debug mode (pauses at each step)
 npm run test:e2e:debug
 
-# Headed mode (see browser)
+# Run with browser visible
 npm run test:e2e:headed
 
-# Slow motion
-npx playwright test --headed --slow-mo=1000
+# Generate trace for debugging
+npm run test:e2e -- --trace on
 ```
-
-### Getting Help
-
-1. Check test output for specific error messages
-2. Review [Jest documentation](https://jestjs.io/docs/getting-started)
-3. Review [Playwright documentation](https://playwright.dev/docs/intro)
-4. Check GitHub Actions logs for CI failures
-5. Ask team in Slack #testing channel
 
 ---
 
-## Continuous Improvement
+## Performance Considerations
 
-### Adding New Tests
+### Backend Tests
+- Use `beforeAll`/`afterAll` for expensive setup
+- Mock external services
+- Use test database with smaller datasets
+- Parallel test execution where possible
 
-1. Identify the feature or bug fix
-2. Write test first (TDD approach)
-3. Implement the feature
-4. Verify test passes
-5. Add to appropriate test suite
-
-### Updating Tests
-
-When API changes:
-1. Update integration tests
-2. Update E2E tests if user flow changes
-3. Update test documentation
-4. Run full test suite
-
-### Performance Monitoring
-
-Monitor test execution time:
-```bash
-npm test -- --testTimeout=5000 --verbose
-```
-
-Flag slow tests and optimize.
+### E2E Tests
+- Run in parallel (configured in playwright.config.js)
+- Use page.waitForLoadState() instead of arbitrary waits
+- Reuse browser contexts where possible
+- Clean state between tests
 
 ---
 
-## Quick Reference
+## Test Data Management
 
-### Backend Commands
-```bash
-npm test                    # All tests
-npm run test:unit          # Unit tests
-npm run test:integration   # Integration tests
-npm run test:security      # Security tests
-npm run test:watch         # Watch mode
-npm run test:coverage      # With coverage
+### Backend
+```javascript
+// Use factories for consistent test data
+const UserFactory = {
+  create: (overrides = {}) => ({
+    email: 'test@example.com',
+    password: 'password123',
+    callSign: 'TestPilot',
+    ...overrides
+  })
+};
 ```
 
-### Frontend Commands
-```bash
-npm run test:e2e           # All E2E tests
-npm run test:e2e:ui        # Interactive UI
-npm run test:e2e:headed    # See browser
-npm run test:e2e:debug     # Debug mode
-npm run test:e2e:report    # View report
+### Frontend E2E
+```javascript
+// Use test-specific data
+test('user registration', async ({ page }) => {
+  const timestamp = Date.now();
+  const testUser = {
+    email: `test+${timestamp}@example.com`,
+    password: 'password123',
+    callSign: `TestPilot${timestamp}`
+  };
+  
+  // Use testUser in test
+});
 ```
-
-### CI/CD
-- Tests run automatically on every PR
-- View results in PR checks
-- Download artifacts for detailed reports
-- All tests must pass before merge
 
 ---
 
-**Last Updated**: January 2026
-**Maintained By**: GroundCTRL Testing Team
+## Continuous Integration Best Practices
+
+1. **Fast Feedback**: Unit tests run first and fail fast
+2. **Parallel Execution**: Tests run in parallel where possible
+3. **Artifact Collection**: Screenshots, videos, and reports saved
+4. **Flaky Test Detection**: Retries configured for E2E tests
+5. **Coverage Reporting**: Coverage reports generated and tracked
+
+---
+
+## Advanced Topics
+
+### Custom Matchers
+```javascript
+// jest.config.js
+module.exports = {
+  setupFilesAfterEnv: ['<rootDir>/tests/helpers/custom-matchers.js']
+};
+
+// tests/helpers/custom-matchers.js
+expect.extend({
+  toBeValidUser(received) {
+    const pass = received.uid && received.email;
+    return {
+      pass,
+      message: () => `Expected ${received} to be a valid user`
+    };
+  }
+});
+```
+
+### Page Object Model (E2E)
+```javascript
+// e2e/pages/LoginPage.js
+class LoginPage {
+  constructor(page) {
+    this.page = page;
+    this.emailInput = page.locator('input[type="email"]');
+    this.passwordInput = page.locator('input[type="password"]');
+    this.loginButton = page.locator('button[type="submit"]');
+  }
+
+  async login(email, password) {
+    await this.emailInput.fill(email);
+    await this.passwordInput.fill(password);
+    await this.loginButton.click();
+  }
+}
+```
+
+---
+
+## Resources
+
+- **Jest Documentation**: https://jestjs.io/
+- **SuperTest Documentation**: https://github.com/visionmedia/supertest
+- **Playwright Documentation**: https://playwright.dev/
+- **Firebase Emulator Suite**: https://firebase.google.com/docs/emulator-suite
+
+---
+
+**Last Updated**: January 27, 2026  
+**Version**: 2.0.0

@@ -17,7 +17,7 @@ const auditLogger = require('./middleware/auditLogger');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const authErrorNormalizer = require('./middleware/authErrorNormalizer');
 const { apiLimiter } = require('./middleware/rateLimiter');
-const { responseEnvelopeMiddleware } = require('./middleware/responseEnvelope');
+// const { responseEnvelopeMiddleware } = require('./middleware/responseEnvelope'); // Temporarily disabled
 const routes = require('./routes');
 const logger = require('./utils/logger');
 
@@ -62,10 +62,10 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for now
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https:"],
+        defaultSrc: ['\'self\''],
+        styleSrc: ['\'self\'', '\'unsafe-inline\''], // Allow inline styles for now
+        scriptSrc: ['\'self\''],
+        imgSrc: ['\'self\'', 'data:', 'https:'],
       },
     },
   }));
@@ -136,7 +136,7 @@ app.set('trust proxy', 1);
 // app.use(responseEnvelopeMiddleware); // Temporarily disabled for testing
 
 // Global API rate limiter (applied to all routes)
-// app.use(apiLimiter); // Temporarily disabled for testing
+app.use(apiLimiter);
 
 // Request logging middleware
 app.use(auditLogger);

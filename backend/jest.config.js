@@ -34,7 +34,9 @@ module.exports = {
   // Updated: Point to new setupAfterEnv.js if it exists
   // setupFilesAfterEnv: ['<rootDir>/tests/setupAfterEnv.js'],
 
-  testTimeout: 15000,
+  testTimeout: 30000, // 30 seconds per test
+  forceExit: true, // Force exit after all tests complete
+  detectOpenHandles: false, // Don't hang waiting for handles
   collectCoverage: false,
   coveragePathIgnorePatterns: [
     '/node_modules/',

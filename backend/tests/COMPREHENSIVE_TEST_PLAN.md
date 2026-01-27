@@ -1,6 +1,18 @@
-# GroundCTRL – QA Test Plan  
+# GroundCTRL – Comprehensive QA Test Plan  
 
-*Version: 1.0.0* *Created: 2026‑01‑27* *Target PRs: #3, #7, #8, #9, #10, #11, #14, #20, #30‑#35, #39‑#41, #43, #45‑#48*  
+*Version: 2.0.0* *Created: 2026‑01‑27* *Updated: 2026‑01‑27*  
+*Target PRs: #3, #7, #8, #9, #10, #11, #14, #20, #30‑#35, #39‑#41, #43, #45‑#48*  
+
+> **📁 CONSOLIDATED DOCUMENTATION**: All testing documentation has been moved to `backend/tests/` for centralized access.
+
+## Quick Documentation Links
+
+- **[Quick Start](./QUICKSTART.md)** - Fast setup and common commands
+- **[Installation Guide](./INSTALLATION.md)** - Complete setup instructions  
+- **[Testing Guide](./TESTING_GUIDE.md)** - Comprehensive documentation
+- **[E2E Testing](./E2E_TESTING.md)** - Playwright setup and usage
+- **[Testing Strategy](./TESTING_STRATEGY.md)** - Backend strategy and coverage
+- **[Automation Summary](./AUTOMATION_SUMMARY.md)** - What's been implemented
 
 ---
 
@@ -320,4 +332,17 @@ The scripts live under `load-tests/` (not in repo yet – create as needed).
 
 ---  
 
-*End of test plan.*  
+*End of comprehensive test plan.*
+
+---
+
+## See Also
+
+For the most up-to-date testing information and procedures:
+
+- **[README.md](./README.md)** - Testing hub and directory structure
+- **[QUICKSTART.md](./QUICKSTART.md)** - Get started in 5 minutes
+- **[INSTALLATION.md](./INSTALLATION.md)** - Complete setup guide
+- **[TESTING_GUIDE.md](./TESTING_GUIDE.md)** - In-depth testing documentation
+- **[E2E_TESTING.md](./E2E_TESTING.md)** - Playwright E2E testing
+- **[AUTOMATION_SUMMARY.md](./AUTOMATION_SUMMARY.md)** - Implementation summary  
