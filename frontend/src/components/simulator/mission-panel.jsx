@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 
 import { useSimulatorState } from "@/contexts/SimulatorStateContext"
+import { useWebSocket } from "@/contexts/WebSocketContext"
 import { WorldMap, latLonToSvg, generateGroundTrack, getSatellitePosition } from "./world-map"
 import { Loader2, AlertCircle } from "lucide-react"
 
@@ -239,6 +240,9 @@ function GroundTrackVisualization({
   inclination = 53, 
   altitude = 415 
 }) {
+  // Get ground stations from WebSocket context
+  const { groundStations } = useWebSocket()
+  
   // Animate satellite position along the orbit
   const [orbitProgress, setOrbitProgress] = useState(0)
   
@@ -314,27 +318,49 @@ function GroundTrackVisualization({
         <text x="12" y="13" fill="#3b82f6" fontSize="7">{inclination}° incl.</text>
       </g>
       
-      {/* Deep Space Network Ground Stations */}
-      {/* Goldstone, USA (35.4°N, 116.9°W) */}
-      <g>
-        <circle cx={latLonToSvg(35.4, -116.9).x} cy={latLonToSvg(35.4, -116.9).y} r="35" fill="#22c55e" fillOpacity="0.1" stroke="#22c55e" strokeOpacity="0.5" strokeWidth="1" />
-        <circle cx={latLonToSvg(35.4, -116.9).x} cy={latLonToSvg(35.4, -116.9).y} r="4" fill="#22c55e" />
-        <text x={latLonToSvg(35.4, -116.9).x} y={latLonToSvg(35.4, -116.9).y + 18} fill="#6b9e8a" fontSize="8" textAnchor="middle">Goldstone</text>
-      </g>
-      
-      {/* Madrid, Spain (40.4°N, 3.7°W) */}
-      <g>
-        <circle cx={latLonToSvg(40.4, -3.7).x} cy={latLonToSvg(40.4, -3.7).y} r="35" fill="#22c55e" fillOpacity="0.1" stroke="#22c55e" strokeOpacity="0.5" strokeWidth="1" />
-        <circle cx={latLonToSvg(40.4, -3.7).x} cy={latLonToSvg(40.4, -3.7).y} r="4" fill="#22c55e" />
-        <text x={latLonToSvg(40.4, -3.7).x} y={latLonToSvg(40.4, -3.7).y + 18} fill="#6b9e8a" fontSize="8" textAnchor="middle">Madrid</text>
-      </g>
-      
-      {/* Canberra, Australia (35.4°S, 149.0°E) - currently out of range */}
-      <g>
-        <circle cx={latLonToSvg(-35.4, 149.0).x} cy={latLonToSvg(-35.4, 149.0).y} r="35" fill="#6b7280" fillOpacity="0.1" stroke="#6b7280" strokeOpacity="0.4" strokeWidth="1" strokeDasharray="4 2" />
-        <circle cx={latLonToSvg(-35.4, 149.0).x} cy={latLonToSvg(-35.4, 149.0).y} r="4" fill="#6b7280" />
-        <text x={latLonToSvg(-35.4, 149.0).x} y={latLonToSvg(-35.4, 149.0).y + 18} fill="#6b7280" fontSize="8" textAnchor="middle">Canberra</text>
-      </g>
+      {/* Ground Stations - dynamically rendered from WebSocket data */}
+      {groundStations.map((station) => {
+        const stationPos = latLonToSvg(station.location.latitude, station.location.longitude)
+        // Determine if station is in range (simplified - within visibility cone)
+        const distanceToSat = Math.sqrt(
+          Math.pow(stationPos.x - satPos.x, 2) + Math.pow(stationPos.y - satPos.y, 2)
+        )
+        const isInRange = distanceToSat < 50 // Approximate visibility range
+        
+        return (
+          <g key={station.stationId}>
+            {/* Coverage circle */}
+            <circle 
+              cx={stationPos.x} 
+              cy={stationPos.y} 
+              r="35" 
+              fill={isInRange ? "#22c55e" : "#6b7280"} 
+              fillOpacity="0.1" 
+              stroke={isInRange ? "#22c55e" : "#6b7280"} 
+              strokeOpacity={isInRange ? 0.5 : 0.4} 
+              strokeWidth="1" 
+              strokeDasharray={isInRange ? "0" : "4 2"}
+            />
+            {/* Station marker */}
+            <circle 
+              cx={stationPos.x} 
+              cy={stationPos.y} 
+              r="4" 
+              fill={isInRange ? "#22c55e" : "#6b7280"} 
+            />
+            {/* Station label */}
+            <text 
+              x={stationPos.x} 
+              y={stationPos.y + 18} 
+              fill={isInRange ? "#6b9e8a" : "#6b7280"} 
+              fontSize="8" 
+              textAnchor="middle"
+            >
+              {station.displayName}
+            </text>
+          </g>
+        )
+      })}
       
       {/* Satellite position marker */}
       <g transform={`translate(${satPos.x}, ${satPos.y})`}>

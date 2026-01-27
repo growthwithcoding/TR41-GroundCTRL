@@ -7,6 +7,7 @@ const { Server } = require('socket.io');
 const { verifySocketToken } = require('./middleware/socketAuth');
 const { createTelemetryHandler } = require('./handlers/telemetryHandler');
 const { createCommandHandler } = require('./handlers/commandHandler');
+const { handleWorldState } = require('./handlers/worldHandler');
 const SessionManager = require('../services/sessionManager');
 const SimulationEngine = require('../services/simulationEngine');
 const logger = require('../utils/logger');
@@ -58,11 +59,14 @@ function initializeWebSocket(httpServer) {
 
   logger.info('Command namespace configured', { path: '/commands' });
 
-  // Connection monitoring
+  // Connection monitoring & world state
   io.on('connection', (socket) => {
     logger.info('Socket.IO connection (default namespace)', {
       socketId: socket.id
     });
+    
+    // Provide world state (ground stations) to all connected clients
+    handleWorldState(socket);
   });
 
   // Graceful shutdown handler
