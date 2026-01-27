@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/hooks/use-auth"
 import { Loader2, Sparkles } from "lucide-react"
+import zxcvbn from "zxcvbn"
 
 // Fun satellite pilot callsigns inspired by Top Gun, NASA, SpaceX/Starlink
 const CALLSIGN_PREFIXES = [
@@ -26,15 +27,18 @@ const generateCallSign = () => {
 }
 
 export function AuthForm({ view, onViewChange }) {
+  const isLogin = view === "login"
   const navigate = useNavigate()
   const { signIn, signUp, signInWithGoogle } = useAuth()
-  const isLogin = view === "login"
-  
+
   const [name, setName] = useState("")
   const [callSign, setCallSign] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+
+  const passwordStrength = !isLogin && password ? zxcvbn(password) : null
+  const strengthLabels = ["Very Weak", "Weak", "Fair", "Good", "Strong"]
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
@@ -70,14 +74,29 @@ export function AuthForm({ view, onViewChange }) {
           setLoading(false)
           return
         }
-        if (password.length < 6) {
-          setError("Password must be at least 6 characters")
+        if (password.length < 12) {
+          setError("Password must be at least 12 characters")
+          setLoading(false)
+          return
+        }
+        if (!/[A-Z]/.test(password)) {
+          setError("Password must include at least one uppercase letter")
+          setLoading(false)
+          return
+        }
+        if (!/[0-9]/.test(password)) {
+          setError("Password must include at least one number")
+          setLoading(false)
+          return
+        }
+        if (!/[^A-Za-z0-9]/.test(password)) {
+          setError("Password must include at least one special character")
           setLoading(false)
           return
         }
         await signUp(email, password, name, callSign)
       }
-      
+
       // Redirect to dashboard on success
       navigate("/dashboard")
     } catch (err) {
@@ -178,6 +197,32 @@ export function AuthForm({ view, onViewChange }) {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          {!isLogin && password && (
+            <div className="mt-1">
+              <div className="w-full h-2 bg-border rounded">
+                <div
+                  className={`h-2 rounded transition-all duration-300 ${
+                    passwordStrength.score === 0 ? "bg-red-500 w-1/5" :
+                    passwordStrength.score === 1 ? "bg-orange-500 w-2/5" :
+                    passwordStrength.score === 2 ? "bg-yellow-500 w-3/5" :
+                    passwordStrength.score === 3 ? "bg-blue-500 w-4/5" :
+                    "bg-green-600 w-full"
+                  }`}
+                />
+              </div>
+              <div className="text-xs mt-1 text-muted-foreground flex justify-between">
+                <span>Password strength:</span>
+                <span className={
+                  passwordStrength.score < 2 ? "text-red-500" :
+                  passwordStrength.score === 2 ? "text-yellow-600" :
+                  passwordStrength.score === 3 ? "text-blue-600" :
+                  "text-green-600"
+                }>
+                  {strengthLabels[passwordStrength.score]}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {!isLogin && (

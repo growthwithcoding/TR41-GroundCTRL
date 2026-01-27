@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 import { onAuthChange, signIn, signUp, signOut, resetPassword, signInWithGoogle } from "@/lib/firebase/auth"
+import { fetchUserProfile } from "@/lib/firebase/userProfile"
 
 const AuthContext = createContext(undefined)
 
@@ -11,11 +12,19 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    const unsubscribe = onAuthChange((user) => {
-      setUser(user)
+    const unsubscribe = onAuthChange(async (user) => {
+      if (user) {
+        try {
+          const profile = await fetchUserProfile(user.uid)
+          setUser({ ...user, callSign: profile?.callSign || "" })
+        } catch (e) {
+          setUser({ ...user, callSign: "" })
+        }
+      } else {
+        setUser(null)
+      }
       setLoading(false)
     })
-
     return () => unsubscribe()
   }, [])
 

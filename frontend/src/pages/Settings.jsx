@@ -84,52 +84,7 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
-            {/* Notifications */}
-            <Card className="border-dashed border-muted-foreground/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-muted-foreground">
-                  <Bell className="h-5 w-5" />
-                  Alert Configuration
-                </CardTitle>
-                <CardDescription>Configure mission alerts and system notifications - Coming soon</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Bell className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Under Development</p>
-                    <p className="text-xs text-muted-foreground">
-                      Alert and notification settings will be available in a future update.
-                    </p>
-                  </div>
-                </div>
-                <div className="opacity-50 pointer-events-none space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-foreground">Email Notifications</p>
-                      <p className="text-sm text-muted-foreground">Receive updates via email</p>
-                    </div>
-                    <Switch checked={false} disabled />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-foreground">Push Notifications</p>
-                      <p className="text-sm text-muted-foreground">Receive browser notifications</p>
-                    </div>
-                    <Switch checked={false} disabled />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-foreground">Mission Alerts</p>
-                      <p className="text-sm text-muted-foreground">Get notified of mission events</p>
-                    </div>
-                    <Switch checked={false} disabled />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Notifications UI removed as part of system cleanup */}
 
             {/* Regional */}
             <Card className="border-dashed border-muted-foreground/30">

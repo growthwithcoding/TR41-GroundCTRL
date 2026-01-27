@@ -108,7 +108,7 @@ export function SimulatorGrid({ authView, onAuthViewChange, authError }) {
         <div className="max-w-3xl text-center space-y-6 relative z-10">
           {/* Logo and Title */}
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Satellite className="w-12 h-12 text-primary" />
+            <img src="/images/GroundCTRL.png" alt="GroundCTRL Logo" className="h-16 w-16 object-contain" style={{ pointerEvents: 'none' }} />
           </div>
           <h1 className="text-5xl md:text-6xl font-bold text-foreground text-balance tracking-tight">
             GroundCTRL

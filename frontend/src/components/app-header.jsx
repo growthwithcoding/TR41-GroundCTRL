@@ -19,6 +19,7 @@ export default function AppHeader({ onAuthViewChange }) {
   const location = useLocation(); const pathname = location.pathname
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
+  console.log("user object:", user)
   
   // Define nav links based on authentication state
   const navLinks = user
@@ -55,7 +56,7 @@ export default function AppHeader({ onAuthViewChange }) {
     <header className="h-14 border-b border-border bg-card flex items-center justify-between px-6">
       {/* Logo */}
       <Link to="/" className="flex items-center gap-2 font-bold text-lg tracking-tight">
-        <Satellite className="h-5 w-5 text-primary" />
+        <img src="/images/GroundCTRL.png" alt="GroundCTRL Logo" className="h-12 w-12 object-contain" />
         <span className="text-foreground">GroundCTRL</span>
       </Link>
 
@@ -78,12 +79,6 @@ export default function AppHeader({ onAuthViewChange }) {
 
       {/* Right section */}
       <div className="flex items-center gap-3">
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-4 w-4" />
-          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 bg-status-critical rounded-full" />
-        </Button>
-
         {/* Theme Toggle */}
         <ThemeToggle />
 
@@ -95,7 +90,7 @@ export default function AppHeader({ onAuthViewChange }) {
             </div>
             {user && (
               <div className="hidden md:flex flex-col items-start">
-                <span className="text-xs font-mono text-primary">CTRL-USER</span>
+                <span className="text-xs font-mono text-primary">{user.callSign || "CTRL-USER"}</span>
                 <span className="text-xs text-muted-foreground">{user.displayName || user.email?.split("@")[0]}</span>
               </div>
             )}
