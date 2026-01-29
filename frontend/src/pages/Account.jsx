@@ -9,6 +9,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2, User, Mail, Shield, Trash2, Satellite, Award, Clock, Rocket } from "lucide-react"
 import { Footer } from "@/components/footer"
 import { sendPasswordResetEmail } from "firebase/auth"
+// Add API call helper for profile update
+async function updateUserProfile(userId, data) {
+  const res = await fetch(`/users/${userId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error("Failed to update profile")
+  return res.json()
+}
+
 // Add API call helper for account deletion
 async function deleteUserAccount(userId) {
   const res = await fetch(`/users/${userId}`, {
