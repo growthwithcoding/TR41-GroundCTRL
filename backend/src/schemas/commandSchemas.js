@@ -188,6 +188,8 @@ const executeCommandSchema = z.object({
       .default({})
       .describe('Command parameters as JSON'),
   }).strict(),
+  query: z.object({}).strict(),
+  params: z.object({}).strict()
 }).strict();
 
 // ---------- BATCH COMMANDS schema ----------

@@ -89,20 +89,20 @@ async function execute(req, res, next) {
       return res.status(httpStatus.BAD_REQUEST).json(response);
     }
 
-    const { commandName, commandPayload, session_id, scenario_step_id } = parseResult.data;
+    const { command_name, command_payload, session_id, scenario_step_id } = parseResult.data;
 
     // Validate command name is in registry
-    const isValid = VALID_COMMAND_NAMES.includes(commandName);
+    const isValid = VALID_COMMAND_NAMES.includes(command_name);
     
     // Simulate command execution (placeholder for actual satellite system integration)
-    const executionResult = simulateCommandExecution(commandName, commandPayload);
+    const executionResult = simulateCommandExecution(command_name, command_payload);
 
     // Store command with result
     const commandData = {
       session_id: session_id || null,
       scenario_step_id: scenario_step_id || null,
-      commandName,
-      commandPayload,
+      commandName: command_name,
+      commandPayload: command_payload,
       resultStatus: executionResult.status,
       resultMessage: executionResult.message,
       isValid,

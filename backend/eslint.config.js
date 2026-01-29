@@ -21,5 +21,7 @@ module.exports = [
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-console': 'off',
     },
+    // Updated: Ignore old tests-backend directory
+    ignores: ['tests-backend/**/*']
   },
 ];

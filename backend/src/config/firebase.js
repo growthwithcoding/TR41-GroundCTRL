@@ -89,7 +89,6 @@ function initializeFirebase() {
   try {
     const isProduction = process.env.NODE_ENV === 'production';
     const isTest = process.env.NODE_ENV === 'test';
-    const hasPrivateKey = !!process.env.FIREBASE_PRIVATE_KEY;
     const hasEmulators = !!(process.env.FIRESTORE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST);
 
     // Test mode with emulators: No credentials needed, emulators handle everything
@@ -104,10 +103,13 @@ function initializeFirebase() {
         projectId: process.env.FIREBASE_PROJECT_ID || 'test-project',
       });
     }
-    // Production mode: Use Application Default Credentials
-    else if (isProduction && !hasPrivateKey) {
-      // Firebase App Hosting provides credentials automatically via ADC
-      logger.info('Using Application Default Credentials for Firebase Admin');
+    // Production mode: Always use Application Default Credentials
+    // Firebase App Hosting / Cloud Run provides credentials automatically
+    else if (isProduction) {
+      logger.info('Using Application Default Credentials for Firebase Admin (production)', {
+        projectId: process.env.FIREBASE_PROJECT_ID,
+      });
+      
       admin.initializeApp({
         projectId: process.env.FIREBASE_PROJECT_ID,
       });

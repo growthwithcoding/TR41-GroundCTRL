@@ -12,6 +12,12 @@ concurrency:
   group: production-deployment
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  security-events: read  # Required for CodeQL integration
+
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
@@ -33,6 +39,14 @@ jobs:
         run: npm run build
         env:
           NODE_ENV: production
+          VITE_API_URL: https://api.missionctrl.org
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
       
       - name: Verify build output
         working-directory: ./frontend
@@ -83,7 +97,7 @@ jobs:
             🔍 **Workflow:** [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
 
             // Try to find related PR and comment there
-            const { data: prs } = await github.rest.repos.listPullRequests({
+            const { data: prs } = await github.rest.pulls.list({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'closed',
@@ -180,7 +194,7 @@ jobs:
             console.log(`✅ Created issue #${issue.data.number}`);
             
             // Try to comment on related PR if exists
-            const { data: prs } = await github.rest.repos.listPullRequests({
+            const { data: prs } = await github.rest.pulls.list({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'closed',

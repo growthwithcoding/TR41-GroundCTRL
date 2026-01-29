@@ -10,9 +10,9 @@ const buttonGroupVariants = cva(
     variants: {
       orientation: {
         horizontal:
-          '[&>*:not()]:rounded-l-none [&>*:not()]:border-l-0 [&>*:not()]:rounded-r-none',
+          '[&>*:not(:first-child)]:rounded-l-none [&>*:not(:first-child)]:border-l-0 [&>*:not(:last-child)]:rounded-r-none',
         vertical:
-          'flex-col [&>*:not()]:rounded-t-none [&>*:not()]:border-t-0 [&>*:not()]:rounded-b-none',
+          'flex-col [&>*:not(:first-child)]:rounded-t-none [&>*:not(:first-child)]:border-t-0 [&>*:not(:last-child)]:rounded-b-none',
       },
     },
     defaultVariants: {
@@ -65,7 +65,7 @@ function ButtonGroupSeparator({
       data-slot="button-group-separator"
       orientation={orientation}
       className={cn(
-        'bg-input relative !m-0 self-stretch data-[orientation=vertical],
+        'bg-input relative !m-0 self-stretch data-[orientation=vertical]:w-px data-[orientation=horizontal]:h-px',
         className,
       )}
       {...props}

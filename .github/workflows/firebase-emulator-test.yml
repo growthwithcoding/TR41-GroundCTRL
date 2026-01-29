@@ -1,12 +1,15 @@
 name: Firebase Emulator Tests
-on: 
+
+on:
   pull_request:
+    branches: [main, sprint2tests]
     paths:
       - 'backend/**'
+      - 'firebase.json'
+      - '.firebaserc'
       - '.github/workflows/firebase-emulator-test.yml'
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'backend/**'
 
@@ -15,50 +18,109 @@ concurrency:
   group: test-${{ github.ref }}
   cancel-in-progress: true
 
+# Required permissions for this workflow
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+  security-events: read  # Required for CodeQL integration
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: backend
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
       
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '18'
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
       
-      - name: Install backend dependencies
-        working-directory: ./backend
+      - name: Install dependencies
         run: npm ci
       
-      - name: Run linter
-        working-directory: ./backend
-        run: npm run lint || echo "⚠️ Linting completed with warnings"
-        continue-on-error: true
+      - name: Setup Firebase CLI
+        run: npm install -g firebase-tools
       
-      - name: Run sanity tests
-        working-directory: ./backend
-        run: npx jest tests-backend/sanity.test.js --verbose
+      - name: Run linter
+        run: npm run lint
+      
+      - name: Install Java (required for Firebase Emulators)
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+      
+      - name: Start Firebase Emulators
+        working-directory: .
+        run: |
+          # Start emulators in background from root directory
+          firebase emulators:start --only auth,firestore --project demo-test &
+          EMULATOR_PID=$!
+          echo $EMULATOR_PID > emulator.pid
+          
+          # Wait for emulators to be ready (max 60 seconds)
+          echo "Waiting for Firebase emulators to start..."
+          READY=0
+          for i in {1..60}; do
+            if curl -s http://127.0.0.1:9099 > /dev/null 2>&1 && \
+               curl -s http://127.0.0.1:8080 > /dev/null 2>&1; then
+              echo "✅ Emulator ports are responding!"
+              READY=1
+              break
+            fi
+            echo "Waiting for emulators... ($i/60)"
+            sleep 1
+          done
+          
+          if [ $READY -eq 0 ]; then
+            echo "❌ Emulators failed to start"
+            kill $EMULATOR_PID || true
+            exit 1
+          fi
+          
+          # Give emulators extra time to fully initialize internal state
+          echo "⏳ Waiting additional 20 seconds for full Firebase initialization..."
+          sleep 20
+          echo "✅ Firebase emulators should now be fully initialized"
+          echo "🔍 Verifying emulator connectivity..."
+          curl -s http://127.0.0.1:9099 > /dev/null && echo "  Auth emulator OK" || echo "  Auth emulator FAILED"
+          curl -s http://127.0.0.1:8080 > /dev/null && echo "  Firestore emulator OK" || echo "  Firestore emulator FAILED"
         env:
           NODE_ENV: test
       
-      - name: Validate backend structure
-        working-directory: ./backend
+      - name: Run tests
+        run: npm test
+        env:
+          NODE_ENV: test
+          FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+          JWT_SECRET: 'test-secret-key-for-ci-testing-only-do-not-use-in-production'
+      
+      - name: Stop emulators
+        if: always()
+        working-directory: .
         run: |
-          echo "✅ Backend dependencies installed successfully"
-          echo "✅ Sanity tests passed"
-          
-          # Check for critical files
-          if [ ! -f "src/app.js" ]; then
-            echo "❌ Missing src/app.js"
-            exit 1
+          if [ -f emulator.pid ]; then
+            kill $(cat emulator.pid) || true
+            rm emulator.pid
           fi
-          if [ ! -f "src/server.js" ]; then
-            echo "❌ Missing src/server.js"
-            exit 1
-          fi
-          
-          echo "✅ Backend structure validated"
+      
+      - name: Upload test results
+        if: always() && hashFiles('backend/coverage/**') != ''
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: backend/coverage/
       
       - name: Test summary
         if: always()
@@ -84,19 +146,15 @@ jobs:
 
             The backend tests did not pass for this PR.
 
-            📊 **Test Status:**
-            - **Sanity Tests:** Failed
-            - **Backend Structure:** May have issues
-
-            🔍 **Next Steps:**
+            � **Next Steps:**
             1. Review the [test logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            2. Fix failing tests locally
-            3. Run \`npm test\` in the backend directory
+            2. Check that Firebase emulators started successfully
+            3. Run tests locally: \`firebase emulators:start --only auth,firestore\` then \`npm test\`
             4. Push fixes to this PR
 
             **Commit:** \`${context.sha.substring(0, 7)}\``;
 
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,

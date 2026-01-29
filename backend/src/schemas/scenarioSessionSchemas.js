@@ -84,6 +84,11 @@ const createScenarioSessionSchema = z.object({
       .default({})
       .describe('Runtime simulation state (JSON)'),
     
+    // Ground station configuration (future: scenario-specific)
+    enabledGroundStations: z.array(z.string())
+      .optional()
+      .describe('Array of enabled ground station IDs for this session'),
+    
     // Session metadata
     attemptNumber: z.number()
       .int('Attempt number must be an integer')

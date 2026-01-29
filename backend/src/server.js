@@ -95,13 +95,16 @@ function setupGracefulShutdown(server) {
     });
   });
 
-  process.on('SIGINT', () => {
-    logger.info('SIGINT signal received: closing HTTP server');
-    server.close(() => {
-      logger.info('HTTP server closed');
-      process.exit(0);
+  // Skip SIGINT handler in test environment to prevent Jest from shutting down the server
+  if (process.env.NODE_ENV !== 'test') {
+    process.on('SIGINT', () => {
+      logger.info('SIGINT signal received: closing HTTP server');
+      server.close(() => {
+        logger.info('HTTP server closed');
+        process.exit(0);
+      });
     });
-  });
+  }
 
   // Handle uncaught exceptions
   process.on('uncaughtException', (error) => {

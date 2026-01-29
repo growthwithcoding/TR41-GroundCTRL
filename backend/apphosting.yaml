@@ -64,3 +64,4 @@ env:
 # firebase apphosting:secrets:set JWT_SECRET --project groundctrl-c8860
 # firebase apphosting:secrets:set FIREBASE_PRIVATE_KEY --project groundctrl-c8860
 # firebase apphosting:secrets:set SMTP_PASSWORD --project groundctrl-c8860
+# firebase apphosting:secrets:set GEMINI_API_KEY --project groundctrl-c8860

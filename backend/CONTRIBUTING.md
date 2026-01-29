@@ -270,6 +270,30 @@ Testing is handled by dedicated teams:
 - **Quality Assurance (QA):** Functional testing, integration testing, and test coverage
 - **Cybersecurity:** Security testing, vulnerability assessment, and penetration testing
 
+### Test Organization
+
+Tests are organized in the `tests/` directory:
+```
+tests/
+├── unit/
+│   ├── controllers/
+│   ├── factories/
+│   ├── middleware/
+│   ├── repositories/
+│   ├── routes/
+│   ├── schemas/
+│   └── services/
+├── integration/
+│   ├── satellites/
+│   ├── scenarios/
+│   ├── scenario_steps/
+│   └── commands/
+└── e2e/
+    ├── user/
+    ├── satellite/
+    └── command/
+```
+
 ### Developer Testing Workflow
 
 **Before PR Submission:**

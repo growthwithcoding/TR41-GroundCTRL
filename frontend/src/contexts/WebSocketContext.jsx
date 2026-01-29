@@ -22,6 +22,7 @@ export function WebSocketProvider({ children }) {
   const [sessionState, setSessionState] = useState(null);
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [groundStations, setGroundStations] = useState([]);
   
   // Use refs to avoid dependency issues in useCallback
   const telemetrySocketRef = useRef(null);
@@ -144,6 +145,29 @@ export function WebSocketProvider({ children }) {
           console.log('Left session:', sessionId, 'at', new Date(timestamp).toISOString());
           setCurrentSessionId(null);
           setSessionState(null);
+        });
+
+        // Listen for ground station data on default namespace
+        const defaultSocket = io(`${BACKEND_URL}`, {
+          auth: { token },
+          reconnection: true,
+          reconnectionDelay: 1000,
+          reconnectionDelayMax: 5000,
+          reconnectionAttempts: 5,
+          transports: ['websocket', 'polling']
+        });
+
+        defaultSocket.on('connect', () => {
+          console.log('✅ Default socket connected:', defaultSocket.id);
+        });
+
+        defaultSocket.on('world:stations', (stations) => {
+          console.log('📡 Received ground stations:', stations.length);
+          setGroundStations(stations);
+        });
+
+        defaultSocket.on('disconnect', (reason) => {
+          console.log('❌ Default socket disconnected:', reason);
         });
 
         // Command socket event handlers
@@ -280,6 +304,7 @@ export function WebSocketProvider({ children }) {
     connected,
     sessionState,
     currentSessionId,
+    groundStations,
     connect,
     disconnect,
     joinSession,

@@ -1,27 +1,38 @@
 {
-  "projects": {
-    "default": "test-project"
-  },
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "hosting": {
+    "public": "frontend/dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
   "emulators": {
     "auth": {
-      "host": "localhost",
+      "host": "127.0.0.1",
       "port": 9099
     },
     "firestore": {
-      "host": "localhost",
+      "host": "127.0.0.1",
       "port": 8080
     },
     "ui": {
       "enabled": true,
-      "host": "localhost",
+      "host": "127.0.0.1",
       "port": 4000
     },
     "hub": {
-      "host": "localhost",
+      "host": "127.0.0.1",
       "port": 4400
     },
     "hosting": {
