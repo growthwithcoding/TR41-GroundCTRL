@@ -7,6 +7,39 @@ import { auth } from '../firebase/config'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1'
 
+// Store backend JWT tokens
+let backendAccessToken = null
+let backendRefreshToken = null
+
+/**
+ * Set backend JWT tokens after login
+ */
+export function setBackendTokens(accessToken, refreshToken) {
+  backendAccessToken = accessToken
+  backendRefreshToken = refreshToken
+  // Store in localStorage for persistence
+  if (accessToken) localStorage.setItem('backend_access_token', accessToken)
+  if (refreshToken) localStorage.setItem('backend_refresh_token', refreshToken)
+}
+
+/**
+ * Clear backend tokens on logout
+ */
+export function clearBackendTokens() {
+  backendAccessToken = null
+  backendRefreshToken = null
+  localStorage.removeItem('backend_access_token')
+  localStorage.removeItem('backend_refresh_token')
+}
+
+/**
+ * Get backend access token (from memory or localStorage)
+ */
+export function getBackendAccessToken() {
+  if (backendAccessToken) return backendAccessToken
+  return localStorage.getItem('backend_access_token')
+}
+
 /**
  * Custom error class for API errors
  */
@@ -42,9 +75,11 @@ export async function apiRequest(endpoint, options = {}, requiresAuth = true) {
     }
     
     try {
-      const token = await user.getIdToken()
-      headers['Authorization'] = `Bearer ${token}`
+      const firebaseToken = await user.getIdToken(true) // Force refresh
+      console.log('Using Firebase token')
+      headers['Authorization'] = `Bearer ${firebaseToken}`
     } catch (error) {
+      console.error('Failed to get token:', error)
       throw new APIError('Failed to get auth token', 401, { brief: error.message })
     }
   }

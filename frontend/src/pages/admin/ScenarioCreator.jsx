@@ -1,0 +1,642 @@
+/**
+ * Scenario Creator - Admin Tool
+ * Multi-step wizard for creating training scenarios
+ */
+
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/hooks/use-auth'
+import { createScenario, createScenarioStep, getSatellites } from '@/lib/api/scenarioService'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ArrowLeft, ArrowRight, Check, Loader2, Rocket } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+
+const STEPS = ['Basic Info', 'Satellite', 'Steps & Objectives', 'Review & Publish']
+
+const DIFFICULTIES = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
+const TIERS = ['ROOKIE_PILOT', 'MISSION_SPECIALIST', 'MISSION_COMMANDER']
+const TYPES = ['GUIDED', 'SANDBOX']
+const STATUSES = ['DRAFT', 'PUBLISHED']
+
+export default function ScenarioCreator() {
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const { toast } = useToast()
+
+  const [currentStep, setCurrentStep] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [satellites, setSatellites] = useState([])
+
+  // Form data
+  const [scenarioData, setScenarioData] = useState({
+    code: '',
+    title: '',
+    description: '',
+    difficulty: 'BEGINNER',
+    tier: 'ROOKIE_PILOT',
+    type: 'GUIDED',
+    estimatedDurationMinutes: 30,
+    status: 'DRAFT',
+    isActive: true,
+    isCore: false,
+    isPublic: false,
+    satellite_id: '',
+    tags: [],
+    objectives: [],
+    prerequisites: []
+  })
+
+  const [steps, setSteps] = useState([
+    {
+      stepOrder: 1,
+      title: '',
+      instructions: '',
+      objective: '',
+      hints: ''
+    }
+  ])
+
+  // Load satellites when on satellite step
+  const loadSatellites = async () => {
+    try {
+      console.log('Loading satellites...')
+      const response = await getSatellites()
+      console.log('Satellites loaded:', response)
+      
+      // Handle paginated response structure: { data: [...], pagination: {...} }
+      const satelliteList = response?.data || response
+      setSatellites(Array.isArray(satelliteList) ? satelliteList : [])
+    } catch (error) {
+      console.error('Error loading satellites:', error)
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to load satellites',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const handleNext = () => {
+    if (currentStep < STEPS.length - 1) {
+      const nextStep = currentStep + 1
+      setCurrentStep(nextStep)
+      // Load satellites when entering step 1 (Satellite Selection)
+      if (nextStep === 1 && satellites.length === 0) {
+        loadSatellites()
+      }
+    }
+  }
+
+  const handlePrevious = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const handleInputChange = (field, value) => {
+    setScenarioData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleArrayInput = (field, value) => {
+    const items = value.split(',').map(item => item.trim()).filter(Boolean)
+    setScenarioData(prev => ({ ...prev, [field]: items }))
+  }
+
+  const addStep = () => {
+    setSteps(prev => [
+      ...prev,
+      {
+        stepOrder: prev.length + 1,
+        title: '',
+        instructions: '',
+        objective: '',
+        hints: ''
+      }
+    ])
+  }
+
+  const removeStep = (index) => {
+    setSteps(prev => {
+      const newSteps = prev.filter((_, i) => i !== index)
+      // Renumber steps
+      return newSteps.map((step, i) => ({ ...step, stepOrder: i + 1 }))
+    })
+  }
+
+  const updateStep = (index, field, value) => {
+    setSteps(prev => prev.map((step, i) => 
+      i === index ? { ...step, [field]: value } : step
+    ))
+  }
+
+  const validateStep = () => {
+    switch (currentStep) {
+      case 0: // Basic Info
+        if (!scenarioData.code || !scenarioData.title || !scenarioData.description) {
+          toast({
+            title: 'Required Fields',
+            description: 'Please fill in code, title, and description',
+            variant: 'destructive'
+          })
+          return false
+        }
+        if (!/^[A-Z0-9_]+$/.test(scenarioData.code)) {
+          toast({
+            title: 'Invalid Code',
+            description: 'Code must be uppercase alphanumeric with underscores',
+            variant: 'destructive'
+          })
+          return false
+        }
+        return true
+      
+      case 1: // Satellite
+        if (!scenarioData.satellite_id) {
+          toast({
+            title: 'Satellite Required',
+            description: 'Please select a satellite for this scenario',
+            variant: 'destructive'
+          })
+          return false
+        }
+        return true
+      
+      case 2: // Steps
+        const hasEmptySteps = steps.some(s => !s.title || !s.instructions || !s.objective)
+        if (hasEmptySteps) {
+          toast({
+            title: 'Incomplete Steps',
+            description: 'All steps must have title, instructions, and objective',
+            variant: 'destructive'
+          })
+          return false
+        }
+        return true
+      
+      default:
+        return true
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!validateStep()) return
+
+    setLoading(true)
+    try {
+      console.log('Current user:', user)
+      console.log('Scenario data to submit:', scenarioData)
+      
+      // Create scenario
+      const createdScenario = await createScenario(scenarioData)
+      console.log('Scenario created:', createdScenario)
+      const scenarioId = createdScenario.id
+
+      // Create steps
+      for (const step of steps) {
+        await createScenarioStep({
+          ...step,
+          scenario_id: scenarioId
+        })
+      }
+
+      toast({
+        title: 'Success!',
+        description: `Scenario "${scenarioData.title}" created successfully`,
+      })
+
+      navigate('/admin/scenarios')
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to create scenario',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/admin/scenarios')}
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Scenarios
+          </Button>
+          
+          <div className="flex items-center gap-3 mb-2">
+            <Rocket className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold">Create New Scenario</h1>
+          </div>
+          <p className="text-muted-foreground">
+            Build a training mission for satellite operators
+          </p>
+        </div>
+
+        {/* Progress Steps */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            {STEPS.map((step, index) => (
+              <div key={step} className="flex items-center">
+                <div
+                  className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+                    index <= currentStep
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-muted bg-background text-muted-foreground'
+                  }`}
+                >
+                  {index < currentStep ? (
+                    <Check className="h-5 w-5" />
+                  ) : (
+                    index + 1
+                  )}
+                </div>
+                <span className={`ml-2 text-sm font-medium ${
+                  index <= currentStep ? 'text-foreground' : 'text-muted-foreground'
+                }`}>
+                  {step}
+                </span>
+                {index < STEPS.length - 1 && (
+                  <div className={`w-20 h-0.5 mx-4 ${
+                    index < currentStep ? 'bg-primary' : 'bg-muted'
+                  }`} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Step Content */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{STEPS[currentStep]}</CardTitle>
+            <CardDescription>
+              {currentStep === 0 && 'Enter basic scenario information'}
+              {currentStep === 1 && 'Select the satellite for this mission'}
+              {currentStep === 2 && 'Define mission steps and learning objectives'}
+              {currentStep === 3 && 'Review and publish your scenario'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {/* Step 0: Basic Info */}
+            {currentStep === 0 && (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="code" className="text-sm font-medium">Scenario Code *</Label>
+                  <Input
+                    id="code"
+                    value={scenarioData.code}
+                    onChange={(e) => handleInputChange('code', e.target.value.toUpperCase())}
+                    placeholder="ROOKIE_ORBIT_101"
+                    className="font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    Uppercase letters, numbers, and underscores only
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="title" className="text-sm font-medium">Title *</Label>
+                  <Input
+                    id="title"
+                    value={scenarioData.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                    placeholder="Orbital Insertion Basics"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description" className="text-sm font-medium">Description *</Label>
+                  <Textarea
+                    id="description"
+                    value={scenarioData.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    placeholder="Learn the fundamentals of orbital mechanics..."
+                    rows={2}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="difficulty" className="text-sm font-medium">Difficulty</Label>
+                    <Select
+                      value={scenarioData.difficulty}
+                      onValueChange={(value) => handleInputChange('difficulty', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DIFFICULTIES.map(diff => (
+                          <SelectItem key={diff} value={diff}>{diff}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="tier" className="text-sm font-medium">Pilot Tier</Label>
+                    <Select
+                      value={scenarioData.tier}
+                      onValueChange={(value) => handleInputChange('tier', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIERS.map(tier => (
+                          <SelectItem key={tier} value={tier}>{tier}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="type" className="text-sm font-medium">Type</Label>
+                    <Select
+                      value={scenarioData.type}
+                      onValueChange={(value) => handleInputChange('type', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TYPES.map(type => (
+                          <SelectItem key={type} value={type}>{type}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="duration" className="text-sm font-medium">Duration (minutes)</Label>
+                    <Input
+                      id="duration"
+                      type="number"
+                      value={scenarioData.estimatedDurationMinutes}
+                      onChange={(e) => handleInputChange('estimatedDurationMinutes', parseInt(e.target.value))}
+                      min={5}
+                      max={480}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="tags" className="text-sm font-medium">Tags (comma-separated)</Label>
+                  <Input
+                    id="tags"
+                    value={scenarioData.tags.join(', ')}
+                    onChange={(e) => handleArrayInput('tags', e.target.value)}
+                    placeholder="orbital-mechanics, power-management"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="objectives" className="text-sm font-medium">Learning Objectives (comma-separated)</Label>
+                  <Textarea
+                    id="objectives"
+                    value={scenarioData.objectives.join(', ')}
+                    onChange={(e) => handleArrayInput('objectives', e.target.value)}
+                    placeholder="Understand orbital velocity, Calculate delta-v requirements"
+                    rows={2}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 1: Satellite */}
+            {currentStep === 1 && (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="satellite" className="text-sm font-medium">Select Satellite *</Label>
+                  <Select
+                    value={scenarioData.satellite_id}
+                    onValueChange={(value) => handleInputChange('satellite_id', value)}
+                    disabled={loading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={loading ? "Loading satellites..." : "Choose a satellite..."} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {satellites.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground">No satellites available</div>
+                      ) : (
+                        satellites.map(sat => (
+                          <SelectItem key={sat.id} value={sat.id}>
+                            {sat.name || sat.id}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    {satellites.length} satellite{satellites.length !== 1 ? 's' : ''} available
+                  </p>
+                </div>
+
+                <div className="p-4 bg-muted/50 rounded-lg border">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    <strong className="text-foreground">Note:</strong> Initial satellite state can be configured later.
+                    The selected satellite's default parameters will be used as the starting point.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Steps */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                {steps.map((step, index) => (
+                  <Card key={index} className="border-2">
+                    <CardHeader className="pb-4">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg font-semibold">Step {step.stepOrder}</CardTitle>
+                        {steps.length > 1 && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removeStep(index)}
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold">Step Title *</Label>
+                        <Input
+                          value={step.title}
+                          onChange={(e) => updateStep(index, 'title', e.target.value)}
+                          placeholder="e.g., Check Current Attitude"
+                          className="h-10"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold">Instructions *</Label>
+                        <Textarea
+                          value={step.instructions}
+                          onChange={(e) => updateStep(index, 'instructions', e.target.value)}
+                          placeholder="Provide detailed instructions for this step..."
+                          rows={4}
+                          className="resize-none w-full"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold">Success Criteria *</Label>
+                        <Input
+                          value={step.objective}
+                          onChange={(e) => updateStep(index, 'objective', e.target.value)}
+                          placeholder="e.g., Satellite orientation matches target within 2 degrees"
+                          className="h-10"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold">Hints for NOVA AI</Label>
+                        <Textarea
+                          value={step.hints}
+                          onChange={(e) => updateStep(index, 'hints', e.target.value)}
+                          placeholder="Optional hints to help NOVA guide the user..."
+                          rows={3}
+                          className="resize-none w-full"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                <Button onClick={addStep} variant="outline" className="w-full h-11">
+                  Add Step
+                </Button>
+              </div>
+            )}
+
+            {/* Step 3: Review */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-base">Scenario Information</h3>
+                  <dl className="space-y-2 text-sm">
+                    <div className="flex py-1"><dt className="font-medium w-40 text-muted-foreground">Code:</dt><dd className="font-mono">{scenarioData.code}</dd></div>
+                    <div className="flex py-1"><dt className="font-medium w-40 text-muted-foreground">Title:</dt><dd>{scenarioData.title}</dd></div>
+                    <div className="flex py-1"><dt className="font-medium w-40 text-muted-foreground">Difficulty:</dt><dd>{scenarioData.difficulty}</dd></div>
+                    <div className="flex py-1"><dt className="font-medium w-40 text-muted-foreground">Tier:</dt><dd>{scenarioData.tier}</dd></div>
+                    <div className="flex py-1"><dt className="font-medium w-40 text-muted-foreground">Type:</dt><dd>{scenarioData.type}</dd></div>
+                    <div className="flex py-1"><dt className="font-medium w-40 text-muted-foreground">Duration:</dt><dd>{scenarioData.estimatedDurationMinutes} minutes</dd></div>
+                    <div className="flex py-1"><dt className="font-medium w-40 text-muted-foreground">Steps:</dt><dd>{steps.length}</dd></div>
+                  </dl>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="status" className="text-sm font-medium">Publishing Status</Label>
+                  <Select
+                    value={scenarioData.status}
+                    onValueChange={(value) => handleInputChange('status', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUSES.map(status => (
+                        <SelectItem key={status} value={status}>{status}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={scenarioData.isActive}
+                      onChange={(e) => handleInputChange('isActive', e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    <span className="text-sm">Active (visible to users)</span>
+                  </label>
+
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={scenarioData.isCore}
+                      onChange={(e) => handleInputChange('isCore', e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    <span className="text-sm">Core Training (required for tier advancement)</span>
+                  </label>
+
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={scenarioData.isPublic}
+                      onChange={(e) => handleInputChange('isPublic', e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    <span className="text-sm">Public (all users can access)</span>
+                  </label>
+                </div>
+
+                <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm leading-relaxed">
+                    <strong className="font-semibold">Ready to create?</strong> This scenario will be {scenarioData.status === 'DRAFT' ? 'saved as a draft' : 'published and available to users'}.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Navigation */}
+        <div className="flex items-center justify-between mt-6">
+          <Button
+            variant="outline"
+            onClick={handlePrevious}
+            disabled={currentStep === 0 || loading}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Previous
+          </Button>
+
+          {currentStep < STEPS.length - 1 ? (
+            <Button onClick={() => validateStep() && handleNext()} disabled={loading}>
+              Next
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          ) : (
+            <Button onClick={handleSubmit} disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Create Scenario
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

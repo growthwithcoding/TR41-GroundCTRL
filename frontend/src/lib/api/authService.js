@@ -6,6 +6,34 @@
 import api from './httpClient'
 
 /**
+ * Exchange Firebase token for backend JWT
+ * @param {string} firebaseToken - Firebase ID token
+ * @returns {Promise<object>} Backend JWT tokens
+ */
+export async function loginWithFirebaseToken(firebaseToken) {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1'}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${firebaseToken}`
+      }
+    })
+    
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to login with backend')
+    }
+    
+    const data = await response.json()
+    return data.payload || data
+  } catch (error) {
+    console.error('Failed to exchange Firebase token:', error)
+    throw new Error(error.message || 'Failed to authenticate with backend')
+  }
+}
+
+/**
  * Register a new user via backend API
  * @param {object} userData - User registration data
  * @returns {Promise<object>} User data

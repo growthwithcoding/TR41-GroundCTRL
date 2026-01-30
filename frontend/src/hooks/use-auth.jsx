@@ -3,6 +3,9 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { onAuthChange, signIn, signUp, signOut, resetPassword, signInWithGoogle } from "@/lib/firebase/auth"
 import { fetchUserProfile } from "@/lib/firebase/userProfile"
+import { loginWithFirebaseToken } from "@/lib/api/authService"
+import { setBackendTokens, clearBackendTokens } from "@/lib/api/httpClient"
+import { auth } from "@/lib/firebase/config"
 
 const AuthContext = createContext(undefined)
 
@@ -12,13 +15,21 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    const unsubscribe = onAuthChange(async (user) => {
-      if (user) {
+    const unsubscribe = onAuthChange(async (firebaseUser) => {
+      if (firebaseUser) {
         try {
-          const profile = await fetchUserProfile(user.uid)
-          setUser({ ...user, callSign: profile?.callSign || "" })
+          // Fetch user profile from Firestore
+          const profile = await fetchUserProfile(firebaseUser.uid)
+          setUser({ 
+            ...firebaseUser, 
+            callSign: profile?.callSign || "",
+            isAdmin: profile?.isAdmin || false
+          })
+          
+          console.log('✅ Authenticated with Firebase', { isAdmin: profile?.isAdmin })
         } catch (e) {
-          setUser({ ...user, callSign: "" })
+          console.error('Failed to fetch profile:', e)
+          setUser({ ...firebaseUser, callSign: "", isAdmin: false })
         }
       } else {
         setUser(null)
