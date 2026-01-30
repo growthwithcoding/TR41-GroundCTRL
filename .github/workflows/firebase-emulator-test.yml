@@ -1,4 +1,4 @@
-name: Firebase Emulator Tests
+name: Backend Firebase Emulator Tests
 
 on:
   pull_request:
