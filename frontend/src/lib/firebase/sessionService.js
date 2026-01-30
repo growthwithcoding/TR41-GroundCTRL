@@ -1,13 +1,19 @@
 /**
  * Session Service
  * 
- * Handles fetching and managing scenario session data from Firestore.
- * Sessions contain a snapshot of scenario/satellite data at the time of creation,
- * ensuring that updates to the base scenario don't affect in-progress sessions.
+ * Handles fetching and managing scenario session data.
+ * 
+ * SECURITY: All write operations go through backend API for:
+ * - Authorization checks
+ * - Data validation
+ * - Audit logging
+ * 
+ * Read operations use Firestore directly for performance.
  */
 
 import { db } from './config'
-import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import * as apiSessionService from '../api/sessionService'
 
 const SESSIONS_COLLECTION = 'scenario_sessions'
 
@@ -82,73 +88,33 @@ export async function fetchActiveSession(userId, scenarioId) {
 
 /**
  * Create a new session (snapshot of scenario data)
- * This is typically called by the backend, but included for completeness
+ * Uses backend API for authorization, validation, and audit logging
  * @param {Object} sessionData - Session data to create
  * @returns {Promise<string>} Created session ID
  */
 export async function createSession(sessionData) {
-  try {
-    const docRef = await addDoc(collection(db, SESSIONS_COLLECTION), {
-      ...sessionData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    })
-    
-    return docRef.id
-  } catch (error) {
-    console.error('Error creating session:', error)
-    throw new Error(`Failed to create session: ${error.message}`)
-  }
+  return apiSessionService.createSession(sessionData)
 }
 
 /**
  * Update session progress
+ * Uses backend API for authorization, validation, and audit logging
  * @param {string} sessionId - Session ID
  * @param {Object} updates - Fields to update
  * @returns {Promise<void>}
  */
 export async function updateSession(sessionId, updates) {
-  try {
-    const sessionRef = doc(db, SESSIONS_COLLECTION, sessionId)
-    await updateDoc(sessionRef, {
-      ...updates,
-      updatedAt: serverTimestamp()
-    })
-  } catch (error) {
-    console.error('Error updating session:', error)
-    throw new Error(`Failed to update session: ${error.message}`)
-  }
+  return apiSessionService.updateSession(sessionId, updates)
 }
 
 /**
  * Mark session as IN_PROGRESS when user enters the simulator
+ * Uses backend API for authorization and audit logging
  * @param {string} sessionId - Session ID
  * @returns {Promise<void>}
  */
 export async function markSessionInProgress(sessionId) {
-  try {
-    const sessionRef = doc(db, SESSIONS_COLLECTION, sessionId)
-    const sessionDoc = await getDoc(sessionRef)
-    
-    if (!sessionDoc.exists()) {
-      throw new Error('Session not found')
-    }
-    
-    const sessionData = sessionDoc.data()
-    
-    // Only update if status is NOT_STARTED
-    if (sessionData.status === 'NOT_STARTED') {
-      await updateDoc(sessionRef, {
-        status: 'IN_PROGRESS',
-        startedAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      })
-      console.log(`Session ${sessionId} marked as IN_PROGRESS`)
-    }
-  } catch (error) {
-    console.error('Error marking session in progress:', error)
-    throw new Error(`Failed to mark session in progress: ${error.message}`)
-  }
+  return apiSessionService.markSessionInProgress(sessionId)
 }
 
 /**
@@ -189,6 +155,7 @@ export async function fetchUserSessions(userId) {
 /**
  * Save session progress (current step, time, state)
  * This should be called periodically during mission and on disconnect
+ * Uses backend API for authorization and audit logging
  * @param {string} sessionId - Session ID
  * @param {Object} progress - Progress data
  * @param {number} progress.currentStepOrder - Current step index
@@ -199,25 +166,7 @@ export async function fetchUserSessions(userId) {
  */
 export async function saveSessionProgress(sessionId, progress) {
   try {
-    const sessionRef = doc(db, SESSIONS_COLLECTION, sessionId)
-    
-    const updates = {
-      currentStepOrder: progress.currentStepOrder,
-      completedSteps: progress.completedSteps || [],
-      updatedAt: serverTimestamp()
-    }
-    
-    // Add elapsed time if provided
-    if (typeof progress.elapsedTime === 'number') {
-      updates.elapsedTime = progress.elapsedTime
-    }
-    
-    // Add state if provided
-    if (progress.state) {
-      updates.state = progress.state
-    }
-    
-    await updateDoc(sessionRef, updates)
+    await apiSessionService.saveSessionProgress(sessionId, progress)
     console.log(`Session ${sessionId} progress saved:`, {
       step: progress.currentStepOrder,
       completed: progress.completedSteps?.length || 0,
@@ -231,22 +180,11 @@ export async function saveSessionProgress(sessionId, progress) {
 
 /**
  * Mark session as completed
+ * Uses backend API for authorization, validation, and audit logging
  * @param {string} sessionId - Session ID
  * @param {Object} completionData - Completion data
  * @returns {Promise<void>}
  */
 export async function completeSession(sessionId, completionData = {}) {
-  try {
-    const sessionRef = doc(db, SESSIONS_COLLECTION, sessionId)
-    await updateDoc(sessionRef, {
-      status: 'COMPLETED',
-      completedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      ...completionData
-    })
-    console.log(`Session ${sessionId} marked as COMPLETED`)
-  } catch (error) {
-    console.error('Error completing session:', error)
-    throw new Error(`Failed to complete session: ${error.message}`)
-  }
+  return apiSessionService.completeSession(sessionId, completionData)
 }

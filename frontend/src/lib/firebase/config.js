@@ -29,6 +29,8 @@ const firebaseConfig = {
 // Initialize Firebase (singleton pattern to prevent multiple instances)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)
 
+console.log('Frontend Firebase Project ID:', firebaseConfig.projectId)
+
 // Initialize Firebase services
 export const auth = getAuth(app)
 export const db = getFirestore(app)

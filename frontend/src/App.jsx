@@ -5,6 +5,9 @@ import { Providers } from '@/components/providers.jsx'
 import { lazy, Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 
+// Admin components
+import { AdminRoute } from '@/components/admin/AdminRoute.jsx'
+
 // Pages
 const HomePage = lazy(() => import('@/pages/Index.jsx'))
 const DashboardPage = lazy(() => import('@/pages/Dashboard.jsx'))
@@ -20,6 +23,10 @@ const WebSocketTestPage = lazy(() => import('@/pages/WebSocketTest.jsx'))
 const PrivacyPage = lazy(() => import('@/pages/Privacy.jsx'))
 const TermsPage = lazy(() => import('@/pages/Terms.jsx'))
 const NotFoundPage = lazy(() => import('@/pages/NotFound.jsx'))
+
+// Admin Pages
+const ScenarioCreatorPage = lazy(() => import('@/pages/admin/ScenarioCreator.jsx'))
+const AdminScenariosPage = lazy(() => import('@/pages/admin/AdminScenarios.jsx'))
 
 // Loading component
 function PageLoader() {
@@ -48,6 +55,25 @@ function App() {
           <Route path="/websocket-test" element={<WebSocketTestPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          
+          {/* Admin Routes */}
+          <Route 
+            path="/admin/scenarios" 
+            element={
+              <AdminRoute>
+                <AdminScenariosPage />
+              </AdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/scenarios/create" 
+            element={
+              <AdminRoute>
+                <ScenarioCreatorPage />
+              </AdminRoute>
+            } 
+          />
+          
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>

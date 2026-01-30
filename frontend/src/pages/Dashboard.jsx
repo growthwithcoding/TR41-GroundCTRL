@@ -7,6 +7,7 @@ import { MissionProgress } from "@/components/dashboard/mission-progress"
 import { SystemMetrics } from "@/components/dashboard/system-metrics"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { QuickActions } from "@/components/dashboard/quick-actions"
+import { CurrentMission } from "@/components/dashboard/current-mission"
 import { useAuth } from "@/hooks/use-auth"
 import { Loader2, Satellite, Radio, Clock, Play } from "lucide-react"
 import { Footer } from "@/components/footer"
@@ -105,35 +106,8 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Continue Mission Banner - Show when user has an in-progress session */}
-            {inProgressSession && !loadingMissionTime && (
-              <div className="bg-primary/10 border-2 border-primary/40 rounded-lg p-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                      <Play className="w-6 h-6 text-primary animate-pulse" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-foreground mb-1">
-                        Mission In Progress
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        You have an active mission waiting for you. Continue where you left off!
-                      </p>
-                      <p className="text-xs text-muted-foreground font-mono">
-                        Session ID: {inProgressSession.id.substring(0, 8)}...
-                      </p>
-                    </div>
-                  </div>
-                  <Link to={`/mission-briefing/${inProgressSession.scenario_id}?session=${inProgressSession.id}`}>
-                    <button className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium flex items-center gap-2">
-                      <Play className="w-5 h-5" />
-                      Continue Mission
-                    </button>
-                  </Link>
-                </div>
-              </div>
-            )}
+            {/* Current/Suggested Mission Component */}
+            <CurrentMission />
 
             {/* Top row - Overview cards */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">

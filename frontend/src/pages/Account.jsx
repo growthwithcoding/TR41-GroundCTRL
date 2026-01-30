@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2, User, Mail, Shield, Trash2, Satellite, Award, Clock, Rocket } from "lucide-react"
 import { Footer } from "@/components/footer"
 import { sendPasswordResetEmail } from "firebase/auth"
+// Add API call helper for profile update
 
 async function updateUserProfile(userId, data) {
   const res = await fetch(`/users/${userId}`, {

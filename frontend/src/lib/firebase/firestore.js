@@ -2,18 +2,17 @@ import { collection,
   doc,
   getDoc,
   getDocs,
-  addDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
   query,
   where,
   orderBy,
-  limit, } from '0'
+  limit, } from 'firebase/firestore'
 import { db } from "./config"
 
 /**
  * Firestore Database Utilities
+ * 
+ * READ-ONLY operations for frontend.
+ * All write operations must go through backend API for security and audit logging.
  * 
  * Common collections for the simulator app:
  * - users: User profiles and settings
@@ -21,7 +20,7 @@ import { db } from "./config"
  * - simulations: Saved simulation states
  */
 
-// Generic document operations
+// Generic document READ operations
 export async function getDocument(
   collectionName,
   docId: string
@@ -44,63 +43,13 @@ export async function getDocuments(
   const querySnapshot = await getDocs(q)
   
   return querySnapshot.docs.map((doc) => ({
-    id,
+    id: doc.id,
     ...doc.data(),
   })) 
 }
 
-export async function addDocument(
-  collectionName,
-  data: T
-): Promise<string> {
-  const collectionRef = collection(db, collectionName)
-  const docRef = await addDoc(collectionRef, {
-    ...data,
-    createdAt),
-    updatedAt: serverTimestamp(),
-  })
-  return docRef.id
-}
-
-export async function setDocument(
-  collectionName,
-  docId: string,
-  data: T,
-  merge = true
-): Promise<void> {
-  const docRef = doc(db, collectionName, docId)
-  await setDoc(
-    docRef,
-    {
-      ...data,
-      updatedAt),
-    },
-    { merge }
-  )
-}
-
-export async function updateDocument<T extends Partial<DocumentData>>(
-  collectionName,
-  docId: string,
-  data: T
-): Promise<void> {
-  const docRef = doc(db, collectionName, docId)
-  await updateDoc(docRef, {
-    ...data,
-    updatedAt),
-  })
-}
-
-export async function deleteDocument(
-  collectionName,
-  docId: string
-): Promise<void> {
-  const docRef = doc(db, collectionName, docId)
-  await deleteDoc(docRef)
-}
-
 // Re-export query helpers for convenience
-export { where, orderBy, limit, serverTimestamp }
+export { where, orderBy, limit }
 
 // Collection name constants
 export const COLLECTIONS = {

@@ -10,37 +10,46 @@ import {
   sendPasswordResetEmail,
   updateProfile,
 } from "firebase/auth"
-import { doc, setDoc, serverTimestamp } from "firebase/firestore"
-import { auth, db } from "./config"
+import { auth } from "./config"
+import * as apiAuthService from '../api/authService'
 
 // Google Auth Provider
 const googleProvider = new GoogleAuthProvider()
 
 /**
  * Firebase Authentication Utilities
+ * 
+ * SECURITY: User profile creation goes through backend API for:
+ * - CallSign uniqueness validation
+ * - Data validation
+ * - Audit logging
  */
 
 // Sign up with email and password
 export async function signUp(email, password, displayName, callSign) {
+  // Step 1: Create Firebase Auth user
   const userCredential = await createUserWithEmailAndPassword(auth, email, password)
   
-  // Update display name if provided
+  // Step 2: Update display name if provided
   if (displayName && userCredential.user) {
     await updateProfile(userCredential.user, { displayName })
   }
   
-  // Store user profile in Firestore including callSign
+  // Step 3: Create user profile via backend API (includes validation & audit logging)
   if (userCredential.user) {
-    await setDoc(doc(db, "users", userCredential.user.uid), {
-      email: userCredential.user.email,
-      displayName: displayName || "",
-      callSign: callSign || "",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      missionProgress: {},
-      achievements: [],
-      totalMissionPoints: 0
-    })
+    try {
+      await apiAuthService.registerUser({
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        displayName: displayName || "",
+        callSign: callSign || ""
+      })
+    } catch (error) {
+      // If backend profile creation fails, we should clean up the Firebase Auth user
+      console.error('Failed to create user profile:', error)
+      // Note: In production, you might want to delete the auth user here
+      throw new Error(`Registration failed: ${error.message}`)
+    }
   }
   
   return userCredential.user
@@ -56,25 +65,20 @@ export async function signIn(email, password) {
 export async function signInWithGoogle() {
   const userCredential = await signInWithPopup(auth, googleProvider)
   
-  // Check if this is a new user and create profile if needed
+  // Sync user profile with backend (creates if new, updates if existing)
   if (userCredential.user) {
-    const userDoc = doc(db, "users", userCredential.user.uid)
-    // Only create profile for new users (Google sign-in doesn't have additionalUserInfo easily accessible)
-    // We'll use a simpler approach - try to set with merge
-    await setDoc(userDoc, {
-      email: userCredential.user.email,
-      displayName: userCredential.user.displayName || "",
-      callSign: "", // Users can set this later in their profile
-      updatedAt: serverTimestamp(),
-    }, { merge: true })
-    
-    // Set createdAt only if it doesn't exist (new user)
-    await setDoc(userDoc, {
-      createdAt: serverTimestamp(),
-      missionProgress: {},
-      achievements: [],
-      totalMissionPoints: 0
-    }, { merge: true, mergeFields: ["createdAt", "missionProgress", "achievements", "totalMissionPoints"] })
+    try {
+      await apiAuthService.syncGoogleProfile({
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        displayName: userCredential.user.displayName || "",
+        photoURL: userCredential.user.photoURL || null
+      })
+    } catch (error) {
+      // Log error but don't block sign-in
+      console.error('Failed to sync Google profile with backend:', error)
+      // User is still signed in with Firebase, just missing backend profile sync
+    }
   }
   
   return userCredential.user
