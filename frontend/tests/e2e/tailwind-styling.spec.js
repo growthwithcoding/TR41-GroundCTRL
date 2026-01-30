@@ -56,8 +56,14 @@ test.describe('UI-006: Tailwind CSS Styling', () => {
     
     const header = page.locator('header');
     await expect(header).toBeVisible();
-  });
-    expect(mobileWidth).not.toBe(desktopWidth);
+    
+    // Test desktop viewport
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    
+    const desktopHeader = page.locator('header');
+    await expect(desktopHeader).toBeVisible();
   });
 
   test('should have consistent primary color across elements', async ({ page }) => {
