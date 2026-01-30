@@ -74,8 +74,6 @@ test.describe('UI-003: Invalid Login (Production Mode)', () => {
   test('should not redirect on invalid credentials', async ({ page }) => {
     await page.goto('/login');
     
-    const originalUrl = page.url();
-    
     await page.fill('input[name="email"], input[type="email"]', 'fake@example.com');
     await page.fill('input[name="password"], input[type="password"]', 'WrongPass123!');
     
