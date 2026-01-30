@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
  * Expected Result: Nav links work correctly and show active state
  */
 
-test.describe.skip('UI-011: Navigation and Routing', () => {
+test.describe('UI-011: Navigation and Routing', () => {
   test('should display all navigation links', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForLoadState('networkidle', { timeout: 30000 });

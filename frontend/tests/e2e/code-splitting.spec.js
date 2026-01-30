@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test';
  * Expected Result: New chunk request (e.g., `register.[hash].js`).
  */
 
-test.describe.skip('UI-005: Code Splitting and Lazy Loading', () => {
+test.describe('UI-005: Code Splitting and Lazy Loading', () => {
   test.skip('should load new JavaScript chunk when navigating from login to register', async ({ page }) => {
     // Track network requests
     const jsChunks = new Set();

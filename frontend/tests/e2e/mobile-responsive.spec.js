@@ -10,7 +10,7 @@ import { test, expect } from '@playwright/test';
  * Note: This app uses a desktop-first design with standard navigation.
  */
 
-test.describe.skip('UI-007: Mobile Responsive Design', () => {
+test.describe('UI-007: Mobile Responsive Design', () => {
   test('should render header on mobile viewport', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30000 });

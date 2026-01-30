@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
  * Expected Result: Loading spinner should appear during route transitions
  */
 
-test.describe.skip('UI-010: Lazy Loading with Suspense', () => {
+test.describe('UI-010: Lazy Loading with Suspense', () => {
   test('should show loading spinner during lazy route load', async ({ page }) => {
     // Slow down network to catch loading state
     await page.route('**/*.js', route => {

@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
  * Expected Result: Computed style matches Tailwind config.
  */
 
-test.describe.skip('UI-006: Tailwind CSS Styling', () => {
+test.describe('UI-006: Tailwind CSS Styling', () => {
   test('should apply bg-primary class to login button', async ({ page }) => {
     await page.goto('/login');
     await page.waitForLoadState('networkidle');

@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test';
  * Expected Result: All three components visible; console-free.
  */
 
-test.describe.skip('UI-001: Basic App Rendering', () => {
+test.describe('UI-001: Basic App Rendering', () => {
   test('should load app with Navbar, Footer, and Home page without console errors', async ({ page }) => {
     // Track console errors
     const consoleErrors = [];

@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
  * Expected Result: Theme should switch between dark and light modes
  */
 
-test.describe.skip('UI-009: Theme Toggle', () => {
+test.describe('UI-009: Theme Toggle', () => {
   test('should toggle between dark and light themes', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
