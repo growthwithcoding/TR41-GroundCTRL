@@ -1,0 +1,111 @@
+/**
+ * Test Helper Utilities for GroundCTRL E2E Tests
+ */
+
+/**
+ * Generate a unique test user email
+ * @returns {string} Unique email address
+ */
+export function generateTestEmail() {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(7);
+  return `test-${timestamp}-${random}@groundctrl.test`;
+}
+
+/**
+ * Generate a test callSign
+ * @returns {string} Test callSign
+ */
+export function generateTestCallSign() {
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `TEST-${random}`;
+}
+
+/**
+ * Generate a strong test password
+ * @returns {string} Test password
+ */
+export function generateTestPassword() {
+  return 'TestPassword123!@#';
+}
+
+/**
+ * Wait for network to be idle
+ * @param {import('@playwright/test').Page} page
+ */
+export async function waitForNetworkIdle(page) {
+  await page.waitForLoadState('networkidle');
+}
+
+/**
+ * Check for console errors on the page
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<Array>} Array of console errors
+ */
+export async function getConsoleErrors(page) {
+  const errors = [];
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') {
+      errors.push(msg.text());
+    }
+  });
+  return errors;
+}
+
+/**
+ * Login helper function
+ * @param {import('@playwright/test').Page} page
+ * @param {string} email
+ * @param {string} password
+ */
+export async function login(page, email, password) {
+  await page.goto('/login');
+  await page.fill('input[name="email"], input[type="email"]', email);
+  await page.fill('input[name="password"], input[type="password"]', password);
+  await page.click('button[type="submit"]');
+}
+
+/**
+ * Register a new user helper function
+ * @param {import('@playwright/test').Page} page
+ * @param {Object} userData
+ * @param {string} userData.email
+ * @param {string} userData.password
+ * @param {string} userData.callSign
+ */
+export async function register(page, userData) {
+  await page.goto('/register');
+  await page.fill('input[name="email"], input[type="email"]', userData.email);
+  await page.fill('input[name="password"], input[type="password"]', userData.password);
+  
+  // Try to find callSign input if it exists
+  const callSignInput = page.locator('input[name="callSign"]').first();
+  if (await callSignInput.count() > 0) {
+    await callSignInput.fill(userData.callSign);
+  }
+  
+  await page.click('button[type="submit"]');
+}
+
+/**
+ * Check if element is visible in viewport
+ * @param {import('@playwright/test').Page} page
+ * @param {string} selector
+ * @returns {Promise<boolean>}
+ */
+export async function isVisibleInViewport(page, selector) {
+  return await page.locator(selector).isVisible();
+}
+
+/**
+ * Get computed style of an element
+ * @param {import('@playwright/test').Page} page
+ * @param {string} selector
+ * @param {string} property
+ * @returns {Promise<string>}
+ */
+export async function getComputedStyle(page, selector, property) {
+  return await page.locator(selector).evaluate((el, prop) => {
+    return window.getComputedStyle(el).getPropertyValue(prop);
+  }, property);
+}

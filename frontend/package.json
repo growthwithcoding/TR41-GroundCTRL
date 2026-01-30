@@ -9,7 +9,12 @@
     "build:check": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "deploy": "npm run build && firebase deploy"
+    "deploy": "npm run build && firebase deploy",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@fontsource/geist-mono": "^5.0.0",
@@ -62,8 +67,6 @@
     "react-router-dom": "^6.22.0",
     "recharts": "2.15.4",
     "socket.io-client": "^4.8.3",
-    "socket.io": "^4.8.3",
-    "socket.io-client": "^4.7.5",
     "sonner": "^1.7.4",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
