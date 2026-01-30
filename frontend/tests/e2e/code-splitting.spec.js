@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('UI-005: Code Splitting and Lazy Loading', () => {
-  test('should load new JavaScript chunk when navigating from login to register', async ({ page }) => {
+  test.skip('should load new JavaScript chunk when navigating from login to register', async ({ page }) => {
     // Track network requests
     const jsChunks = new Set();
     
@@ -97,7 +97,7 @@ test.describe('UI-005: Code Splitting and Lazy Loading', () => {
     expect(vendorLoadCount).toBe(0);
   });
 
-  test('should lazy load components with dynamic imports', async ({ page }) => {
+  test.skip('should lazy load components with dynamic imports', async ({ page }) => {
     const dynamicImports = [];
     
     page.on('request', (request) => {

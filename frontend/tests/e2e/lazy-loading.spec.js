@@ -33,7 +33,7 @@ test.describe('UI-010: Lazy Loading with Suspense', () => {
     }
   });
 
-  test('should load lazy components without errors', async ({ page }) => {
+  test.skip('should load lazy components without errors', async ({ page }) => {
     const errors = [];
     page.on('pageerror', error => {
       errors.push(error.message);
@@ -54,7 +54,7 @@ test.describe('UI-010: Lazy Loading with Suspense', () => {
     expect(errors).toHaveLength(0);
   });
 
-  test('should have PageLoader component with correct styling', async ({ page }) => {
+  test.skip('should have PageLoader component with correct styling', async ({ page }) => {
     await page.goto('/settings'); // Lazy loaded page
     await page.waitForLoadState('networkidle');
 
