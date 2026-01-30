@@ -93,19 +93,14 @@ npx playwright show-report
 tests/
 ├── helpers.js                           # Shared test utilities
 ├── .env.test                            # Test environment configuration
-├── ui-001-basic-rendering.spec.js       # Basic rendering tests
-├── ui-002-valid-login.spec.js           # Valid login tests
-├── ui-003-invalid-login.spec.js         # Invalid login tests
-├── ui-004-duplicate-callsign.spec.js    # Duplicate callSign tests
-├── ui-005-code-splitting.spec.js        # Code splitting tests
-├── ui-006-tailwind-styling.spec.js      # Tailwind CSS tests
-├── ui-007-mobile-responsive.spec.js     # Mobile responsiveness tests
-└── ui-008-es-module-imports.spec.js     # ES module import tests
-```
-
-## Writing New Tests
-
-1. Create a new spec file following the naming convention: `ui-###-description.spec.js`
+├── basic-rendering.spec.js              # Basic rendering tests
+├── valid-login.spec.js                  # Valid login tests
+├── invalid-login.spec.js                # Invalid login tests
+├── duplicate-callsign.spec.js           # Duplicate callSign tests
+├── code-splitting.spec.js               # Code splitting tests
+├── tailwind-styling.spec.js             # Tailwind CSS tests
+├── mobile-responsive.spec.js            # Mobile responsiveness tests
+└── es-module-imports.spec.js            # ES module import tests
 2. Import Playwright test utilities:
    ```javascript
    import { test, expect } from '@playwright/test';
