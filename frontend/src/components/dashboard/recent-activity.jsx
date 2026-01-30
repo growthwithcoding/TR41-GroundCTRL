@@ -13,7 +13,7 @@ import {
 
 /**
  * Recent Activity Component - Shows user's recent activity from audit logs
- * Fetches real data from Firestore audit_logs collection
+ * Fetches real data from the backend audit API via fetchUserAuditLogs
  * 
  * Filters to positive/relevant events only (no failures/errors)
  * Caps list to recent entries (10 max displayed, 5 shown by default)
