@@ -18,6 +18,12 @@ concurrency:
   group: frontend-e2e-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  checks: write
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
   e2e-tests:
     name: Run Frontend E2E Tests
