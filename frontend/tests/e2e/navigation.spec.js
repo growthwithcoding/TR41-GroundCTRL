@@ -23,26 +23,49 @@ test.describe('UI-011: Navigation and Routing', () => {
   });
 
   test('should navigate to all major routes', async ({ page }) => {
-    const routes = [
+    // Only test public routes that don't require authentication
+    const publicRoutes = [
       { path: '/', title: 'GroundCTRL' },
-      { path: '/missions', title: 'Missions' },
-      { path: '/simulator', title: 'Simulator' },
       { path: '/help', title: 'Help' },
       { path: '/contact', title: 'Contact' },
+      { path: '/privacy', title: 'Privacy' },
+      { path: '/terms', title: 'Terms' },
     ];
 
-    for (const route of routes) {
+    console.log('Testing navigation to public routes...');
+
+    for (const route of publicRoutes) {
+      console.log(`Navigating to: ${route.path} (${route.title})`);
       await page.goto(route.path);
       await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(500); // Brief pause for rendering
 
       // Page should load successfully
       const header = page.locator('header');
+      const headerVisible = await header.isVisible().catch(() => false);
+      console.log(`Header visible on ${route.path}: ${headerVisible}`);
+
+      if (!headerVisible) {
+        console.log('Header not found, checking if page loaded at all...');
+        const body = page.locator('body');
+        const bodyVisible = await body.isVisible().catch(() => false);
+        console.log(`Body visible: ${bodyVisible}`);
+      }
+
       await expect(header).toBeVisible();
 
       // Title should contain relevant text
       const title = await page.title();
+      console.log(`Page title: "${title}"`);
       expect(title).toBeTruthy();
+
+      // Should not be on an error page
+      const currentUrl = page.url();
+      console.log(`Current URL: ${currentUrl}`);
+      expect(currentUrl).toBe(`http://localhost:5173${route.path}`);
     }
+
+    console.log('All public route navigation tests completed successfully');
   });
 
   test('should highlight active navigation link', async ({ page }) => {
