@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { getComputedStyle } from './helpers.js';
 
 /**
  * UI-006: Tailwind Styling Test
+ * Related PR(s): #45
  * Related PR(s): #45
  * 
  * Description: Check Tailwind class `bg-primary` is applied to the login button.
