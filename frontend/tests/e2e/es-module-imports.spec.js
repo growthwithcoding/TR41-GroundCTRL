@@ -92,7 +92,7 @@ test.describe('UI-008: ES Module Imports', () => {
   });
 
   test('should have proper module format in package.json', async () => {
-    const packagePath = path.join(__dirname, '..', 'package.json');
+    const packagePath = path.join(__dirname, '../..', 'package.json');
     const packageContent = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
     
     // Should specify type: "module" for ES modules
