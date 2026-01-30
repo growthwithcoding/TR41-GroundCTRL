@@ -24,9 +24,6 @@ test.describe('UI-001: Basic App Rendering', () => {
     // Wait for page to be fully loaded
     await page.waitForLoadState('networkidle', { timeout: 30000 });
     
-    // Wait a bit for React to hydrate
-    await page.waitForTimeout(1000);
-
     // Check that Header (AppHeader) is visible
     const header = page.locator('header');
     await expect(header).toBeVisible({ timeout: 10000 });
