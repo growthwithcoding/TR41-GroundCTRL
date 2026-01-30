@@ -55,8 +55,6 @@ jobs:
         env:
           CI: true
           PLAYWRIGHT_BASE_URL: http://localhost:5173
-          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL || 'test-user@groundctrl.test' }}
-          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD || 'TestPassword123!' }}
           # Minimal Firebase config for CI (prevents initialization errors)
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY || 'test-api-key' }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN || 'test.firebaseapp.com' }}
