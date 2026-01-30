@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
  * Expected Result: Should display NotFound page for invalid URLs
  */
 
-test.describe.skip('UI-012: 404 Not Found Page', () => {
+test.describe('UI-012: 404 Not Found Page', () => {
   test('should show 404 page for invalid route', async ({ page }) => {
     await page.goto('/this-page-does-not-exist');
     await page.waitForLoadState('networkidle');

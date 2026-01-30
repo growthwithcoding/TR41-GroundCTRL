@@ -22,7 +22,7 @@ test.describe('UI-011: Navigation and Routing', () => {
     expect(count).toBeGreaterThanOrEqual(1);
   });
 
-  test.skip('should navigate to all major routes', async ({ page }) => {
+  test('should navigate to all major routes', async ({ page }) => {
     const routes = [
       { path: '/', title: 'GroundCTRL' },
       { path: '/missions', title: 'Missions' },
