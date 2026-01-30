@@ -39,7 +39,7 @@ npm run test:e2e:report
 
 ```bash
 # Run a single test file
-npx playwright test ui-001-basic-rendering.spec.js
+npx playwright test basic-rendering.spec.js
 
 # Run tests containing "login"
 npx playwright test --grep login
