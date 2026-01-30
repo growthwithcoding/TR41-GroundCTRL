@@ -25,7 +25,7 @@ test.describe('UI-010: Lazy Loading with Suspense', () => {
       const loader = page.locator('[class*="animate-spin"]').first();
       
       // Loading may be too fast, but if caught it should be visible
-      const wasVisible = await loader.isVisible().catch(() => false);
+      await loader.isVisible().catch(() => false);
       
       // Either we caught the loader or page loaded successfully
       await page.waitForLoadState('networkidle');
