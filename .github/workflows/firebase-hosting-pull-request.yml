@@ -36,12 +36,6 @@ jobs:
         run: npx playwright install --with-deps chromium
         continue-on-error: true
       
-      - name: Start dev server
-        working-directory: ./frontend
-        run: |
-          npm run dev -- --host 0.0.0.0 --port 5173 &
-          sleep 15
-      
       - name: Run E2E tests (optional)
         working-directory: ./frontend
         run: |
