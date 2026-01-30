@@ -162,7 +162,7 @@ npm run test:e2e:headed
 npm run test:e2e:debug
 
 # Specific test
-npx playwright test ui-001-basic-rendering.spec.js
+npx playwright test basic-rendering.spec.js
 ```
 
 ---
