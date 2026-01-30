@@ -22,7 +22,7 @@ test.describe('UI-011: Navigation and Routing', () => {
     expect(count).toBeGreaterThanOrEqual(1);
   });
 
-  test('should navigate to all major routes', async ({ page }) => {
+  test('should navigate to all major routes', async ({ page, baseURL }) => {
     // Only test public routes that don't require authentication
     const publicRoutes = [
       { path: '/', title: 'GroundCTRL' },
@@ -59,10 +59,11 @@ test.describe('UI-011: Navigation and Routing', () => {
       console.log(`Page title: "${title}"`);
       expect(title).toBeTruthy();
 
-      // Should not be on an error page
+      // Should not be on an error page - verify URL matches expected path
       const currentUrl = page.url();
       console.log(`Current URL: ${currentUrl}`);
-      expect(currentUrl).toBe(`http://localhost:5173${route.path}`);
+      const expectedUrl = `${baseURL}${route.path}`;
+      expect(currentUrl).toBe(expectedUrl);
     }
 
     console.log('All public route navigation tests completed successfully');
