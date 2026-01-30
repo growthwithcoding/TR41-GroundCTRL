@@ -17,14 +17,14 @@
 
 ### Test Files
 - ✅ `tests/helpers.js` - Shared utility functions
-- ✅ `tests/ui-001-basic-rendering.spec.js` - Basic rendering tests
-- ✅ `tests/ui-002-valid-login.spec.js` - Valid login flow tests
-- ✅ `tests/ui-003-invalid-login.spec.js` - Invalid login handling tests
-- ✅ `tests/ui-004-duplicate-callsign.spec.js` - Duplicate callSign tests
-- ✅ `tests/ui-005-code-splitting.spec.js` - Code splitting verification
-- ✅ `tests/ui-006-tailwind-styling.spec.js` - Tailwind CSS tests
-- ✅ `tests/ui-007-mobile-responsive.spec.js` - Mobile responsive tests
-- ✅ `tests/ui-008-es-module-imports.spec.js` - ES module import tests
+- ✅ `tests/basic-rendering.spec.js` - Basic rendering tests
+- ✅ `tests/valid-login.spec.js` - Valid login flow tests
+- ✅ `tests/invalid-login.spec.js` - Invalid login handling tests
+- ✅ `tests/duplicate-callsign.spec.js` - Duplicate callSign tests
+- ✅ `tests/code-splitting.spec.js` - Code splitting verification
+- ✅ `tests/tailwind-styling.spec.js` - Tailwind CSS tests
+- ✅ `tests/mobile-responsive.spec.js` - Mobile responsive tests
+- ✅ `tests/es-module-imports.spec.js` - ES module import tests
 
 ### Documentation
 - ✅ `tests/README.md` - Complete test documentation
