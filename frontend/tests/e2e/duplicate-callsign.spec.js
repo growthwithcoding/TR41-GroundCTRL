@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { register, generateTestEmail, generateTestCallSign, generateTestPassword } from './helpers.js';
+import { register, generateTestEmail, generateTestPassword } from './helpers.js';
 
 /**
  * UI-004: Duplicate CallSign Registration Test
