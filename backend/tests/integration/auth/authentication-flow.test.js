@@ -242,4 +242,36 @@ describe('Authentication Flow - Integration Tests', () => {
       expect([401, 403]).toContain(postLogout.status);
     });
   });
+
+  describe('Refresh Token Reuse Prevention', () => {
+    it('refresh token can be used once (replay protection)', async () => {
+      if (!admin.apps.length) return;
+
+      const email = `refresh-${Date.now()}@example.com`;
+      const response = await request(app)
+        .post('/api/v1/auth/register')
+        .send({ email, password: 'RefreshTest123!' });
+
+      const user = response.body.payload.user;
+      const refreshToken = response.body.payload.tokens.refreshToken;
+      testUsers.push({ uid: user.uid, email });
+
+      // First refresh should succeed
+      const firstRefresh = await request(app)
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken })
+        .expect(200);
+
+      expect(firstRefresh.body.payload.accessToken).toBeDefined();
+      expect(firstRefresh.body.payload.refreshToken).toBeDefined();
+
+      // Second refresh with same token should fail (401)
+      const secondRefresh = await request(app)
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken });
+
+      expect(secondRefresh.status).toBe(401);
+      expect(secondRefresh.body.status).toBe('error');
+    });
+  });
 });
