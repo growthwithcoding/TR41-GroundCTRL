@@ -267,9 +267,9 @@ export default function MissionBriefingPage() {
       
       console.log('Creating session with data:', sessionData)
       const newSessionId = await createSession(sessionData)
+      console.log('Session created successfully with ID:', newSessionId)
       
       setSessionId(newSessionId)
-      setSessionData(sessionData) // Store session data for launch animation
       setPhase("countdown")
       setCreatingSession(false)
     } catch (err) {
@@ -309,8 +309,8 @@ export default function MissionBriefingPage() {
       
       console.log('Creating session (skip) with data:', sessionData)
       const newSessionId = await createSession(sessionData)
+      console.log('Session created (skip) successfully with ID:', newSessionId)
       
-      setSessionData(sessionData) // Store session data
       navigate(`/simulator?session=${newSessionId}`)
     } catch (err) {
       console.error('Error creating session:', err)
