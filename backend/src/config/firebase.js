@@ -94,13 +94,13 @@ function initializeFirebase() {
     // Test mode with emulators: No credentials needed, emulators handle everything
     if (isTest && hasEmulators) {
       logger.info('Using Firebase emulators for testing (no credentials required)', {
-        projectId: process.env.FIREBASE_PROJECT_ID || 'test-project',
+        projectId: 'groundctrl-c8860', // Hardcoded for testing
         firestoreEmulator: process.env.FIRESTORE_EMULATOR_HOST,
         authEmulator: process.env.FIREBASE_AUTH_EMULATOR_HOST,
       });
       
       admin.initializeApp({
-        projectId: process.env.FIREBASE_PROJECT_ID || 'test-project',
+        projectId: 'groundctrl-c8860', // Hardcoded for testing
       });
     }
     // Production mode: Always use Application Default Credentials

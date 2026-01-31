@@ -3,13 +3,16 @@
  * Runs before all tests
  */
 
-// Set test environment variables
+// Set test environment variables BEFORE any imports
 process.env.NODE_ENV = 'test';
 // Use 127.0.0.1 instead of localhost for better compatibility
 process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
 process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
 process.env.JWT_SECRET = 'test-secret-key-for-testing-only-do-not-use-in-production';
 process.env.FIREBASE_WEB_API_KEY = 'test-api-key-for-emulator';
+process.env.FIREBASE_PROJECT_ID = 'groundctrl-c8860'; // Match .firebaserc project ID
+
+console.log('TEST SETUP: FIREBASE_PROJECT_ID set to:', process.env.FIREBASE_PROJECT_ID);
 
 // Disable external network requests
 process.env.FIREBASE_EMULATOR_HUB = '127.0.0.1:4400';
