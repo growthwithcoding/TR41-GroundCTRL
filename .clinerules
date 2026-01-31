@@ -1,0 +1,86 @@
+# Cline AI Assistant Rules for GroundCTRL Project
+
+## Language Policy
+**IMPORTANT: This project uses JavaScript (.js, .jsx) ONLY - NO TypeScript**
+
+### JavaScript-Only Rules
+1. **NEVER use TypeScript syntax** in any files
+2. **NO type annotations** (e.g., `const x: string = ""`)
+3. **NO generic type parameters** (e.g., `React.forwardRef<Type, Props>()`)
+4. **NO interface or type definitions** (e.g., `interface Props {}`, `type X = {}`)
+5. **NO TypeScript-specific keywords** (e.g., `as`, `implements`, `enum`, etc.)
+6. Use `.js` or `.jsx` extensions for all new files
+7. When copying from TypeScript examples (like shadcn/ui), **strip all TypeScript syntax**
+
+### React Component Patterns (JavaScript)
+✅ **CORRECT:**
+```javascript
+const MyComponent = React.forwardRef(({ className, ...props }, ref) => (
+  <div ref={ref} className={className} {...props} />
+))
+```
+
+❌ **INCORRECT:**
+```typescript
+const MyComponent = React.forwardRef<HTMLDivElement, ComponentProps>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={className} {...props} />
+  )
+)
+```
+
+### Import/Export Patterns (JavaScript)
+✅ **CORRECT:**
+```javascript
+export { Component, useHook }
+import { something } from './module'
+```
+
+❌ **INCORRECT:**
+```typescript
+export type { SomeType }
+import type { SomeInterface } from './module'
+```
+
+## Project Structure
+- **Frontend:** React + Vite + JavaScript (`.jsx` files)
+- **Backend:** Node.js + Express + JavaScript (`.js` files)
+- **Styling:** Tailwind CSS
+- **UI Components:** shadcn/ui (converted to JavaScript)
+
+## File Extensions
+- React components: `.jsx`
+- Utilities/services: `.js`
+- Config files: `.js` or `.mjs`
+- **NEVER use:** `.ts`, `.tsx`
+
+## NASA/Space Theme
+- Use space/mission control themed language in UI text
+- Fun, educational tone (like NASA missions)
+- Emoji rockets 🚀, satellites 🛰️, etc. are encouraged
+
+## Backend Guidelines
+- RESTful API design
+- Firebase/Firestore for database
+- JWT authentication
+- Follow existing patterns in `backend/src/controllers/` and `backend/src/repositories/`
+
+## Frontend Guidelines
+- Use React hooks (functional components only)
+- Context API for global state
+- React Router for navigation
+- Follow existing patterns in `frontend/src/`
+
+## Code Quality
+- Clear, descriptive variable names
+- JSDoc comments for complex functions
+- Error handling with try/catch
+- Console logging for debugging (remove before production)
+
+## When Adding New Dependencies
+- Check if TypeScript types are installed (`@types/*`)
+- Remove any TypeScript-specific packages
+- Use JavaScript-compatible alternatives
+
+## Remember
+**If you see TypeScript syntax anywhere in this project, it's a bug that needs to be fixed!**

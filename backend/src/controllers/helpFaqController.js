@@ -26,6 +26,9 @@ const crudHandlers = createCrudHandlers(
     patch: { safeParse: (body) => patchFaqSchema.safeParse({ body, params: { id: body.id } }) }
   },
   {
+    // Skip automatic audit logging for LIST operations (public browsing)
+    skipAuditOperations: ['LIST'],
+    
     // Custom audit metadata
     auditMetadata: async (req, operation, result) => {
       return {

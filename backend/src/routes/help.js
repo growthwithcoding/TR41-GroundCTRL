@@ -5,9 +5,14 @@
 
 const express = require('express');
 const router = express.Router();
+const { optionalAuth } = require('../middleware/authMiddleware');
 const helpCategoryController = require('../controllers/helpCategoryController');
 const helpArticleController = require('../controllers/helpArticleController');
 const helpFaqController = require('../controllers/helpFaqController');
+
+// Apply optional authentication to capture user info if present
+// This enables audit logging for authenticated users without blocking anonymous access
+router.use(optionalAuth);
 
 /**
  * @swagger
@@ -47,6 +52,27 @@ router.get('/categories', helpCategoryController.getAllCategories);
  *         description: GO - Articles retrieved successfully
  */
 router.get('/articles', helpArticleController.getAllArticles);
+
+/**
+ * @swagger
+ * /help/articles/popular:
+ *   get:
+ *     tags:
+ *       - Help Articles
+ *     summary: Get popular articles
+ *     description: Get top articles sorted by view count with fallback to newest
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 4
+ *         description: Number of popular articles to return
+ *     responses:
+ *       200:
+ *         description: GO - Popular articles retrieved successfully
+ */
+router.get('/articles/popular', helpArticleController.getPopularArticles);
 
 /**
  * @swagger

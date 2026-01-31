@@ -119,32 +119,32 @@ export async function apiRequest(endpoint, options = {}, requiresAuth = true) {
  * Convenience methods for common HTTP verbs
  */
 export const api = {
-  get: (endpoint, options = {}) => 
-    apiRequest(endpoint, { ...options, method: 'GET' }),
+  get: (endpoint, options = {}, requiresAuth = true) => 
+    apiRequest(endpoint, { ...options, method: 'GET' }, requiresAuth),
   
-  post: (endpoint, body, options = {}) => 
+  post: (endpoint, body, options = {}, requiresAuth = true) => 
     apiRequest(endpoint, { 
       ...options, 
       method: 'POST',
       body: JSON.stringify(body) 
-    }),
+    }, requiresAuth),
   
-  patch: (endpoint, body, options = {}) => 
+  patch: (endpoint, body, options = {}, requiresAuth = true) => 
     apiRequest(endpoint, { 
       ...options, 
       method: 'PATCH',
       body: JSON.stringify(body) 
-    }),
+    }, requiresAuth),
   
-  put: (endpoint, body, options = {}) => 
+  put: (endpoint, body, options = {}, requiresAuth = true) => 
     apiRequest(endpoint, { 
       ...options, 
       method: 'PUT',
       body: JSON.stringify(body) 
-    }),
+    }, requiresAuth),
   
-  delete: (endpoint, options = {}) => 
-    apiRequest(endpoint, { ...options, method: 'DELETE' }),
+  delete: (endpoint, options = {}, requiresAuth = true) => 
+    apiRequest(endpoint, { ...options, method: 'DELETE' }, requiresAuth),
 }
 
 export default api

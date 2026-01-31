@@ -81,8 +81,8 @@ describe('Performance - Load Tests', () => {
       // Most requests should be rate limited (429) or return validation errors (400)
       const requests = Array(100).fill(null).map(() =>
         request(app)
-          .post('/api/v1/ai/help/ask')
-          .send({ question: 'Test question' })
+          .post('/api/v1/ai/chat')
+          .send({ content: 'Test question' })
       );
 
       const responses = await Promise.all(requests);

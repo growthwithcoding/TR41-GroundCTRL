@@ -19,7 +19,6 @@ export default function AppHeader({ onAuthViewChange }) {
   const location = useLocation(); const pathname = location.pathname
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
-  console.log("user object:", user)
   
   // Define nav links based on authentication state
   const navLinks = user

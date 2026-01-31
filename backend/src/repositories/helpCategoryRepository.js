@@ -26,21 +26,25 @@ async function getById(id) {
 
 /**
  * Get all categories with filters
+ * CRUD factory passes all options as a single object
  */
-async function getAll(filters = {}) {
+async function getAll(options = {}) {
   const db = getFirestore();
   let query = db.collection(COLLECTION);
   
+  // Default to active categories unless explicitly overridden
+  const isActive = options.isActive !== undefined ? options.isActive : true;
+  
   // Apply filters
-  if (filters.isActive !== undefined) {
-    query = query.where('isActive', '==', filters.isActive);
+  if (isActive !== undefined) {
+    query = query.where('isActive', '==', isActive);
   }
   
-  if (filters.parentCategoryId !== undefined) {
-    if (filters.parentCategoryId === null) {
+  if (options.parentCategoryId !== undefined) {
+    if (options.parentCategoryId === null) {
       query = query.where('parentCategoryId', '==', null);
     } else {
-      query = query.where('parentCategoryId', '==', filters.parentCategoryId);
+      query = query.where('parentCategoryId', '==', options.parentCategoryId);
     }
   }
   
@@ -49,10 +53,16 @@ async function getAll(filters = {}) {
   
   const snapshot = await query.get();
   
-  return snapshot.docs.map(doc => ({
+  const data = snapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
   }));
+  
+  // Return in format expected by CRUD factory with actual total count
+  return {
+    data,
+    total: data.length
+  };
 }
 
 /**

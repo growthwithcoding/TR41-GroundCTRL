@@ -26,41 +26,61 @@ async function getById(id) {
 
 /**
  * Get all FAQs with filters and pagination
+ * CRUD factory passes all options as a single object
  */
-async function getAll(filters = {}, page = 1, limit = 20) {
+async function getAll(options = {}) {
   const db = getFirestore();
   let query = db.collection(COLLECTION);
   
+  // Extract pagination from options
+  const page = options.page || 1;
+  const limit = options.limit || 20;
+  
+  // Default to published and active FAQs unless explicitly overridden
+  const status = options.status !== undefined ? options.status : 'PUBLISHED';
+  const isActive = options.isActive !== undefined ? options.isActive : true;
+  
+  // Apply default filters
+  if (status) {
+    query = query.where('status', '==', status);
+  }
+  
+  if (isActive !== undefined) {
+    query = query.where('isActive', '==', isActive);
+  }
+  
   // Apply filters
-  if (filters.category_id) {
-    query = query.where('category_id', '==', filters.category_id);
+  if (options.category_id) {
+    query = query.where('category_id', '==', options.category_id);
   }
   
-  if (filters.status) {
-    query = query.where('status', '==', filters.status);
-  }
-  
-  if (filters.isActive !== undefined) {
-    query = query.where('isActive', '==', filters.isActive);
-  }
-  
-  if (filters.isFeatured !== undefined) {
-    query = query.where('isFeatured', '==', filters.isFeatured);
+  if (options.isFeatured !== undefined) {
+    query = query.where('isFeatured', '==', options.isFeatured);
   }
   
   // Ordering
   query = query.orderBy('orderIndex', 'asc');
   
-  // Pagination
+  // Get total count before applying pagination
+  const countSnapshot = await query.get();
+  const total = countSnapshot.size;
+  
+  // Apply pagination
   const offset = (page - 1) * limit;
   query = query.offset(offset).limit(limit);
   
   const snapshot = await query.get();
   
-  return snapshot.docs.map(doc => ({
+  const data = snapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
   }));
+  
+  // Return in format expected by CRUD factory with actual total count
+  return {
+    data,
+    total
+  };
 }
 
 /**

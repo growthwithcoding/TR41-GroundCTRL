@@ -508,10 +508,10 @@ router.delete(
 
 /**
  * @swagger
- * /ai/help/ask:
+ * /ai/chat:
  *   post:
- *     summary: Ask NOVA a help question (Public)
- *     description: Public endpoint for help queries. No authentication required. Generates anonymous user ID if not logged in. All conversations stored for training.
+ *     summary: NOVA Chat Completion (Public/Authenticated)
+ *     description: Primary chat endpoint for NOVA AI. Supports both public help queries and authenticated conversations. Multi-turn conversation support via conversationId.
  *     tags: [AI]
  *     security: []
  *     requestBody:
@@ -525,19 +525,27 @@ router.delete(
  *             properties:
  *               content:
  *                 type: string
- *                 description: User's help question
+ *                 description: User's message or question
  *                 example: 'How do I deploy solar arrays on a satellite?'
  *               context:
  *                 type: string
- *                 description: Optional help article slug for context
+ *                 description: Optional context hint (e.g., help article slug, page context)
  *                 example: 'solar-array-deployment'
  *               conversationId:
  *                 type: string
  *                 description: Optional conversation ID for multi-turn chat (generated on first request)
- *                 example: 'help_sess_abc123'
+ *                 example: 'conv_abc123'
+ *               session_id:
+ *                 type: string
+ *                 description: Optional session ID for training mode (requires authentication)
+ *                 example: 'sess_xyz789'
+ *               step_id:
+ *                 type: string
+ *                 description: Optional current step ID for session context
+ *                 example: 'step_001'
  *     responses:
  *       201:
- *         description: GO - Help response generated
+ *         description: GO - Chat response generated
  *         content:
  *           application/json:
  *             schema:
@@ -565,17 +573,29 @@ router.delete(
  *                                   example: false
  *                             conversationId:
  *                               type: string
- *                               example: 'help_sess_xyz789'
+ *                               example: 'conv_xyz789'
  *                             userId:
  *                               type: string
- *                               example: 'anon_abc123'
+ *                               example: 'user_abc123'
+ *                             context:
+ *                               type: object
+ *                               description: Additional context information
  *       422:
  *         $ref: '#/components/responses/ValidationError'
  *       429:
  *         description: Too Many Requests - Rate limit exceeded
  */
 router.post(
-  '/help/ask',
+  '/chat',
+  createRateLimiter(helpAiLimit),
+  optionalAuth,
+  validate(askHelpQuestionSchema),
+  novaController.askHelpQuestion
+);
+
+// Alias for backward compatibility and common AI API pattern
+router.post(
+  '/nova/chat',
   createRateLimiter(helpAiLimit),
   optionalAuth,
   validate(askHelpQuestionSchema),
