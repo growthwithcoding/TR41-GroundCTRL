@@ -1,3 +1,4 @@
+
 // Minimal stub for authentication service
 module.exports = {
   async login({ _email, _password }) {
