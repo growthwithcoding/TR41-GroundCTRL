@@ -310,14 +310,24 @@ class CertificateGenerator {
   /**
    * Generate certificate ID
    * @param {string} userId - User ID
-   * @param {string} _sessionId - Session ID (unused, for future use)
+   * @param {string} sessionId - Session ID (ensures uniqueness per session)
    * @returns {string} Certificate ID
    */
-  generateCertificateId(userId, _sessionId) {
-    const timestamp = Date.now();
-    // Use cryptographically secure random bytes instead of Math.random()
-    const random = crypto.randomBytes(4).toString('hex').toUpperCase();
-    return `CERT-${userId.substring(0, 8)}-${random}-${timestamp}`;
+  generateCertificateId(userId, sessionId) {
+    // Generate a guaranteed unique certificate ID using:
+    // 1. userId (first 8 chars) - identifies the user
+    // 2. sessionId (first 12 chars) - each session is unique
+    // 3. crypto.randomUUID() - cryptographically secure UUID v4
+    //
+    // This ensures no collisions even if:
+    // - Same user completes multiple missions
+    // - Multiple certificates generated in same millisecond
+    // - System clock is adjusted
+    const userPrefix = userId.substring(0, 8);
+    const sessionPrefix = sessionId.substring(0, 12);
+    const uniqueId = crypto.randomUUID();
+    
+    return `CERT-${userPrefix}-${sessionPrefix}-${uniqueId}`;
   }
 
   /**
