@@ -1,40 +1,38 @@
-/**
+﻿/**
  * Security Test: Login Success
  * Test Goal: Valid credentials yield a JWT with correct claims
- * 
+ *
  * Ensures that successful logins return properly formatted JWTs
  * with all required security claims.
  */
 
 const request = require('supertest');
-const { getTestApp, createTestUser } = require('../helpers/test-utils');
+const { getTestApp, createTestUser, loginWithRetry, wait } = require('../helpers/test-utils');
 
 describe('Security: Login Success', () => {
   let app;
 
   beforeAll(async () => {
     app = getTestApp();
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await wait(2000);
   }, 60000);
 
   test('valid credentials should return JWT with correct claims', async () => {
     const email = `login-success-${Date.now()}@example.com`;
     const password = 'TestPassword123!';
-    
+
     // Create user
     const user = await createTestUser(email, password);
     console.log('Created test user:', user.uid, email);
-    
-    // Wait for user to be fully created
-    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Login
-    const loginResponse = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ email, password });
-    
+    // Wait for user to be fully created in emulator
+    await wait(2000);
+
+    // Login with retry logic
+    const loginResponse = await loginWithRetry(app, email, password, 3);
+
     if (loginResponse.status !== 200) {
-      console.error('Login failed:', loginResponse.status, loginResponse.body);
+      console.error('Login failed after retries:', loginResponse.status, loginResponse.body);
     }
     expect(loginResponse.status).toBe(200);
 
@@ -74,13 +72,12 @@ describe('Security: Login Success', () => {
   test('successful login should return user information', async () => {
     const email = `login-user-info-${Date.now()}@example.com`;
     const password = 'TestPassword123!';
-    
-    await createTestUser(email, password);
 
-    const loginResponse = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ email, password })
-      .expect(200);
+    await createTestUser(email, password);
+    await wait(2000);
+
+    const loginResponse = await loginWithRetry(app, email, password, 3);
+    expect(loginResponse.status).toBe(200);
 
     expect(loginResponse.body.payload).toHaveProperty('user');
     expect(loginResponse.body.payload.user).toHaveProperty('uid');
@@ -91,13 +88,12 @@ describe('Security: Login Success', () => {
   test('login should not leak sensitive data', async () => {
     const email = `login-no-leak-${Date.now()}@example.com`;
     const password = 'TestPassword123!';
-    
-    await createTestUser(email, password);
 
-    const loginResponse = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ email, password })
-      .expect(200);
+    await createTestUser(email, password);
+    await wait(2000);
+
+    const loginResponse = await loginWithRetry(app, email, password, 3);
+    expect(loginResponse.status).toBe(200);
 
     // Ensure password is not in response
     const responseStr = JSON.stringify(loginResponse.body);
@@ -109,13 +105,12 @@ describe('Security: Login Success', () => {
   test('login token should be usable for authenticated requests', async () => {
     const email = `login-usable-token-${Date.now()}@example.com`;
     const password = 'TestPassword123!';
-    
-    await createTestUser(email, password);
 
-    const loginResponse = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ email, password })
-      .expect(200);
+    await createTestUser(email, password);
+    await wait(2000);
+
+    const loginResponse = await loginWithRetry(app, email, password, 3);
+    expect(loginResponse.status).toBe(200);
 
     const token = loginResponse.body.payload.tokens.accessToken;
 

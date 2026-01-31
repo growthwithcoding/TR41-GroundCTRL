@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Security Test: Cookie Max-Age
  * Test Goal: Session lifetime matches config (SESSION_TTL_MS)
  * 
@@ -7,7 +7,7 @@
  */
 
 const request = require('supertest');
-const { getTestApp, createTestUser } = require('../helpers/test-utils');
+const { getTestApp, createTestUser, loginWithRetry, wait } = require('../helpers/test-utils');
 
 describe('Security: Cookie Max-Age', () => {
   let app;
@@ -20,6 +20,8 @@ describe('Security: Cookie Max-Age', () => {
   test('cookie should have Max-Age attribute', async () => {
     const email = `cookie-maxage-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
+
+    await wait(2000);
 
     const response = await request(app)
       .post('/api/v1/auth/login')
@@ -42,6 +44,8 @@ describe('Security: Cookie Max-Age', () => {
   test('session cookie should expire after configured TTL (~3600s)', async () => {
     const email = `cookie-ttl-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
+
+    await wait(2000);
 
     const response = await request(app)
       .post('/api/v1/auth/login')
@@ -68,6 +72,8 @@ describe('Security: Cookie Max-Age', () => {
     const email = `cookie-lifetime-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
 
+    await wait(2000);
+
     const response = await request(app)
       .post('/api/v1/auth/login')
       .send({ email, password: 'TestPassword123!' });
@@ -91,6 +97,8 @@ describe('Security: Cookie Max-Age', () => {
   test('remember-me cookie should have longer lifetime', async () => {
     const email = `cookie-remember-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
+
+    await wait(2000);
 
     const response = await request(app)
       .post('/api/v1/auth/login')
@@ -118,3 +126,4 @@ describe('Security: Cookie Max-Age', () => {
     }
   });
 });
+

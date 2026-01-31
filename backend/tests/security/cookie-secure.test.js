@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Security Test: Cookie Secure Flag
  * Test Goal: Set-Cookie includes Secure; HttpOnly; SameSite=Strict
  * 
@@ -6,7 +6,7 @@
  */
 
 const request = require('supertest');
-const { getTestApp, createTestUser } = require('../helpers/test-utils');
+const { getTestApp, createTestUser, loginWithRetry, wait } = require('../helpers/test-utils');
 
 describe('Security: Cookie Secure Flag', () => {
   let app;
@@ -27,6 +27,8 @@ describe('Security: Cookie Secure Flag', () => {
     const email = `cookie-secure-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
 
+    await wait(2000);
+
     const response = await request(app)
       .post('/api/v1/auth/login')
       .send({ email, password: 'TestPassword123!' });
@@ -37,13 +39,15 @@ describe('Security: Cookie Secure Flag', () => {
       const cookieString = Array.isArray(setCookie) ? setCookie.join('; ') : setCookie;
       expect(cookieString.toLowerCase()).toContain('secure');
     } else {
-      console.log('ℹ️  No Set-Cookie header (app may use JWT only)');
+      console.log('â„¹ï¸  No Set-Cookie header (app may use JWT only)');
     }
   });
 
   test('cookie should have HttpOnly flag', async () => {
     const email = `cookie-httponly-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
+
+    await wait(2000);
 
     const response = await request(app)
       .post('/api/v1/auth/login')
@@ -60,6 +64,8 @@ describe('Security: Cookie Secure Flag', () => {
   test('cookie should have SameSite=Strict or Lax', async () => {
     const email = `cookie-samesite-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
+
+    await wait(2000);
 
     const response = await request(app)
       .post('/api/v1/auth/login')
@@ -84,6 +90,8 @@ describe('Security: Cookie Secure Flag', () => {
     const email = `cookie-all-flags-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
 
+    await wait(2000);
+
     const response = await request(app)
       .post('/api/v1/auth/login')
       .send({ email, password: 'TestPassword123!' });
@@ -105,6 +113,8 @@ describe('Security: Cookie Secure Flag', () => {
     const email = `cookie-js-access-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
 
+    await wait(2000);
+
     const response = await request(app)
       .post('/api/v1/auth/login')
       .send({ email, password: 'TestPassword123!' });
@@ -119,3 +129,4 @@ describe('Security: Cookie Secure Flag', () => {
     }
   });
 });
+

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Security Test: Audit Payload Sanitization
  * Test Goal: No PII (password, token) leaks into logs
  * 
@@ -8,7 +8,7 @@
 
 const request = require('supertest');
 const admin = require('firebase-admin');
-const { getTestApp, createTestUser } = require('../helpers/test-utils');
+const { getTestApp, createTestUser, loginWithRetry, wait } = require('../helpers/test-utils');
 
 describe('Security: Audit Payload Sanitization', () => {
   let app;
@@ -56,6 +56,8 @@ describe('Security: Audit Payload Sanitization', () => {
     const email = `audit-token-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
 
+    await wait(2000);
+
     const loginResponse = await request(app)
       .post('/api/v1/auth/login')
       .send({ email, password: 'TestPassword123!' })
@@ -87,6 +89,8 @@ describe('Security: Audit Payload Sanitization', () => {
   test('audit log should contain action and uid but no sensitive data', async () => {
     const email = `audit-structure-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
+
+    await wait(2000);
 
     await request(app)
       .post('/api/v1/auth/login')
@@ -120,6 +124,8 @@ describe('Security: Audit Payload Sanitization', () => {
   test('audit log should sanitize IP address if configured', async () => {
     const email = `audit-ip-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
+
+    await wait(2000);
 
     await request(app)
       .post('/api/v1/auth/login')
@@ -179,3 +185,4 @@ describe('Security: Audit Payload Sanitization', () => {
     });
   });
 });
+

@@ -1,13 +1,13 @@
-/**
+﻿/**
  * Security Test: Login Bad Password
- * Test Goal: Wrong password → generic 401 (prod) vs detailed (dev)
+ * Test Goal: Wrong password â†’ generic 401 (prod) vs detailed (dev)
  * 
  * In production, error messages should be generic to prevent username enumeration.
  * In development, detailed messages help with debugging.
  */
 
 const request = require('supertest');
-const { getTestApp, createTestUser } = require('../helpers/test-utils');
+const { getTestApp, createTestUser, loginWithRetry, wait } = require('../helpers/test-utils');
 
 describe('Security: Login Bad Password', () => {
   let app;
@@ -28,6 +28,8 @@ describe('Security: Login Bad Password', () => {
 
     const email = `bad-pass-prod-${Date.now()}@example.com`;
     await createTestUser(email, 'CorrectPassword123!');
+
+    await wait(2000);
 
     const response = await request(app)
       .post('/api/v1/auth/login')
@@ -58,6 +60,8 @@ describe('Security: Login Bad Password', () => {
 
     const email = `bad-pass-dev-${Date.now()}@example.com`;
     await createTestUser(email, 'CorrectPassword123!');
+
+    await wait(2000);
 
     const response = await request(app)
       .post('/api/v1/auth/login')
@@ -119,6 +123,8 @@ describe('Security: Login Bad Password', () => {
     const email = `empty-pass-${Date.now()}@example.com`;
     await createTestUser(email, 'CorrectPassword123!');
 
+    await wait(2000);
+
     const response = await request(app)
       .post('/api/v1/auth/login')
       .send({
@@ -134,6 +140,8 @@ describe('Security: Login Bad Password', () => {
     const email = `missing-pass-${Date.now()}@example.com`;
     await createTestUser(email, 'CorrectPassword123!');
 
+    await wait(2000);
+
     const response = await request(app)
       .post('/api/v1/auth/login')
       .send({ email });
@@ -142,3 +150,4 @@ describe('Security: Login Bad Password', () => {
     expect(response.body.payload?.error || response.body.error).toBeDefined();
   });
 });
+

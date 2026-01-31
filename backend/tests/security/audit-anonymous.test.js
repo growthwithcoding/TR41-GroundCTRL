@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Security Test: Audit Anonymous
  * Test Goal: Unauthenticated calls are logged with ANONYMOUS
  * 
@@ -39,7 +39,7 @@ describe('Security: Audit Anonymous', () => {
         expect(logData.uid).toBe('ANONYMOUS');
       });
     } else {
-      console.log('ℹ️  No anonymous audit logs found - may not be implemented for all routes');
+      console.log('â„¹ï¸  No anonymous audit logs found - may not be implemented for all routes');
     }
   });
 
@@ -148,3 +148,4 @@ describe('Security: Audit Anonymous', () => {
     expect(true).toBe(true);
   });
 });
+

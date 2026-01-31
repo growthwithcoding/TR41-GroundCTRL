@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Security Test: Audit Timestamp
  * Test Goal: All entries have ISO 8601 UTC timestamps
  * 
@@ -8,7 +8,7 @@
 
 const request = require('supertest');
 const admin = require('firebase-admin');
-const { getTestApp, createTestUser } = require('../helpers/test-utils');
+const { getTestApp, createTestUser, loginWithRetry, wait } = require('../helpers/test-utils');
 
 describe('Security: Audit Timestamp', () => {
   let app;
@@ -70,6 +70,8 @@ describe('Security: Audit Timestamp', () => {
     const email = `audit-recent-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
 
+    await wait(2000);
+
     const beforeRequest = Date.now();
 
     await request(app)
@@ -107,6 +109,8 @@ describe('Security: Audit Timestamp', () => {
   test('timestamp should be in UTC, not local time', async () => {
     const email = `audit-utc-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
+
+    await wait(2000);
 
     await request(app)
       .post('/api/v1/auth/login')
@@ -163,3 +167,4 @@ describe('Security: Audit Timestamp', () => {
     }
   });
 });
+

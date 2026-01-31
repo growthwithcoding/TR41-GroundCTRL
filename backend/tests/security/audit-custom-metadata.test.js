@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Security Test: Audit Custom Metadata
  * Test Goal: Controllers can add extra fields via req.auditMeta
  * 
@@ -8,7 +8,7 @@
 
 const request = require('supertest');
 const admin = require('firebase-admin');
-const { getTestApp, createTestUser } = require('../helpers/test-utils');
+const { getTestApp, createTestUser, loginWithRetry, wait } = require('../helpers/test-utils');
 
 describe('Security: Audit Custom Metadata', () => {
   let app;
@@ -21,6 +21,8 @@ describe('Security: Audit Custom Metadata', () => {
   test('audit log should include custom metadata from request', async () => {
     const email = `audit-custom-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
+
+    await wait(2000);
 
     const loginResponse = await request(app)
       .post('/api/v1/auth/login')
@@ -85,6 +87,8 @@ describe('Security: Audit Custom Metadata', () => {
     const email = `audit-useragent-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
 
+    await wait(2000);
+
     await request(app)
       .post('/api/v1/auth/login')
       .send({ email, password: 'TestPassword123!' })
@@ -130,3 +134,4 @@ describe('Security: Audit Custom Metadata', () => {
     expect(true).toBe(true);
   });
 });
+

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Security Test: Cookie SameSite None Blocked
  * Test Goal: No SameSite=None unless explicitly allowed
  * 
@@ -7,7 +7,7 @@
  */
 
 const request = require('supertest');
-const { getTestApp, createTestUser } = require('../helpers/test-utils');
+const { getTestApp, createTestUser, loginWithRetry, wait } = require('../helpers/test-utils');
 
 describe('Security: Cookie SameSite None Blocked', () => {
   let app;
@@ -20,6 +20,8 @@ describe('Security: Cookie SameSite None Blocked', () => {
   test('cookie should not use SameSite=None', async () => {
     const email = `cookie-samesite-none-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
+
+    await wait(2000);
 
     const response = await request(app)
       .post('/api/v1/auth/login')
@@ -39,6 +41,8 @@ describe('Security: Cookie SameSite None Blocked', () => {
   test('if SameSite=None is used, it must have Secure flag', async () => {
     const email = `cookie-none-secure-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
+
+    await wait(2000);
 
     const response = await request(app)
       .post('/api/v1/auth/login')
@@ -62,6 +66,8 @@ describe('Security: Cookie SameSite None Blocked', () => {
     const email = `cookie-prefer-strict-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
 
+    await wait(2000);
+
     const response = await request(app)
       .post('/api/v1/auth/login')
       .send({ email, password: 'TestPassword123!' });
@@ -83,3 +89,4 @@ describe('Security: Cookie SameSite None Blocked', () => {
     }
   });
 });
+

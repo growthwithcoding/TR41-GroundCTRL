@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Security Test: Cookie Path Scope
  * Test Goal: Cookie path set to / (covers all API)
  * 
@@ -6,7 +6,7 @@
  */
 
 const request = require('supertest');
-const { getTestApp, createTestUser } = require('../helpers/test-utils');
+const { getTestApp, createTestUser, loginWithRetry, wait } = require('../helpers/test-utils');
 
 describe('Security: Cookie Path Scope', () => {
   let app;
@@ -19,6 +19,8 @@ describe('Security: Cookie Path Scope', () => {
   test('cookie should have Path=/', async () => {
     const email = `cookie-path-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
+
+    await wait(2000);
 
     const response = await request(app)
       .post('/api/v1/auth/login')
@@ -36,6 +38,8 @@ describe('Security: Cookie Path Scope', () => {
     const email = `cookie-path-restrictive-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
 
+    await wait(2000);
+
     const response = await request(app)
       .post('/api/v1/auth/login')
       .send({ email, password: 'TestPassword123!' });
@@ -51,3 +55,4 @@ describe('Security: Cookie Path Scope', () => {
     }
   });
 });
+
