@@ -17,10 +17,17 @@ const logger = require('../utils/logger');
 /**
  * Sync OAuth user profile (Google, etc.)
  * POST /auth/sync-oauth-profile
+ * SECURITY: Must be called with authenticated user token
  */
 async function syncOAuthProfile(req, res, next) {
   try {
     const { uid, email, displayName, photoURL } = req.body;
+    
+    // SECURITY: Verify provided uid matches authenticated user
+    // This prevents users from manipulating other users' profiles
+    if (req.user && req.user.uid !== uid) {
+      throw new ValidationError('Cannot sync profile for different user');
+    }
     
     if (!uid || !email) {
       throw new ValidationError('uid and email are required');

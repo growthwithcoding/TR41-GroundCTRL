@@ -30,7 +30,7 @@ export async function signUp(email, password, displayName, callSign) {
   // Let backend handle everything: Firebase Auth user creation + Firestore document
   // This ensures atomic operation and proper validation
   try {
-    const result = await apiAuthService.registerUser({
+    await apiAuthService.registerUser({
       email,
       password,
       displayName: displayName || "",
