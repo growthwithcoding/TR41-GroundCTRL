@@ -91,8 +91,10 @@ test.describe('UI-010: Lazy Loading with Suspense', () => {
     await page.waitForFunction(() => {
       const body = document.body;
       const hasContent = body && body.textContent && body.textContent.length > 50;
-      const noLoadingSpinner = !document.querySelector('[class*="animate-spin"]');
-      return hasContent && noLoadingSpinner;
+      // Only check for PageLoader spinner (has min-h-screen parent), not UI spinners
+      const pageLoaderSpinner = document.querySelector('.min-h-screen [class*="animate-spin"]');
+      const noPageLoader = !pageLoaderSpinner;
+      return hasContent && noPageLoader;
     }, { timeout: 15000 });
 
     // Page should load successfully (no stuck on loading screen)

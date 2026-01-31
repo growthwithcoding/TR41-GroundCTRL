@@ -398,7 +398,7 @@ export default function HelpPage() {
                         Our help center categories are currently being loaded into the system. Mission Control is preparing comprehensive guides for satellite operations.
                       </p>
                       <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Rocket className="w-4 h-4" />
                         <span>Stand by for content upload...</span>
                       </div>
                     </div>
