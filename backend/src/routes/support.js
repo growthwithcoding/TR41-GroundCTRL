@@ -6,10 +6,20 @@
 const express = require('express');
 const router = express.Router();
 const { authMiddleware } = require('../middleware/authMiddleware');
+const { createRateLimiter } = require('../middleware/rateLimiter');
 const responseFactory = require('../factories/responseFactory');
 const httpStatus = require('../constants/httpStatus');
 const supportService = require('../services/supportService');
 const logger = require('../utils/logger');
+
+// Support ticket rate limiter: 10 tickets per 15 minutes
+const supportTicketLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 requests per window
+  message: 'Too many support tickets created. Please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 /**
  * POST /support/tickets
@@ -17,6 +27,7 @@ const logger = require('../utils/logger');
  */
 router.post(
   '/tickets',
+  supportTicketLimiter,
   authMiddleware,
   async (req, res, next) => {
     try {
