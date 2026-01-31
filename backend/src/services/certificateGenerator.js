@@ -11,6 +11,7 @@
  * - Shareable certificate data
  */
 
+const crypto = require('crypto');
 const logger = require('../utils/logger');
 
 /**
@@ -314,7 +315,8 @@ class CertificateGenerator {
    */
   generateCertificateId(userId, _sessionId) {
     const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    // Use cryptographically secure random bytes instead of Math.random()
+    const random = crypto.randomBytes(4).toString('hex').toUpperCase();
     return `CERT-${userId.substring(0, 8)}-${random}-${timestamp}`;
   }
 
