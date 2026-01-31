@@ -103,7 +103,7 @@ describe('Security: CORS Blocked Origins', () => {
       const allowCredentials = response.headers['access-control-allow-credentials'];
       
       if (allowCredentials === 'true') {
-        fail('Cannot use wildcard CORS with credentials enabled');
+        expect(allowOrigin).not.toBe('*'); // Cannot use wildcard CORS with credentials enabled
       } else {
         console.warn('⚠️  Using wildcard CORS in production is not recommended');
       }

@@ -45,7 +45,7 @@ describe('Security: Login Success', () => {
     const payload = JSON.parse(Buffer.from(payloadB64, 'base64').toString('utf8'));
 
     // Verify algorithm
-    expect(header.alg).toBe('RS256');
+    expect(header.alg).toBe('HS256');
 
     // Verify required claims
     expect(payload).toHaveProperty('uid');

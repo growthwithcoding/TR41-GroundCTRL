@@ -110,7 +110,7 @@ describe('Security: Dependency Pinning', () => {
       .map(([name]) => name);
 
     if (wildcards.length > 0) {
-      fail(`Wildcard versions found: ${wildcards.join(', ')}`);
+      expect(wildcards.length).toBe(0); // Wildcard versions found
     }
 
     expect(wildcards.length).toBe(0);

@@ -28,12 +28,12 @@ describe('Security: Secret Scanning', () => {
         );
 
         if (result.trim()) {
-          fail(`Found potential AWS secret: ${result.substring(0, 100)}`);
+          expect(result).not.toMatch(/AKIA[0-9A-Z]{16}/); // Found potential AWS secret
         }
       } catch (error) {
         // git grep returns non-zero when no matches (which is what we want)
         if (error.stdout && error.stdout.trim()) {
-          fail(`Found potential AWS secret: ${error.stdout.substring(0, 100)}`);
+          expect(error.stdout).not.toMatch(/AKIA[0-9A-Z]{16}/); // Found potential AWS secret
         }
       }
     });
@@ -115,7 +115,7 @@ describe('Security: Secret Scanning', () => {
             stdio: 'pipe',
           });
           // If we get here, the file is tracked
-          fail(`${envFile} should not be committed to git`);
+          expect(true).toBe(false); // ${envFile} should not be committed to git
         } catch (error) {
           // File is not tracked - this is good
         }

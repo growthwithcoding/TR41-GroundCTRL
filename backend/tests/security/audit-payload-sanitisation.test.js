@@ -34,7 +34,7 @@ describe('Security: Audit Payload Sanitization', () => {
 
     // Query audit logs
     const auditLogs = await admin.firestore()
-      .collection('auditLogs')
+      .collection('audit_logs')
       .where('action', '==', 'login')
       .orderBy('timestamp', 'desc')
       .limit(5)

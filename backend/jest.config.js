@@ -36,7 +36,7 @@ module.exports = {
 
   testTimeout: 30000, // 30 seconds per test
   forceExit: true, // Force exit after all tests complete
-  detectOpenHandles: false, // Don't hang waiting for handles
+  detectOpenHandles: true, // Detect async operations that kept running after tests
   collectCoverage: false,
   coveragePathIgnorePatterns: [
     '/node_modules/',

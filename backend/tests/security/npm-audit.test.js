@@ -64,7 +64,7 @@ describe('Security: NPM Audit', () => {
       });
       expect(version).toBeTruthy();
     } catch (error) {
-      fail('npm is not available');
+      expect(true).toBe(false); // npm is not available
     }
   });
 

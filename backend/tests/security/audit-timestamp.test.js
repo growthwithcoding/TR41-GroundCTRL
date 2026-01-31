@@ -30,7 +30,7 @@ describe('Security: Audit Timestamp', () => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     const auditLogs = await admin.firestore()
-      .collection('auditLogs')
+      .collection('audit_logs')
       .where('action', '==', 'login')
       .orderBy('timestamp', 'desc')
       .limit(1)
@@ -73,7 +73,7 @@ describe('Security: Audit Timestamp', () => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     const auditLogs = await admin.firestore()
-      .collection('auditLogs')
+      .collection('audit_logs')
       .where('action', '==', 'login')
       .orderBy('timestamp', 'desc')
       .limit(1)
@@ -109,7 +109,7 @@ describe('Security: Audit Timestamp', () => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     const auditLogs = await admin.firestore()
-      .collection('auditLogs')
+      .collection('audit_logs')
       .where('action', '==', 'login')
       .orderBy('timestamp', 'desc')
       .limit(1)
@@ -130,7 +130,7 @@ describe('Security: Audit Timestamp', () => {
 
   test('all audit logs should have consistent timestamp format', async () => {
     const auditLogs = await admin.firestore()
-      .collection('auditLogs')
+      .collection('audit_logs')
       .orderBy('timestamp', 'desc')
       .limit(10)
       .get();

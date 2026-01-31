@@ -47,7 +47,7 @@ describe('Security: CORS Credentials', () => {
       expect(true).toBe(true);
     } else if (allowCredentials === 'true') {
       // This would be a security issue
-      fail('Credentials should not be allowed for non-whitelisted origins');
+      expect(allowCredentials).not.toBe('true'); // Credentials should not be allowed for non-whitelisted origins
     }
   });
 

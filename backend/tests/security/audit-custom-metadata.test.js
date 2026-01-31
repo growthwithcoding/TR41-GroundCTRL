@@ -94,7 +94,7 @@ describe('Security: Audit Custom Metadata', () => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     const auditLogs = await admin.firestore()
-      .collection('auditLogs')
+      .collection('audit_logs')
       .where('action', '==', 'login')
       .orderBy('timestamp', 'desc')
       .limit(1)

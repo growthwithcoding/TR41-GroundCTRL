@@ -21,7 +21,7 @@ const auditSeverity = require('../constants/auditSeverity');
 function createAuditEntry(action, resource, userId, callSign, result, severity = auditSeverity.INFO, metadata = {}) {
   return {
     id: uuidv4(),
-    timestamp: new Date(),
+    timestamp: new Date().toISOString(), // ISO 8601 UTC format with 'Z' suffix
     missionTime: new Date().toISOString(),
     action,
     resource,

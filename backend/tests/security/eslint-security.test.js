@@ -72,7 +72,7 @@ describe('Security: ESLint Security Rules', () => {
         ].filter(issue => output.toLowerCase().includes(issue.toLowerCase()));
 
         if (securityIssues.length > 0) {
-          fail(`Security-related lint issues found: ${securityIssues.join(', ')}`);
+          expect(securityIssues.length).toBe(0); // Security-related lint issues found
         }
       }
 

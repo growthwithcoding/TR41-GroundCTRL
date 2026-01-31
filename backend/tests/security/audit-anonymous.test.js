@@ -26,7 +26,7 @@ describe('Security: Audit Anonymous', () => {
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     const auditLogs = await admin.firestore()
-      .collection('auditLogs')
+      .collection('audit_logs')
       .where('uid', '==', 'ANONYMOUS')
       .orderBy('timestamp', 'desc')
       .limit(5)
