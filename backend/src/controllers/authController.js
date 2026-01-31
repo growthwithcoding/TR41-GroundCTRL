@@ -15,6 +15,46 @@ const httpStatus = require('../constants/httpStatus');
 const logger = require('../utils/logger');
 
 /**
+ * Sync OAuth user profile (Google, etc.)
+ * POST /auth/sync-oauth-profile
+ * SECURITY: Must be called with authenticated user token
+ * Uses authenticated user's UID from token, not from request body
+ */
+async function syncOAuthProfile(req, res, next) {
+  try {
+    // Validate required fields first (input validation, not security check)
+    const { email, displayName, photoURL } = req.body;
+    if (!email) {
+      throw new ValidationError('email is required');
+    }
+    
+    // SECURITY: Require authentication - get UID from verified token, not request body
+    if (!req.user || !req.user.uid) {
+      throw new ValidationError('Authentication required');
+    }
+    
+    // SECURITY: Use authenticated user's UID from token, not from request body
+    // This prevents users from manipulating other users' profiles
+    const authenticatedUid = req.user.uid;
+    
+    // Create or update user profile in Firestore
+    const result = await authService.syncOAuthProfile(authenticatedUid, email, displayName, photoURL);
+    
+    logger.info('OAuth profile synced', { uid: authenticatedUid, email });
+    
+    const response = responseFactory.createSuccessResponse(result, {
+      callSign: result.user.callSign,
+      requestId: req.id,
+      statusCode: httpStatus.OK
+    });
+    
+    res.status(httpStatus.OK).json(response);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * Register new user
  * POST /auth/register
  */
@@ -520,6 +560,7 @@ async function resetPassword(req, res, next) {
 
 module.exports = {
   register,
+  syncOAuthProfile,
   login,
   refreshToken,
   logout,

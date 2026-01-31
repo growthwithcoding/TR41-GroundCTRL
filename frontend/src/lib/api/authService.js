@@ -40,7 +40,8 @@ export async function loginWithFirebaseToken(firebaseToken) {
  */
 export async function registerUser(userData) {
   try {
-    const response = await api.post('/auth/register', userData, {}) // Uses standard API client configuration
+    // Registration doesn't require authentication (user doesn't exist yet)
+    const response = await api.post('/auth/register', userData, {}, false)
     return response.payload || response.user
   } catch (error) {
     console.error('Failed to register user:', error)
@@ -51,12 +52,17 @@ export async function registerUser(userData) {
 /**
  * Create/update user profile after Google sign-in
  * @param {object} profileData - User profile data from Google
+ * @param {string} idToken - Firebase ID token for authentication
  * @returns {Promise<object>} User data
  */
-export async function syncGoogleProfile(profileData) {
+export async function syncGoogleProfile(profileData, idToken) {
   try {
-    // Register Google user via backend (no password for OAuth users)
-    const response = await api.post('/auth/register', profileData)
+    // Use dedicated OAuth profile sync endpoint with Firebase ID token for authentication
+    const response = await api.post('/auth/sync-oauth-profile', profileData, {
+      headers: {
+        'Authorization': `Bearer ${idToken}`
+      }
+    })
     return response.payload || response.user
   } catch (error) {
     console.error('Failed to sync Google profile:', error)

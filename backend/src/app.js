@@ -24,9 +24,6 @@ const logger = require('./utils/logger');
 // Initialize Express app
 const app = express();
 
-console.log('DEBUG: App starting, about to initialize Firebase');
-
-// Initialize Firebase
 // Initialize Firebase with graceful error handling
 // Don't exit process on failure - let server start for Cloud Run health checks
 let firebaseInitialized = false;
@@ -45,17 +42,6 @@ try {
   // Don't exit - let the server start so Cloud Run health checks pass
   // Firebase errors will be handled by individual endpoints
 }
-
-// Security headers middleware
-app.use((req, res, next) => {
-  console.log('DEBUG: Setting security headers');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  console.log('DEBUG: Headers set:', res.getHeaders());
-  next();
-});
 
 // Security headers middleware (helmet)
 if (process.env.NODE_ENV !== 'test') {
@@ -98,32 +84,10 @@ if (process.env.NODE_ENV !== 'test') {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
   }));
-
-  console.log('DEBUG: CORS allowedOrigins:', allowedOrigins);
 }
+
 // Expose Firebase status for health checks
 app.locals.firebaseInitialized = firebaseInitialized;
-
-// CORS configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
-  : ['http://localhost:5173'];
-
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
