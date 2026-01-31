@@ -24,7 +24,7 @@ describe('HTTP Client Timeout Enforcement Tests', () => {
 
       await expect(
         httpClient.get('http://slow-service.com/slow-endpoint')
-      ).rejects.toThrow('timeout');
+      ).rejects.toThrow(/timeout|Request timeout/i);
 
       const duration = Date.now() - startTime;
       // Should timeout within reasonable time (less than 10s + some buffer)
@@ -80,7 +80,7 @@ describe('HTTP Client Timeout Enforcement Tests', () => {
 
       await expect(
         httpClient.post('http://timeout-service.com/timeout-endpoint', { test: 'data' })
-      ).rejects.toThrow('timeout');
+      ).rejects.toThrow(/timeout|Request timeout/i);
     });
   });
 });

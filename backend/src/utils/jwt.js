@@ -22,7 +22,7 @@ function createAccessToken(uid, callSign, isAdmin = false) {
     type: 'access'
   };
 
-  return jwt.sign(payload, jwtConfig.privateKey, {
+  return jwt.sign(payload, jwtConfig.secret, {
     expiresIn: jwtConfig.accessTokenExpiry,
     algorithm: jwtConfig.algorithm,
     issuer: jwtConfig.issuer,
@@ -41,7 +41,7 @@ function createRefreshToken(uid) {
     type: 'refresh'
   };
 
-  return jwt.sign(payload, jwtConfig.privateKey, {
+  return jwt.sign(payload, jwtConfig.secret, {
     expiresIn: jwtConfig.refreshTokenExpiry,
     algorithm: jwtConfig.algorithm,
     issuer: jwtConfig.issuer,

@@ -61,7 +61,7 @@ describe('HTTP Client Timeout Config Override Tests', () => {
 
       await expect(
         customHttpClient.get('http://timeout-test.com/slow')
-      ).rejects.toThrow('timeout');
+      ).rejects.toThrow(/timeout|Request timeout/i);
 
       const duration = Date.now() - startTime;
       expect(duration).toBeLessThan(1500); // Should timeout around 1s

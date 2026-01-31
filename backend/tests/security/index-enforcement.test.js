@@ -4,14 +4,18 @@
  * Ensures queries fail without proper Firestore indexes
  */
 
+const { getTestApp } = require('../helpers/test-utils');
 const { getFirestore } = require('../../src/config/firebase');
 
 describe('Firestore Index Enforcement Tests', () => {
   let db;
 
-  beforeAll(() => {
+  beforeAll(async () => {
+    getTestApp(); // Initialize Firebase
     db = getFirestore();
-  });
+    // Add delay to ensure emulators are ready
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }, 60000);
 
   describe('SEC-XXX: Firestore Index Requirements', () => {
     it('should require composite index for complex queries', async () => {
