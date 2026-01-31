@@ -107,7 +107,7 @@ describe('Security: JWT Expiration Verification', () => {
       .set('Authorization', `Bearer ${expiredToken}`)
       .expect(401);
 
-    expect(response.body.error).toBeDefined();
+    expect(response.body.payload?.error || response.body.error).toBeDefined();
   });
 
   test('token should not have excessive expiration', async () => {

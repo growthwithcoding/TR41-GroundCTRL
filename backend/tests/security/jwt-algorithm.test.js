@@ -62,7 +62,7 @@ describe('Security: JWT Algorithm Verification', () => {
       .set('Authorization', `Bearer ${maliciousToken}`)
       .expect(401);
 
-    expect(response.body.error).toBeDefined();
+    expect(response.body.payload?.error || response.body.error).toBeDefined();
   });
 
   test('should include required JWT header fields', async () => {

@@ -79,7 +79,7 @@ describe('Security: Token Revocation', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(401);
 
-    expect(afterLogout.body.error).toBeDefined();
+    expect(afterLogout.body.payload?.error || afterLogout.body.error).toBeDefined();
   });
 
   test('invalid token format should be rejected', async () => {
@@ -88,7 +88,7 @@ describe('Security: Token Revocation', () => {
       .set('Authorization', 'Bearer invalid.token.here')
       .expect(401);
 
-    expect(response.body.error).toBeDefined();
+    expect(response.body.payload?.error || response.body.error).toBeDefined();
   });
 
   test('missing Authorization header should be rejected', async () => {
@@ -96,7 +96,7 @@ describe('Security: Token Revocation', () => {
       .get('/api/v1/satellites')
       .expect(401);
 
-    expect(response.body.error).toBeDefined();
+    expect(response.body.payload?.error || response.body.error).toBeDefined();
   });
 
   test('malformed Authorization header should be rejected', async () => {
@@ -105,6 +105,6 @@ describe('Security: Token Revocation', () => {
       .set('Authorization', 'NotBearer token')
       .expect(401);
 
-    expect(response.body.error).toBeDefined();
+    expect(response.body.payload?.error || response.body.error).toBeDefined();
   });
 });

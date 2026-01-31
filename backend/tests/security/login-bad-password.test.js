@@ -37,10 +37,10 @@ describe('Security: Login Bad Password', () => {
       })
       .expect(401);
 
-    expect(response.body).toHaveProperty('error');
+    expect(response.body.payload?.error || response.body.error).toBeDefined();
     
     // Should use generic message
-    const errorMsg = response.body.error.toLowerCase();
+    const errorMsg = (response.body.payload?.error?.message || response.body.error || '').toLowerCase();
     expect(
       errorMsg.includes('invalid') || 
       errorMsg.includes('unauthorized') ||
@@ -67,10 +67,10 @@ describe('Security: Login Bad Password', () => {
       })
       .expect(401);
 
-    expect(response.body).toHaveProperty('error');
+    expect(response.body.payload?.error || response.body.error).toBeDefined();
     
     // In dev, can have more detailed message
-    const errorMsg = response.body.error.toLowerCase();
+    const errorMsg = (response.body.payload?.error?.message || response.body.error || '').toLowerCase();
     expect(errorMsg).toBeTruthy();
   });
 
@@ -102,12 +102,12 @@ describe('Security: Login Bad Password', () => {
     expect(existingUserResponse.status).toBe(nonExistentResponse.status);
 
     // Error messages should be similar (both generic)
-    expect(existingUserResponse.body.error).toBeTruthy();
-    expect(nonExistentResponse.body.error).toBeTruthy();
+    expect(existingUserResponse.body.payload?.error || existingUserResponse.body.error).toBeTruthy();
+    expect(nonExistentResponse.body.payload?.error || nonExistentResponse.body.error).toBeTruthy();
     
     // Neither should reveal whether the email exists
-    const existingMsg = existingUserResponse.body.error.toLowerCase();
-    const nonExistentMsg = nonExistentResponse.body.error.toLowerCase();
+    const existingMsg = (existingUserResponse.body.payload?.error?.message || existingUserResponse.body.error || '').toLowerCase();
+    const nonExistentMsg = (nonExistentResponse.body.payload?.error?.message || nonExistentResponse.body.error || '').toLowerCase();
     
     expect(existingMsg).not.toContain('not found');
     expect(existingMsg).not.toContain('does not exist');
@@ -139,6 +139,6 @@ describe('Security: Login Bad Password', () => {
       .send({ email });
 
     expect([400, 401]).toContain(response.status);
-    expect(response.body.error).toBeDefined();
+    expect(response.body.payload?.error || response.body.error).toBeDefined();
   });
 });

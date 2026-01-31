@@ -86,7 +86,7 @@ describe('Security: Refresh Token Reuse Prevention', () => {
       .send({ refreshToken })
       .expect(401);
 
-    expect(secondRefresh.body.error).toBeDefined();
+    expect(secondRefresh.body.payload?.error || secondRefresh.body.error).toBeDefined();
   });
 
   test('invalid refresh token should be rejected', async () => {
@@ -95,7 +95,7 @@ describe('Security: Refresh Token Reuse Prevention', () => {
       .send({ refreshToken: 'invalid.refresh.token' })
       .expect(401);
 
-    expect(response.body.error).toBeDefined();
+    expect(response.body.payload?.error || response.body.error).toBeDefined();
   });
 
   test('missing refresh token should be rejected', async () => {
@@ -104,7 +104,7 @@ describe('Security: Refresh Token Reuse Prevention', () => {
       .send({});
 
     expect([400, 401]).toContain(response.status);
-    expect(response.body.error).toBeDefined();
+    expect(response.body.payload?.error || response.body.error).toBeDefined();
   });
 
   test('refresh should issue new refresh token (rotation)', async () => {
