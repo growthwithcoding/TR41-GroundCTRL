@@ -1,5 +1,3 @@
-"use client"
-
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -60,12 +58,15 @@ export async function signInWithGoogle() {
   // Sync user profile with backend (creates if new, updates if existing)
   if (userCredential.user) {
     try {
+      // Get Firebase ID token to send with request
+      const idToken = await userCredential.user.getIdToken()
+      
       // SECURITY: Backend uses authenticated UID from token, not from request body
       await apiAuthService.syncGoogleProfile({
         email: userCredential.user.email,
         displayName: userCredential.user.displayName || "",
         photoURL: userCredential.user.photoURL || null
-      })
+      }, idToken)
     } catch (error) {
       // Log error but don't block sign-in
       console.error('Failed to sync Google profile with backend:', error)
