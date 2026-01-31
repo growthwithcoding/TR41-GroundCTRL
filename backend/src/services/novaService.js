@@ -16,11 +16,12 @@ const scenarioStepRepository = require('../repositories/scenarioStepRepository')
 const scenarioRepository = require('../repositories/scenarioRepository');
 const helpArticleRepository = require('../repositories/helpArticleRepository');
 const helpFaqRepository = require('../repositories/helpFaqRepository');
-const { generateAnonymousId, generateHelpSessionId } = require('../utils/anonymousId');
+const { generateAnonymousId, generateHelpSessionId, isAnonymousId } = require('../utils/anonymousId');
 const logger = require('../utils/logger');
 
-// Gemini configuration
-const GEMINI_MODEL = 'gemini-1.5-flash';
+// Gemini model configuration - can be overridden via environment variable
+// For v1beta API (2026 keys): gemini-1.5-pro, gemini-1.5-flash
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 const GENERATION_CONFIG = {
   temperature: 0.7,
   maxOutputTokens: 1000,
@@ -531,19 +532,67 @@ Remember: You're helping users learn about satellite ground control operations. 
 }
 
 /**
+ * Fetch user history stats for authenticated help
+ * 
+ * @param {string} userId - User ID
+ * @returns {Promise<object>} User history object
+ */
+async function fetchUserHistory(userId) {
+  try {
+    // Get all user sessions
+    const sessions = await scenarioSessionRepository.getAll({ 
+      user_id: userId,
+      limit: 50 // Last 50 sessions
+    });
+
+    const completedSessions = sessions.data.filter(s => s.status === 'COMPLETED');
+    const recentScenarios = [];
+    
+    // Get unique recent scenario titles
+    for (const session of sessions.data.slice(0, 5)) {
+      if (session.scenario_id) {
+        try {
+          const scenario = await scenarioRepository.getById(session.scenario_id);
+          if (scenario && !recentScenarios.includes(scenario.title)) {
+            recentScenarios.push(scenario.title);
+          }
+        } catch (e) {
+          // Ignore missing scenarios
+        }
+      }
+    }
+
+    return {
+      totalSessions: sessions.total,
+      completedScenarios: completedSessions.length,
+      recentScenarios
+    };
+  } catch (error) {
+    logger.error('Failed to fetch user history', { error: error.message, userId });
+    return {
+      totalSessions: 0,
+      completedScenarios: 0,
+      recentScenarios: []
+    };
+  }
+}
+
+/**
  * Fetch help context for public NOVA queries
  * Searches help articles and FAQs relevant to user question
  * 
  * @param {string} userMessage - User's question
  * @param {string} articleSlug - Optional specific article slug
  * @param {string} conversationId - Optional conversation ID for history
+ * @param {object} userHistory - Optional user history for authenticated users
  * @returns {Promise<object>} Context object with help content
  */
-async function fetchHelpContext(userMessage, articleSlug = null, conversationId = null) {
+async function fetchHelpContext(userMessage, articleSlug = null, conversationId = null, userHistory = null) {
   const context = {
     helpArticles: [],
     faqs: [],
     conversationHistory: [],
+    userHistory: userHistory // Attach user history if provided
   };
 
   try {
@@ -590,21 +639,28 @@ async function fetchHelpContext(userMessage, articleSlug = null, conversationId 
 }
 
 /**
- * Generate NOVA help response for public queries
- * Handles anonymous users and provides help-focused responses
+ * Generate NOVA help response for public/authenticated queries
+ * Handles anonymous and authenticated users with appropriate context
  * 
  * @param {string} userMessage - User's question
  * @param {object} options - Additional options
  * @param {string} options.userId - User ID (or null for anonymous)
  * @param {string} options.context - Optional help article slug
  * @param {string} options.conversationId - Optional conversation ID
+ * @param {string} options.callSign - Optional call sign for authenticated users
  * @returns {Promise<object>} Response object with content and metadata
  */
 async function generateHelpResponse(userMessage, options = {}) {
-  const { userId: providedUserId, context: articleSlug, conversationId: providedConversationId } = options;
+  const { 
+    userId: providedUserId, 
+    context: articleSlug, 
+    conversationId: providedConversationId,
+    callSign
+  } = options;
 
   // Generate anonymous ID if no user ID provided
   const userId = providedUserId || generateAnonymousId();
+  const isAuthenticated = !!providedUserId && !isAnonymousId(userId);
   
   // Generate or use provided conversation ID
   const conversationId = providedConversationId || generateHelpSessionId();
@@ -614,11 +670,18 @@ async function generateHelpResponse(userMessage, options = {}) {
     metadata: {
       message_type: 'HELP',
       article_context: articleSlug || null,
+      is_authenticated: isAuthenticated
     },
   });
 
-  // Fetch help context
-  const helpContext = await fetchHelpContext(userMessage, articleSlug, conversationId);
+  // Fetch user history if authenticated
+  let userHistory = null;
+  if (isAuthenticated) {
+    userHistory = await fetchUserHistory(userId);
+  }
+
+  // Fetch help context (including user history)
+  const helpContext = await fetchHelpContext(userMessage, articleSlug, conversationId, userHistory);
 
   // Get Gemini model
   const model = getGeminiModel();
@@ -645,8 +708,10 @@ async function generateHelpResponse(userMessage, options = {}) {
     };
   }
 
-  // Build prompt
-  const fullPrompt = buildHelpAwarePrompt(helpContext, userMessage);
+  // Build prompt - use authenticated prompt if logged in, otherwise public help prompt
+  const fullPrompt = isAuthenticated
+    ? buildAuthenticatedHelpPrompt(helpContext, userMessage, callSign || 'OPERATOR')
+    : buildHelpAwarePrompt(helpContext, userMessage);
 
   // Try to get response with retries
   let lastError = null;
@@ -724,14 +789,264 @@ async function generateHelpResponse(userMessage, options = {}) {
   };
 }
 
+/**
+ * UNIFIED NOVA RESPONSE GENERATOR
+ * Automatically adapts based on authentication status and session presence
+ * 
+ * @param {string} content - User's message
+ * @param {object} options - Configuration options
+ * @param {string} options.userId - User ID (null/undefined for anonymous)
+ * @param {string} options.sessionId - Session ID (for training mode)
+ * @param {string} options.conversationId - Conversation ID (for help mode)
+ * @param {string} options.stepId - Current step ID
+ * @param {string} options.commandId - Related command ID
+ * @param {boolean} options.requestHint - Explicit hint request
+ * @param {string} options.context - Help article slug or context
+ * @returns {Promise<object>} Unified response object
+ */
+async function generateUnifiedNovaResponse(content, options = {}) {
+  const { 
+    userId, 
+    callSign,
+    sessionId, 
+    conversationId, 
+    stepId, 
+    commandId, 
+    requestHint, 
+    context: articleSlug 
+  } = options;
+
+  // Determine user type and mode
+  const isAuthenticated = userId && !isAnonymousId(userId);
+  const hasActiveSession = sessionId && isAuthenticated;
+
+  let userType;
+  let messageContext;
+  let response;
+
+  if (hasActiveSession) {
+    // MODE 1: AUTHENTICATED WITH SESSION - Full training mode
+    userType = 'AUTHENTICATED';
+    messageContext = 'TRAINING';
+    
+    logger.info('NOVA: Training mode', { userId, sessionId });
+    
+    response = await generateNovaResponse(sessionId, userId, content, {
+      step_id: stepId,
+      command_id: commandId,
+      request_hint: requestHint,
+    });
+
+    // Add context information
+    response.context = {
+      user_type: userType,
+      message_context: messageContext,
+      session_id: sessionId,
+      capabilities: [
+        'Full scenario context',
+        'Progress tracking',
+        'Step-by-step guidance',
+        'Command history',
+        'Personalized hints',
+      ],
+    };
+
+  } else if (isAuthenticated) {
+    // MODE 2: AUTHENTICATED NO SESSION - Enhanced help mode
+    userType = 'AUTHENTICATED_NO_SESSION';
+    messageContext = 'HELP';
+    
+    logger.info('NOVA: Authenticated help mode', { userId });
+
+    // Get call sign from repository or assume OPERATOR if not available
+    // In a real scenario, this should be passed from the controller/token
+    // For now we'll fetch it if not provided (though userId is usually enough)
+    
+    // Use help response but with authenticated user
+    const helpResponse = await generateHelpResponse(content, {
+      userId,
+      context: articleSlug,
+      conversationId: conversationId || generateHelpSessionId(),
+      callSign: callSign || 'OPERATOR'
+    });
+
+    response = {
+      content: helpResponse.content,
+      is_fallback: helpResponse.is_fallback,
+      conversation_id: helpResponse.conversationId,
+      user_id: helpResponse.userId,
+      context: {
+        user_type: userType,
+        message_context: messageContext,
+        conversation_id: helpResponse.conversationId,
+        capabilities: [
+          'Personalized help',
+          'Help articles and FAQs',
+          'Conversation history',
+          'Support tickets',
+          'Scenario recommendations',
+        ],
+        suggestion: 'Start a training scenario for guided, hands-on learning!',
+      },
+    };
+
+  } else {
+    // MODE 3: NOT AUTHENTICATED - Public help mode
+    userType = 'ANONYMOUS';
+    messageContext = 'HELP';
+    
+    logger.info('NOVA: Anonymous help mode');
+    
+    const helpResponse = await generateHelpResponse(content, {
+      userId: null, // Will generate anonymous ID
+      context: articleSlug,
+      conversationId: conversationId || generateHelpSessionId(),
+    });
+
+    response = {
+      content: helpResponse.content,
+      is_fallback: helpResponse.is_fallback,
+      conversation_id: helpResponse.conversationId,
+      user_id: helpResponse.userId,
+      context: {
+        user_type: userType,
+        message_context: messageContext,
+        conversation_id: helpResponse.conversationId,
+        capabilities: [
+          'General help and guidance',
+          'Help articles and FAQs',
+          'Public resources',
+          'Support tickets',
+        ],
+        suggestion: 'Sign in to unlock personalized training scenarios and track your progress!',
+        auth_benefits: [
+          'Personalized training scenarios',
+          'Progress tracking',
+          'Custom recommendations',
+          'Full conversation history',
+          'Priority support',
+        ],
+      },
+    };
+  }
+
+  // Add related help articles for all modes
+  if (messageContext === 'HELP') {
+    try {
+      const searchResults = await helpArticleRepository.search(content, {}, 3);
+      if (searchResults && searchResults.length > 0) {
+        response.related_articles = searchResults.map(article => ({
+          id: article.id,
+          title: article.title,
+          slug: article.slug,
+          excerpt: article.excerpt,
+        }));
+      }
+    } catch (error) {
+      logger.warn('Failed to fetch related articles', { error: error.message });
+    }
+  }
+
+  return response;
+}
+
+/**
+ * Build authenticated help prompt
+ * Enhanced version for logged-in users without active session
+ * 
+ * @param {object} context - Context with help data and user history
+ * @param {string} userMessage - User's question
+ * @param {string} callSign - User's call sign
+ * @returns {string} Formatted prompt
+ */
+function buildAuthenticatedHelpPrompt(context, userMessage, callSign) {
+  const { helpArticles, faqs, conversationHistory, userHistory } = context;
+
+  let contextSection = '<context>\n';
+  contextSection += `<user>\nCall Sign: ${callSign}\nAuthenticated: Yes\n</user>\n`;
+
+  // User history if available
+  if (userHistory && userHistory.completedScenarios > 0) {
+    contextSection += '<user_history>\n';
+    contextSection += `Completed Scenarios: ${userHistory.completedScenarios}\n`;
+    contextSection += `Total Sessions: ${userHistory.totalSessions}\n`;
+    if (userHistory.recentScenarios && userHistory.recentScenarios.length > 0) {
+      contextSection += `Recent Training: ${userHistory.recentScenarios.join(', ')}\n`;
+    }
+    contextSection += '</user_history>\n';
+  }
+
+  // Help articles context
+  if (helpArticles && helpArticles.length > 0) {
+    contextSection += '<relevant_help_articles>\n';
+    helpArticles.forEach((article, i) => {
+      contextSection += `${i + 1}. ${article.title}\n`;
+      if (article.excerpt) {
+        contextSection += `   Excerpt: ${article.excerpt}\n`;
+      }
+    });
+    contextSection += '</relevant_help_articles>\n';
+  }
+
+  // FAQs context
+  if (faqs && faqs.length > 0) {
+    contextSection += '<relevant_faqs>\n';
+    faqs.forEach((faq, i) => {
+      contextSection += `${i + 1}. Q: ${faq.question}\n`;
+      contextSection += `   A: ${faq.answer}\n`;
+    });
+    contextSection += '</relevant_faqs>\n';
+  }
+
+  // Conversation history
+  if (conversationHistory && conversationHistory.length > 0) {
+    contextSection += '<conversation_history>\n';
+    conversationHistory.forEach(msg => {
+      contextSection += `[${msg.role.toUpperCase()}]: ${msg.content}\n`;
+    });
+    contextSection += '</conversation_history>\n';
+  }
+
+  contextSection += '</context>\n';
+
+  const querySection = `<user_query>${userMessage}</user_query>\n`;
+
+  const instructionsSection = `<instructions>
+You are NOVA, an AI assistant for satellite ground control.
+User: ${callSign} (Authenticated)
+
+You have access to:
+- User's training history
+- Completed scenarios
+- Help articles and FAQs
+- User preferences
+- Support ticket system
+
+Guidelines:
+1. Provide personalized help based on user's experience level
+2. Reference their past training when relevant
+3. Recommend specific scenarios that might help them practice
+4. Use help articles and FAQs to support your answers
+5. Be encouraging and supportive
+6. If they seem ready for hands-on practice, suggest starting a training scenario
+7. Keep responses under 300 words unless explaining complex concepts
+
+Focus on: Personalized help, recommend relevant scenarios, provide context-aware assistance
+</instructions>`;
+
+  return contextSection + querySection + instructionsSection;
+}
+
 module.exports = {
   generateNovaResponse,
   generateHelpResponse,
+  generateUnifiedNovaResponse,
   storeResponse,
   getSessionHistory,
   fetchContext,
   fetchHelpContext,
   buildStepAwarePrompt,
   buildHelpAwarePrompt,
+  buildAuthenticatedHelpPrompt,
   incrementSessionHints,
 };

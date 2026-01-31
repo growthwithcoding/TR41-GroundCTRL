@@ -47,51 +47,100 @@ async function getBySlug(slug) {
 
 /**
  * Get all articles with filters and pagination
+ * CRUD factory passes all options as a single object
  */
-async function getAll(filters = {}, page = 1, limit = 20) {
+async function getAll(options = {}) {
   const db = getFirestore();
   let query = db.collection(COLLECTION);
   
+  // Extract pagination from options
+  const page = options.page || 1;
+  const limit = options.limit || 20;
+  
+  // Track if we're using a where clause on a non-sort field
+  let hasFilterClause = false;
+  
   // Apply filters
-  if (filters.category_id) {
-    query = query.where('category_id', '==', filters.category_id);
+  if (options.category_id) {
+    query = query.where('category_id', '==', options.category_id);
+    hasFilterClause = true;
   }
   
-  if (filters.type) {
-    query = query.where('type', '==', filters.type);
+  if (options.type) {
+    query = query.where('type', '==', options.type);
+    hasFilterClause = true;
   }
   
-  if (filters.difficulty) {
-    query = query.where('difficulty', '==', filters.difficulty);
+  if (options.difficulty) {
+    query = query.where('difficulty', '==', options.difficulty);
+    hasFilterClause = true;
   }
   
-  if (filters.status) {
-    query = query.where('status', '==', filters.status);
+  if (options.status) {
+    query = query.where('status', '==', options.status);
+    hasFilterClause = true;
   }
   
-  if (filters.isActive !== undefined) {
-    query = query.where('isActive', '==', filters.isActive);
+  if (options.isActive !== undefined) {
+    query = query.where('isActive', '==', options.isActive);
+    hasFilterClause = true;
   }
   
-  if (filters.isFeatured !== undefined) {
-    query = query.where('isFeatured', '==', filters.isFeatured);
+  if (options.isFeatured !== undefined) {
+    query = query.where('isFeatured', '==', options.isFeatured);
+    hasFilterClause = true;
   }
   
-  // Ordering
-  const sortBy = filters.sortBy || 'orderIndex';
-  const sortOrder = filters.sortOrder || 'asc';
-  query = query.orderBy(sortBy, sortOrder);
+  // Firestore limitation: When using where() on one field and orderBy() on another,
+  // you need a composite index. To avoid this, we'll fetch data and sort in memory
+  // when filters are applied.
+  const sortBy = options.sortBy || 'orderIndex';
+  const sortOrder = options.sortOrder || 'asc';
   
-  // Pagination
-  const offset = (page - 1) * limit;
-  query = query.offset(offset).limit(limit);
+  // Only apply orderBy in Firestore if no filter clauses (avoids composite index requirement)
+  if (!hasFilterClause) {
+    query = query.orderBy(sortBy, sortOrder);
+  }
+  
+  // Apply pagination if needed
+  if (page > 1 || limit < 100) {
+    const offset = (page - 1) * limit;
+    query = query.offset(offset).limit(limit);
+  }
   
   const snapshot = await query.get();
   
-  return snapshot.docs.map(doc => ({
+  let data = snapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
   }));
+  
+  // Sort in memory if we had filter clauses
+  if (hasFilterClause) {
+    data.sort((a, b) => {
+      const aVal = a[sortBy];
+      const bVal = b[sortBy];
+      
+      // Handle undefined/null values
+      if (aVal === undefined || aVal === null) return 1;
+      if (bVal === undefined || bVal === null) return -1;
+      
+      // Numeric comparison
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      
+      // String comparison
+      const comparison = String(aVal).localeCompare(String(bVal));
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }
+  
+  // Return actual data length as total
+  return {
+    data,
+    total: data.length
+  };
 }
 
 /**
@@ -227,6 +276,44 @@ async function existsBySlug(slug, excludeId = null) {
   return !snapshot.empty;
 }
 
+/**
+ * Get popular articles (top by views with fallback)
+ * Returns top N articles by view count, or first N if views are low/missing
+ */
+async function getPopular(limit = 4) {
+  const db = getFirestore();
+  
+  // Get all published, active articles
+  let query = db.collection(COLLECTION)
+    .where('status', '==', 'PUBLISHED')
+    .where('isActive', '==', true);
+  
+  const snapshot = await query.get();
+  
+  const articles = snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+  
+  // Sort by views (descending), then by createdAt (newest first) as fallback
+  articles.sort((a, b) => {
+    const viewsA = a.views || 0;
+    const viewsB = b.views || 0;
+    
+    // If views are different, sort by views
+    if (viewsB !== viewsA) {
+      return viewsB - viewsA;
+    }
+    
+    // If views are the same, sort by creation date (newest first)
+    const dateA = new Date(a.createdAt || 0);
+    const dateB = new Date(b.createdAt || 0);
+    return dateB - dateA;
+  });
+  
+  return articles.slice(0, limit);
+}
+
 module.exports = {
   getById,
   getBySlug,
@@ -237,5 +324,6 @@ module.exports = {
   deleteById,
   incrementViews,
   updateFeedback,
-  existsBySlug
+  existsBySlug,
+  getPopular
 };

@@ -1,14 +1,25 @@
+
 /**
  * Simulation Engine Service
  * Runs orbital mechanics and subsystem simulations
+ * Enhanced with Mission Control features (Phase 1-2)
  */
 
 const logger = require('../utils/logger');
+const CommandQueue = require('./commandQueue');
+const StepValidator = require('./stepValidator');
+const VisibilityCalculator = require('./visibilityCalculator');
+const { GROUND_STATIONS } = require('../constants/groundStations');
 
 class SimulationEngine {
   constructor(sessionManager) {
     this.sessionManager = sessionManager;
-    this.activeSimulations = new Map(); // sessionId -> { interval, satellite, startTime, commands, state }
+    this.activeSimulations = new Map(); // sessionId -> { interval, satellite, startTime, commands, state, commandQueue, beaconInterval }
+    
+    // Mission Control Enhancement services
+    this.stepValidator = new StepValidator();
+    this.visibilityCalculator = new VisibilityCalculator();
+    this.groundStations = GROUND_STATIONS;
   }
 
   /**
@@ -64,17 +75,29 @@ class SimulationEngine {
       }
     }, 2000);
 
+    // Initialize command queue for this session
+    const commandQueue = new CommandQueue(sessionId, this);
+    commandQueue.start();
+
     this.activeSimulations.set(sessionId, {
       interval,
       satellite,
       startTime,
-      state: simState
+      state: simState,
+      commandQueue,
+      beaconInterval: null,
+      deploymentTimeout: null
     });
+
+    // Start beacon transmitter (first beacon after 45 minutes, then every 2 minutes)
+    this.startBeaconTransmitter(sessionId, 120000, 2700000);
 
     logger.info('Simulation started', {
       sessionId,
       satelliteName: satellite.name || 'Unknown',
-      updateInterval: '2s'
+      updateInterval: '2s',
+      commandQueueEnabled: true,
+      beaconEnabled: true
     });
   }
 
@@ -86,7 +109,17 @@ class SimulationEngine {
     const simulation = this.activeSimulations.get(sessionId);
     
     if (simulation) {
+      // Stop simulation interval
       clearInterval(simulation.interval);
+      
+      // Stop command queue
+      if (simulation.commandQueue) {
+        simulation.commandQueue.stop();
+      }
+      
+      // Stop beacon transmitter
+      this.stopBeaconTransmitter(sessionId);
+      
       this.activeSimulations.delete(sessionId);
       
       logger.info('Simulation stopped', { sessionId });
@@ -485,6 +518,256 @@ class SimulationEngine {
     const sessions = Array.from(this.activeSimulations.keys());
     sessions.forEach(sessionId => this.stopSimulation(sessionId));
     logger.info('All simulations stopped', { count: sessions.length });
+  }
+
+  /**
+   * Start beacon transmitter for session
+   * Mission Control Enhancement - Phase 2
+   * @param {string} sessionId - Session ID
+   * @param {number} beaconInterval - Interval between beacons (ms), default 2 minutes
+   * @param {number} deploymentDelay - Initial delay before first beacon (ms), default 45 minutes
+   */
+  startBeaconTransmitter(sessionId, beaconInterval = 120000, deploymentDelay = 2700000) {
+    const simulation = this.activeSimulations.get(sessionId);
+    if (!simulation) {
+      logger.warn('Cannot start beacon for inactive simulation', { sessionId });
+      return;
+    }
+    
+    // Initial beacon after deployment delay (simulates satellite coming online after launch)
+    simulation.deploymentTimeout = setTimeout(() => {
+      this.transmitBeacon(sessionId, 'initial');
+      
+      // Then regular beacons every interval
+      simulation.beaconInterval = setInterval(() => {
+        this.transmitBeacon(sessionId, 'periodic');
+      }, beaconInterval);
+      
+      logger.info('Beacon transmitter started', {
+        sessionId,
+        beaconInterval: beaconInterval / 1000
+      });
+      
+    }, deploymentDelay);
+  }
+
+  /**
+   * Transmit beacon from satellite
+   * Mission Control Enhancement - Phase 2
+   * @param {string} sessionId - Session ID
+   * @param {string} beaconType - 'initial' or 'periodic'
+   */
+  transmitBeacon(sessionId, beaconType) {
+    const simulation = this.activeSimulations.get(sessionId);
+    if (!simulation) return;
+    
+    const currentState = simulation.state.currentState;
+    
+    // Create beacon data packet
+    const beaconData = {
+      type: beaconType,
+      timestamp: Date.now(),
+      satelliteId: simulation.satellite.id,
+      satelliteName: simulation.satellite.name,
+      basicTelemetry: {
+        power: {
+          batteryCharge: currentState.power?.currentCharge_percent || 0,
+          solarPower: currentState.power?.solarPower_watts || 0,
+          status: currentState.power?.status || 'unknown'
+        },
+        attitude: {
+          status: currentState.attitude?.status || 'unknown',
+          mode: currentState.attitude?.mode || 'nominal'
+        },
+        thermal: {
+          temperature: currentState.thermal?.temperature_celsius || 0,
+          status: currentState.thermal?.status || 'unknown'
+        },
+        communications: {
+          status: 'nominal',
+          signalStrength: 85
+        }
+      }
+    };
+    
+    // Check ground station visibility
+    const visibility = this.checkGroundStationVisibility(sessionId);
+    
+    if (visibility.isVisible) {
+      // Beacon received by ground station
+      logger.info('Beacon transmitted and received', {
+        sessionId,
+        beaconType,
+        groundStation: visibility.station.displayName
+      });
+      
+      // Emit beacon to frontend via WebSocket
+      if (this.sessionManager?.io) {
+        this.sessionManager.io.to(sessionId).emit('beacon:received', {
+          beacon: beaconData,
+          signalStrength: visibility.signalStrength,
+          groundStation: {
+            id: visibility.station.stationId,
+            name: visibility.station.displayName,
+            location: visibility.station.location
+          },
+          visibility: {
+            elevation: visibility.elevation,
+            azimuth: visibility.azimuth,
+            range: visibility.range
+          }
+        });
+      }
+      
+      // Update session state (for step validation)
+      simulation.state.lastBeaconReceived = Date.now();
+      simulation.state.beaconType = beaconType;
+      simulation.state.beaconsReceived = (simulation.state.beaconsReceived || 0) + 1;
+      
+    } else {
+      // Beacon transmitted but not received (no ground station in view)
+      logger.debug('Beacon transmitted but not received (no ground station visible)', {
+        sessionId,
+        beaconType
+      });
+      
+      // Still emit event so frontend can show "beacon transmitted" indicator
+      if (this.sessionManager?.io) {
+        this.sessionManager.io.to(sessionId).emit('beacon:transmitted', {
+          beacon: beaconData,
+          received: false,
+          reason: 'No ground station in view',
+          nextPass: visibility.nextPassTime
+        });
+      }
+    }
+  }
+
+  /**
+   * Stop beacon transmitter
+   * Mission Control Enhancement - Phase 2
+   * @param {string} sessionId - Session ID
+   */
+  stopBeaconTransmitter(sessionId) {
+    const simulation = this.activeSimulations.get(sessionId);
+    if (!simulation) return;
+    
+    if (simulation.deploymentTimeout) {
+      clearTimeout(simulation.deploymentTimeout);
+      simulation.deploymentTimeout = null;
+    }
+    
+    if (simulation.beaconInterval) {
+      clearInterval(simulation.beaconInterval);
+      simulation.beaconInterval = null;
+    }
+    
+    logger.info('Beacon transmitter stopped', { sessionId });
+  }
+
+  /**
+   * Check ground station visibility for session
+   * Mission Control Enhancement - Phase 2
+   * @param {string} sessionId - Session ID
+   * @returns {object} Visibility information
+   */
+  checkGroundStationVisibility(sessionId) {
+    const simulation = this.activeSimulations.get(sessionId);
+    if (!simulation) {
+      return { isVisible: false, reason: 'Simulation not found' };
+    }
+    
+    const orbit = simulation.state.currentState.orbit;
+    const currentTime = Date.now();
+    
+    // Use visibility calculator to find best ground station
+    const bestStation = this.visibilityCalculator.getBestStation(
+      orbit, 
+      this.groundStations, 
+      currentTime
+    );
+    
+    if (bestStation) {
+      return {
+        isVisible: true,
+        station: bestStation.station,
+        elevation: bestStation.visibility.elevation,
+        azimuth: bestStation.visibility.azimuth,
+        range: bestStation.visibility.range,
+        signalStrength: bestStation.visibility.signalStrength,
+        passDuration: bestStation.visibility.passDuration
+      };
+    }
+    
+    // No visible station - calculate next pass
+    const firstStation = this.groundStations[0];
+    const nextPass = this.visibilityCalculator.calculateNextPass(orbit, firstStation, currentTime);
+    
+    return {
+      isVisible: false,
+      reason: 'No ground station in view',
+      nextPassTime: nextPass
+    };
+  }
+
+  /**
+   * Check step completion for a session
+   * Mission Control Enhancement - Phase 1
+   * @param {string} sessionId - Session ID
+   * @param {object} step - Scenario step object
+   * @returns {object} Validation result
+   */
+  checkStepCompletion(sessionId, step) {
+    const simulation = this.activeSimulations.get(sessionId);
+    if (!simulation) {
+      return { isComplete: false, reason: 'Simulation not found' };
+    }
+    
+    const sessionState = {
+      telemetry: simulation.state.currentState,
+      startedAt: simulation.startTime,
+      lastBeaconReceived: simulation.state.lastBeaconReceived,
+      beaconType: simulation.state.beaconType,
+      beaconsReceived: simulation.state.beaconsReceived,
+      manualConfirmations: simulation.state.manualConfirmations || []
+    };
+    
+    const commandHistory = simulation.state.commands;
+    
+    return this.stepValidator.validateStepCompletion(step, sessionState, commandHistory);
+  }
+
+  /**
+   * Enqueue command with latency
+   * Mission Control Enhancement - Phase 1
+   * @param {string} sessionId - Session ID
+   * @param {object} command - Command to enqueue
+   * @param {number} latencySeconds - Optional custom latency
+   * @returns {string} Command ID
+   */
+  enqueueCommand(sessionId, command, latencySeconds = null) {
+    const simulation = this.activeSimulations.get(sessionId);
+    if (!simulation || !simulation.commandQueue) {
+      logger.warn('Cannot enqueue command - no command queue', { sessionId });
+      return null;
+    }
+    
+    return simulation.commandQueue.enqueueCommand(command, latencySeconds);
+  }
+
+  /**
+   * Get command queue status
+   * Mission Control Enhancement - Phase 1
+   * @param {string} sessionId - Session ID
+   * @returns {object} Queue statistics
+   */
+  getCommandQueueStatus(sessionId) {
+    const simulation = this.activeSimulations.get(sessionId);
+    if (!simulation || !simulation.commandQueue) {
+      return null;
+    }
+    
+    return simulation.commandQueue.getStats();
   }
 }
 

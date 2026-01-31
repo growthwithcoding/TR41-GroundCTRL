@@ -48,6 +48,9 @@ const MAX_PAGE_LIMIT = 100;
  * @param {Function} [hooks.auditMetadata] - Custom audit metadata builder
  *   - Signature: async (req, operation, result) => object
  *   - Merged into audit log entry
+ * @param {Array<string>} [hooks.skipAuditOperations] - Operations to skip audit logging
+ *   - Example: ['LIST', 'GET'] - Skip audit logs for list and get operations
+ *   - Use for: Public resources where audit logging adds no security value
  * 
  * @returns {Object} CRUD handler functions { getAll, getOne, create, update, patch, delete }
  * 
@@ -94,8 +97,14 @@ function createCrudHandlers(repository, resourceName, schemas, hooks) {
     beforeDelete,
     afterDelete,
     afterRead,
-    auditMetadata
+    auditMetadata,
+    skipAuditOperations
   } = hooks;
+  
+  // Helper function to check if audit should be skipped
+  const shouldSkipAudit = (operation) => {
+    return skipAuditOperations && skipAuditOperations.includes(operation);
+  };
 
   return {
     /**
@@ -118,14 +127,25 @@ function createCrudHandlers(repository, resourceName, schemas, hooks) {
           MAX_PAGE_LIMIT
         );
         
-        // Build base options
+        // Build base options with pagination
         const options = {
           page,
           limit,
-          search: req.query.search,
-          sortBy: req.query.sortBy,
           sortOrder: req.query.sortOrder || 'desc'
         };
+        
+        // Pass through known filter params (avoiding string/number conflicts)
+        const filterParams = ['category_id', 'search', 'sortBy', 'type', 'difficulty', 'status', 'isActive', 'isFeatured', 'parentCategoryId'];
+        filterParams.forEach(param => {
+          if (req.query[param] !== undefined) {
+            // Convert boolean strings to actual booleans
+            if (param === 'isActive' || param === 'isFeatured') {
+              options[param] = req.query[param] === 'true';
+            } else {
+              options[param] = req.query[param];
+            }
+          }
+        });
         
         // Apply ownership scope hook (filter builder pattern)
         const finalOptions = ownershipScope 
@@ -140,24 +160,25 @@ function createCrudHandlers(repository, resourceName, schemas, hooks) {
           await afterRead(req, result.data || []);
         }
         
-        // Custom audit metadata
-        const customAuditMeta = auditMetadata 
-          ? await auditMetadata(req, 'LIST', result)
-          : {};
-        
-        // Log audit
-        const auditEntry = auditFactory.createCrudAudit(
-          'LIST',
-          resourceName,
-          req.user?.uid || 'ANONYMOUS',
-          req.callSign || 'SYSTEM',
-          true,
-          { 
-            resultCount: result.data?.length || 0,
-            ...customAuditMeta
-          }
-        );
-        await auditRepository.logAudit(auditEntry);
+        // Log audit (skip if configured)
+        if (!shouldSkipAudit('LIST')) {
+          const customAuditMeta = auditMetadata 
+            ? await auditMetadata(req, 'LIST', result)
+            : {};
+          
+          const auditEntry = auditFactory.createCrudAudit(
+            'LIST',
+            resourceName,
+            req.user?.uid || 'ANONYMOUS',
+            req.callSign || 'SYSTEM',
+            true,
+            { 
+              resultCount: result.data?.length || 0,
+              ...customAuditMeta
+            }
+          );
+          await auditRepository.logAudit(auditEntry);
+        }
         
         // Send paginated response (Mission Control format)
         const response = responseFactory.createPaginatedResponse(

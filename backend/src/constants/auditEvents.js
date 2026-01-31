@@ -43,6 +43,9 @@ module.exports = {
   AI_GENERATE: 'AI_GENERATE',
   AI_QUERY: 'AI_QUERY',
 
+  // Help/Documentation Events
+  READ_HELP_ARTICLE: 'READ_HELP_ARTICLE',
+
   // System Events
   API_ERROR: 'API_ERROR',
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
