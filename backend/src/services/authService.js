@@ -50,6 +50,105 @@ async function verifyPassword(email, password) {
 
 
 /**
+ * Sync OAuth user profile (Google, etc.)
+ * Creates or updates user profile in Firestore for OAuth users
+ * @param {string} uid - Firebase Auth UID (already created by OAuth)
+ * @param {string} email - User email
+ * @param {string} displayName - User's display name
+ * @param {string} photoURL - User's photo URL
+ * @returns {Promise<object>} User data with tokens
+ */
+async function syncOAuthProfile(uid, email, displayName = null, photoURL = null) {
+  const db = getFirestore();
+  
+  try {
+    // Check if user already exists in Firestore
+    const userDoc = await db.collection('users').doc(uid).get();
+    
+    if (userDoc.exists) {
+      // User exists, update last login and return
+      const userData = userDoc.data();
+      
+      await db.collection('users').doc(uid).update({
+        lastLoginAt: new Date(),
+        updatedAt: new Date(),
+        // Update photo URL if provided
+        ...(photoURL && { photoURL })
+      });
+      
+      logger.info('OAuth user profile updated', { uid, email });
+      
+      // Generate tokens
+      const accessToken = jwtUtil.createAccessToken(uid, userData.callSign, userData.isAdmin || false);
+      const refreshToken = jwtUtil.createRefreshToken(uid);
+      
+      return {
+        user: {
+          uid,
+          email: userData.email,
+          callSign: userData.callSign,
+          displayName: userData.displayName,
+          isAdmin: userData.isAdmin || false
+        },
+        accessToken,
+        refreshToken
+      };
+    }
+    
+    // New OAuth user - create Firestore document
+    const finalCallSign = displayName || `Pilot-${uid.substring(0, 8)}`;
+    
+    const userData = {
+      uid,
+      email,
+      callSign: finalCallSign,
+      displayName: displayName || finalCallSign,
+      isAdmin: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastLoginAt: new Date(),
+      isActive: true,
+      ...(photoURL && { photoURL })
+    };
+    
+    await db.collection('users').doc(uid).set(userData);
+    
+    logger.info('OAuth user profile created', { uid, email, callSign: finalCallSign });
+    
+    // Create audit log entry
+    const auditEntry = auditFactory.createAuditEntry(
+      'OAUTH_REGISTER_SUCCESS',
+      'auth',
+      uid,
+      finalCallSign,
+      'success',
+      'INFO',
+      { email, method: 'oauth_google' }
+    );
+    await auditRepository.logAudit(auditEntry);
+    
+    // Generate tokens
+    const accessToken = jwtUtil.createAccessToken(uid, finalCallSign, false);
+    const refreshToken = jwtUtil.createRefreshToken(uid);
+    
+    return {
+      user: {
+        uid,
+        email,
+        callSign: finalCallSign,
+        displayName: displayName || finalCallSign,
+        isAdmin: false
+      },
+      accessToken,
+      refreshToken
+    };
+  } catch (error) {
+    logger.error('OAuth profile sync error', { error: error.message, uid, email });
+    throw error;
+  }
+}
+
+/**
  * Register new user
  * @param {string} email - User email
  * @param {string} password - User password
@@ -726,6 +825,7 @@ async function resetPassword(token, newPassword) {
 
 module.exports = {
   register,
+  syncOAuthProfile,
   login,
   refreshAccessToken,
   logout,

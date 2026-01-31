@@ -163,6 +163,43 @@ router.post('/register', authLimiter, validate(registerValidation), authControll
 
 /**
  * @swagger
+ * /auth/sync-oauth-profile:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Sync OAuth user profile (Google, etc.)
+ *     description: Creates or updates user profile in Firestore for OAuth-authenticated users
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - uid
+ *               - email
+ *             properties:
+ *               uid:
+ *                 type: string
+ *                 description: Firebase Auth UID from OAuth provider
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User email from OAuth provider
+ *               displayName:
+ *                 type: string
+ *                 description: Display name from OAuth provider
+ *               photoURL:
+ *                 type: string
+ *                 description: Profile photo URL from OAuth provider
+ *     responses:
+ *       200:
+ *         description: GO - OAuth profile synced successfully
+ */
+router.post('/sync-oauth-profile', authLimiter, authController.syncOAuthProfile);
+
+/**
+ * @swagger
  * /auth/login:
  *   post:
  *     tags:

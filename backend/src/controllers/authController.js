@@ -15,6 +15,35 @@ const httpStatus = require('../constants/httpStatus');
 const logger = require('../utils/logger');
 
 /**
+ * Sync OAuth user profile (Google, etc.)
+ * POST /auth/sync-oauth-profile
+ */
+async function syncOAuthProfile(req, res, next) {
+  try {
+    const { uid, email, displayName, photoURL } = req.body;
+    
+    if (!uid || !email) {
+      throw new ValidationError('uid and email are required');
+    }
+    
+    // Create or update user profile in Firestore
+    const result = await authService.syncOAuthProfile(uid, email, displayName, photoURL);
+    
+    logger.info('OAuth profile synced', { uid, email });
+    
+    const response = responseFactory.createSuccessResponse(result, {
+      callSign: result.user.callSign,
+      requestId: req.id,
+      statusCode: httpStatus.OK
+    });
+    
+    res.status(httpStatus.OK).json(response);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * Register new user
  * POST /auth/register
  */
@@ -520,6 +549,7 @@ async function resetPassword(req, res, next) {
 
 module.exports = {
   register,
+  syncOAuthProfile,
   login,
   refreshToken,
   logout,

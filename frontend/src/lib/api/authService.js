@@ -55,8 +55,8 @@ export async function registerUser(userData) {
  */
 export async function syncGoogleProfile(profileData) {
   try {
-    // Register Google user via backend (no password for OAuth users)
-    const response = await api.post('/auth/register', profileData)
+    // Use dedicated OAuth profile sync endpoint
+    const response = await api.post('/auth/sync-oauth-profile', profileData)
     return response.payload || response.user
   } catch (error) {
     console.error('Failed to sync Google profile:', error)

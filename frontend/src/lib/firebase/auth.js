@@ -27,32 +27,24 @@ const googleProvider = new GoogleAuthProvider()
 
 // Sign up with email and password
 export async function signUp(email, password, displayName, callSign) {
-  // Step 1: Create Firebase Auth user
-  const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-  
-  // Step 2: Update display name if provided
-  if (displayName && userCredential.user) {
-    await updateProfile(userCredential.user, { displayName })
+  // Let backend handle everything: Firebase Auth user creation + Firestore document
+  // This ensures atomic operation and proper validation
+  try {
+    const result = await apiAuthService.registerUser({
+      email,
+      password,
+      displayName: displayName || "",
+      callSign: callSign || ""
+    })
+    
+    // After backend creates user, sign in to get Firebase Auth session
+    const userCredential = await signInWithEmailAndPassword(auth, email, password)
+    
+    return userCredential.user
+  } catch (error) {
+    console.error('Registration failed:', error)
+    throw new Error(error.message || 'Registration failed')
   }
-  
-  // Step 3: Create user profile via backend API (includes validation & audit logging)
-  if (userCredential.user) {
-    try {
-      await apiAuthService.registerUser({
-        uid: userCredential.user.uid,
-        email: userCredential.user.email,
-        displayName: displayName || "",
-        callSign: callSign || ""
-      })
-    } catch (error) {
-      // If backend profile creation fails, we should clean up the Firebase Auth user
-      console.error('Failed to create user profile:', error)
-      // Note: In production, you might want to delete the auth user here
-      throw new Error(`Registration failed: ${error.message}`)
-    }
-  }
-  
-  return userCredential.user
 }
 
 // Sign in with email and password
