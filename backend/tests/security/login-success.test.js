@@ -22,13 +22,21 @@ describe('Security: Login Success', () => {
     const password = 'TestPassword123!';
     
     // Create user
-    await createTestUser(email, password);
+    const user = await createTestUser(email, password);
+    console.log('Created test user:', user.uid, email);
+    
+    // Wait for user to be fully created
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Login
     const loginResponse = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email, password })
-      .expect(200);
+      .send({ email, password });
+    
+    if (loginResponse.status !== 200) {
+      console.error('Login failed:', loginResponse.status, loginResponse.body);
+    }
+    expect(loginResponse.status).toBe(200);
 
     // Verify response structure
     expect(loginResponse.body).toHaveProperty('payload');

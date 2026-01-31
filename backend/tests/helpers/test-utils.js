@@ -31,38 +31,49 @@ function getTestApp() {
  * Create a test user in Firebase Auth Emulator
  * @param {string} email - User email
  * @param {string} password - User password
+ * @param {string} callSign - Optional call sign
  * @returns {Promise<admin.auth.UserRecord>} Created user record
  */
-async function createTestUser(email, password = 'TestPassword123!') {
+async function createTestUser(email, password = 'TestPassword123!', callSign = null) {
   try {
-    // Add extra randomness to prevent conflicts
-    const uniqueEmail = email.includes('@') && !email.includes(Math.random().toString(36))
-      ? email.replace('@', `-${Math.random().toString(36).substring(7)}@`)
-      : email;
+    // First, try to delete existing user with this email
+    try {
+      const existingUser = await admin.auth().getUserByEmail(email);
+      await admin.auth().deleteUser(existingUser.uid);
+      await new Promise(resolve => setTimeout(resolve, 100)); // Wait for deletion to propagate
+    } catch (error) {
+      // User doesn't exist, continue
+    }
     
+    // Create user in Firebase Auth
     const userRecord = await admin.auth().createUser({
-      email: uniqueEmail,
+      email,
       password,
       emailVerified: true,
     });
+    
+    // Wait for user creation to propagate
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Create corresponding Firestore user document
+    const db = admin.firestore();
+    const generatedCallSign = callSign || `TEST${Date.now().toString().slice(-6)}`;
+    await db.collection('users').doc(userRecord.uid).set({
+      email,
+      callSign: generatedCallSign,
+      displayName: `Test User ${generatedCallSign}`,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      isAdmin: false,
+      status: 'ACTIVE'
+    });
+    
+    // Wait for Firestore write to complete
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     return userRecord;
   } catch (error) {
-    if (error.code === 'auth/email-already-exists') {
-      // If email still exists, try to delete and recreate
-      try {
-        const existingUser = await admin.auth().getUserByEmail(email);
-        await admin.auth().deleteUser(existingUser.uid);
-        // Retry creation
-        const userRecord = await admin.auth().createUser({
-          email,
-          password,
-          emailVerified: true,
-        });
-        return userRecord;
-      } catch (retryError) {
-        throw error; // Throw original error if retry fails
-      }
-    }
+    console.error('Error creating test user:', error);
     throw error;
   }
 }

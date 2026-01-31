@@ -21,11 +21,18 @@ describe('Security: Audit Timestamp', () => {
   test('audit log should have ISO 8601 UTC timestamp', async () => {
     const email = `audit-timestamp-${Date.now()}@example.com`;
     await createTestUser(email, 'TestPassword123!');
+    
+    // Wait for user to be fully created
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    await request(app)
+    const loginResponse = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email, password: 'TestPassword123!' })
-      .expect(200);
+      .send({ email, password: 'TestPassword123!' });
+    
+    if (loginResponse.status !== 200) {
+      console.error('Login failed:', loginResponse.status, loginResponse.body);
+    }
+    expect(loginResponse.status).toBe(200);
 
     await new Promise(resolve => setTimeout(resolve, 2000));
 
