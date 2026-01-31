@@ -28,7 +28,15 @@ async function verifyPassword(email, password) {
     throw new Error('FIREBASE_WEB_API_KEY not configured');
   }
   
-  const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
+  // Use emulator URL when running in test/emulator mode
+  let url;
+  if (process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+    // Firebase Auth emulator REST endpoint
+    url = `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
+  } else {
+    // Production Firebase Identity Toolkit
+    url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
+  }
   
   try {
     const response = await httpClient.post(url, {

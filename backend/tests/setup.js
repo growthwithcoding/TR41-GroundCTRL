@@ -9,6 +9,7 @@ process.env.NODE_ENV = 'test';
 process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
 process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
 process.env.JWT_SECRET = 'test-secret-key-for-testing-only-do-not-use-in-production';
+process.env.FIREBASE_WEB_API_KEY = 'test-api-key-for-emulator';
 
 // Disable external network requests
 process.env.FIREBASE_EMULATOR_HUB = '127.0.0.1:4400';
