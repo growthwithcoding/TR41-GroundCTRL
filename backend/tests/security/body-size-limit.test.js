@@ -5,13 +5,13 @@
  */
 
 const request = require('supertest');
-const { getTestApp } = require('../helpers/test-utils');
+const { createTestApp } = require('../helpers/testHelpers');
 
 describe('Body Size Limit Tests', () => {
   let app;
 
   beforeAll(() => {
-    app = getTestApp();
+    app = createTestApp();
   });
 
   describe('SEC-XXX: Request Body Size Limit Enforcement', () => {
@@ -46,8 +46,7 @@ describe('Body Size Limit Tests', () => {
         .send(largePayload)
         .expect(413); // Payload Too Large
 
-      // Express body-parser error format
-      expect(response.body.payload.error.message).toMatch(/too large|entity too large/i);
+      expect(response.body.payload.error.message).toContain('too large');
     });
 
     it('should reject JSON payloads over 1MB', async () => {
@@ -66,7 +65,7 @@ describe('Body Size Limit Tests', () => {
         .send(largeJsonPayload)
         .expect(413);
 
-      expect(response.body.payload.error.message).toMatch(/too large|entity too large/i);
+      expect(response.body.payload.error.message).toContain('too large');
     });
 
     it('should handle edge case payloads close to 1MB', async () => {

@@ -5,17 +5,17 @@
  */
 
 const request = require('supertest');
-const { getTestApp } = require('../helpers/test-utils');
-const { getAuth, getFirestore } = require('../helpers/firebase-admin');
+const { createTestApp } = require('../helpers/testHelpers');
+const { getAuth, getFirestore } = require('../../src/config/firebase');
+const tokenBlacklistRepository = require('../../src/repositories/tokenBlacklistRepository');
 
 describe('Refresh Token Reuse Prevention Tests', () => {
   let app;
+  let testUser;
   let refreshToken;
 
   beforeAll(async () => {
-    app = getTestApp();
-    // Add delay to ensure emulators are ready
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    app = createTestApp();
 
     // Create a test user
     const auth = getAuth();
@@ -36,34 +36,37 @@ describe('Refresh Token Reuse Prevention Tests', () => {
       createdAt: new Date(),
       updatedAt: new Date()
     });
-  }, 60000);
+
+    testUser = {
+      uid: userRecord.uid,
+      email: 'refresh-test@example.com',
+      callSign: 'REFRESH_TEST'
+    };
+  });
 
   afterAll(async () => {
-    // Cleanup will be handled by test framework
+    // Clean up
+    if (testUser) {
+      const auth = getAuth();
+      const db = getFirestore();
+
+      try {
+        await db.collection('users').doc(testUser.uid).delete();
+        await auth.deleteUser(testUser.uid);
+      } catch (error) {
+        console.warn('Cleanup failed:', error.message);
+      }
+    }
   });
 
   describe('SEC-XXX: Refresh Token Cannot Be Reused', () => {
     it('should allow first refresh token use', async () => {
-      // Register a new user
-      const timestamp = Date.now();
-      const userData = {
-        email: `refresh-test-${timestamp}@example.com`,
-        password: 'TestPass123!',
-        callSign: 'REFRESH_TEST',
-        displayName: 'Refresh Test User'
-      };
-
-      await request(app)
-        .post('/api/v1/auth/register')
-        .send(userData)
-        .expect(201);
-
       // Login to get initial tokens
       const loginResponse = await request(app)
         .post('/api/v1/auth/login')
         .send({
-          email: userData.email,
-          password: userData.password
+          email: testUser.email,
+          password: 'TestPass123!'
         })
         .expect(200);
 
@@ -78,7 +81,7 @@ describe('Refresh Token Reuse Prevention Tests', () => {
 
       expect(refreshResponse.body.payload.data.accessToken).toBeDefined();
       expect(refreshResponse.body.payload.data.refreshToken).toBeDefined();
-    }, 60000);
+    });
 
     it('should reject reuse of the same refresh token', async () => {
       // Try to use the same refresh token again
@@ -90,26 +93,18 @@ describe('Refresh Token Reuse Prevention Tests', () => {
       expect(reuseResponse.body.payload.error.message).toContain('revoked');
     });
 
+    it('should have blacklisted the used refresh token', async () => {
+      const isBlacklisted = await tokenBlacklistRepository.isTokenBlacklisted(refreshToken);
+      expect(isBlacklisted).toBe(true);
+    });
+
     it('should allow use of new refresh token from successful refresh', async () => {
       // Get a new refresh token by logging in again
-      const timestamp = Date.now();
-      const userData = {
-        email: `refresh-test-2-${timestamp}@example.com`,
-        password: 'TestPass123!',
-        callSign: 'REFRESH_TEST_2',
-        displayName: 'Refresh Test User 2'
-      };
-
-      await request(app)
-        .post('/api/v1/auth/register')
-        .send(userData)
-        .expect(201);
-
       const loginResponse = await request(app)
         .post('/api/v1/auth/login')
         .send({
-          email: userData.email,
-          password: userData.password
+          email: testUser.email,
+          password: 'TestPass123!'
         })
         .expect(200);
 
@@ -124,13 +119,13 @@ describe('Refresh Token Reuse Prevention Tests', () => {
       expect(refreshResponse.body.payload.data.accessToken).toBeDefined();
       expect(refreshResponse.body.payload.data.refreshToken).toBeDefined();
 
-      // The new token should work, and the old one should be rejected
-      const oldTokenResponse = await request(app)
-        .post('/api/v1/auth/refresh')
-        .send({ refreshToken })
-        .expect(401);
+      // Verify the new token is not blacklisted yet
+      const isNewTokenBlacklisted = await tokenBlacklistRepository.isTokenBlacklisted(newRefreshToken);
+      expect(isNewTokenBlacklisted).toBe(false);
 
-      expect(oldTokenResponse.body.payload.error.message).toContain('revoked');
-    }, 60000);
+      // But the old one should still be blacklisted
+      const isOldTokenBlacklisted = await tokenBlacklistRepository.isTokenBlacklisted(refreshToken);
+      expect(isOldTokenBlacklisted).toBe(true);
+    });
   });
 });
