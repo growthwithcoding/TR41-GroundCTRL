@@ -248,7 +248,7 @@ export function NovaAssistant({
   const authBenefits = novaContext?.auth_benefits || []
 
   return (
-    <aside className={`w-80 border-r border-border flex flex-col bg-card overflow-hidden ${className}`}>
+    <aside className={`w-80 border-r border-border flex flex-col bg-card h-full overflow-hidden ${className}`}>
       {/* Header */}
       <div className="p-4 border-b border-border bg-muted/50">
         <div className="flex items-center gap-2">

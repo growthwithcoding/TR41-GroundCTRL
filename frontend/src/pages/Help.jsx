@@ -158,15 +158,15 @@ export default function HelpPage() {
     <div className="min-h-screen flex flex-col bg-background">
       <AppHeader />
 
-      <div className="flex-1 flex">
+      <div className="flex-1 flex overflow-hidden">
         {/* Nova Assistant Sidebar - Unified component with auth detection */}
         <NovaAssistant 
           context="help" 
           showAuthPrompt={!user}
-          className="hidden lg:flex h-[calc(100vh-4rem)] sticky top-16" 
+          className="hidden lg:flex" 
         />
 
-        <main className="flex-1">
+        <main className="flex-1 overflow-y-auto">
           {/* Loading State */}
           {loading && (
             <div className="flex flex-col items-center justify-center py-24">
