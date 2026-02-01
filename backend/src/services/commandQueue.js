@@ -19,7 +19,7 @@ const logger = require('../utils/logger');
  * @returns {string} Unique command ID
  */
 function generateCommandId() {
-  return `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `cmd_${Date.now()}_${require('crypto').randomBytes(6).toString('hex')}`;
 }
 
 /**

@@ -46,7 +46,9 @@ const refreshTokenValidation = z.object({
 });
 
 const logoutValidation = z.object({
-  body: refreshTokenSchema,
+  body: z.object({
+    refreshToken: z.string().optional()
+  }).strict(),
   query: z.object({}).strict(),
   params: z.object({}).strict()
 });

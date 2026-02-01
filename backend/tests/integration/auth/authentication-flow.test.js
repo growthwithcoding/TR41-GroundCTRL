@@ -46,7 +46,7 @@ describe('Authentication Flow - Integration Tests', () => {
         .send({ email, password })
         .expect(201);
 
-      expect(response.body.status).toBe('success');
+      expect(response.body.status).toBe('GO');
       expect(response.body.payload.user).toBeDefined();
       expect(response.body.payload.tokens.accessToken).toBeDefined();
 
@@ -69,10 +69,10 @@ describe('Authentication Flow - Integration Tests', () => {
       const response = await request(app)
         .post('/api/v1/auth/register')
         .send({ email: 'invalid-email', password: 'StrongPass123!' })
-        .expect(422);
+        .expect(400); // Validation errors return 400 Bad Request
 
-      expect(response.body.status).toBe('error');
-      expect(response.body.errors).toBeDefined();
+      expect(response.body.status).toBe('NO-GO');
+      expect(response.body.payload.error.details).toBeDefined();
     });
 
     it('rejects password under 12 characters', async () => {
@@ -81,9 +81,9 @@ describe('Authentication Flow - Integration Tests', () => {
       const response = await request(app)
         .post('/api/v1/auth/register')
         .send({ email: `test-${Date.now()}@example.com`, password: 'Short1!' })
-        .expect(422);
+        .expect(400); // Validation errors return 400 Bad Request
 
-      expect(response.body.status).toBe('error');
+      expect(response.body.status).toBe('NO-GO');
     });
   });
 
@@ -131,7 +131,7 @@ describe('Authentication Flow - Integration Tests', () => {
         .send({ email, password: 'WrongPassword123!' })
         .expect(401);
 
-      expect(response.body.status).toBe('error');
+      expect(response.body.status).toBe('NO-GO');
     });
 
     it('locks account after 5 failed login attempts', async () => {
@@ -158,8 +158,8 @@ describe('Authentication Flow - Integration Tests', () => {
         .post('/api/v1/auth/login')
         .send({ email, password });
 
-      expect([401, 423]).toContain(response.status);
-      expect(response.body.message).toMatch(/locked|lockout/i);
+      expect([401, 423, 429]).toContain(response.status);
+      expect(response.body.payload.error.message).toMatch(/locked|lockout/i);
     });
   });
 

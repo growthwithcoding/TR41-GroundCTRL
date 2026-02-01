@@ -134,8 +134,9 @@ describe('FIRE-001, FIRE-002: Firebase Emulator Configuration', () => {
       const authHost = process.env.FIREBASE_AUTH_EMULATOR_HOST || AUTH_EMULATOR_HOST;
       const firestoreHost = process.env.FIRESTORE_EMULATOR_HOST || FIRESTORE_EMULATOR_HOST;
       
-      expect(authHost).toContain('localhost');
-      expect(firestoreHost).toContain('localhost');
+      // Accept both localhost and 127.0.0.1
+      expect(authHost).toMatch(/localhost|127\.0\.0\.1/);
+      expect(firestoreHost).toMatch(/localhost|127\.0\.0\.1/);
     });
   });
 });

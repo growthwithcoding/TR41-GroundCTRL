@@ -72,8 +72,8 @@ describe('Scenario Visibility - Integration Tests', () => {
       .set('Authorization', `Bearer ${testToken}`)
       .expect(200);
 
-    expect(response.body.payload.items).toBeDefined();
-    const scenarios = response.body.payload.items;
+    expect(response.body.payload.data).toBeDefined();
+    const scenarios = response.body.payload.data;
 
     for (const scenario of scenarios) {
       if (testScenarios.includes(scenario.id)) {

@@ -35,6 +35,16 @@ const satelliteHooks = {
    * since Firestore doesn't support OR queries directly. We filter after fetching.
    */
   ownershipScope: async (req, operation, options) => {
+    // Audit: Satellite access attempt
+    logger.audit('Satellite list access', {
+      userId: req.user?.id || 'unauthenticated',
+      callSign: req.user?.callSign || 'unknown',
+      isAdmin: req.user?.isAdmin || false,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      operation: operation
+    });
+    
     // Admins can see all
     if (req.user?.isAdmin) {
       return options;

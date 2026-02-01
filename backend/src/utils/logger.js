@@ -63,9 +63,32 @@ function debug(message, meta = {}) {
   }
 }
 
+/**
+ * Log audit message (for security events)
+ */
+function audit(message, meta = {}) {
+  // Sanitize sensitive data
+  const sanitizedMeta = { ...meta };
+  
+  // Remove sensitive fields
+  const sensitiveFields = ['password', 'token', 'secret', 'key', 'credentials'];
+  sensitiveFields.forEach(field => {
+    if (sanitizedMeta[field]) {
+      sanitizedMeta[field] = '[REDACTED]';
+    }
+  });
+  
+  // Add timestamp
+  sanitizedMeta.timestamp = new Date().toISOString();
+  
+  // Always log audit events regardless of log level
+  console.log(formatLog('audit', message, sanitizedMeta));
+}
+
 module.exports = {
   error,
   warn,
   info,
-  debug
+  debug,
+  audit
 };

@@ -22,6 +22,18 @@ const logger = require('../utils/logger');
  * @returns {Promise<string>} Firebase UID
  */
 async function verifyPassword(email, password) {
+  // In test mode, bypass external API and use mock storage
+  if (process.env.NODE_ENV === 'test' && global.mockAuthUsers) {
+    const user = global.mockAuthUsers.get(email);
+    if (!user) {
+      throw new AuthError('Invalid email or password', 401);
+    }
+    if (user.password !== password) {
+      throw new AuthError('Invalid email or password', 401);
+    }
+    return user.uid; // Returns Firebase UID from mock
+  }
+  
   const apiKey = process.env.FIREBASE_WEB_API_KEY;
   
   if (!apiKey) {
@@ -47,7 +59,6 @@ async function verifyPassword(email, password) {
     throw error;
   }
 }
-
 
 /**
  * Sync OAuth user profile (Google, etc.)

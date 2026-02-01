@@ -148,7 +148,17 @@ async function login(req, res, next) {
     }
 
     const { email, password } = validation.data;
-
+    
+    // Audit: Login attempt
+    logger.audit('Login attempt', {
+      email: email,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      path: req.path,
+      method: req.method
+    });
+    
+    // Attempt login
     let result;
     let userId;
     let userCallSign;
@@ -164,12 +174,18 @@ async function login(req, res, next) {
         ipAddress: req.ip,
         userAgent: req.get('user-agent')
       });
-
-      logger.info('User logged in successfully', {
-        uid: userId,
-        callSign: userCallSign
+      
+      logger.info('User logged in successfully', { uid: userId, callSign: userCallSign });
+      
+      // Audit: Successful login
+      logger.audit('Login successful', {
+        userId: userId,
+        callSign: userCallSign,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent')
       });
-
+      
+      // SECURITY: Set refresh token as HttpOnly cookie
       if (result.refreshToken) {
         res.cookie('refreshToken', result.refreshToken, {
           httpOnly: true,
@@ -222,7 +238,25 @@ async function login(req, res, next) {
           }
         } catch {
           logger.debug('Failed login attempt for unknown user', { email });
+          
+          // Audit: Failed login for unknown user
+          logger.audit('Login failed - unknown user', {
+            email: email,
+            ipAddress: req.ip,
+            userAgent: req.get('user-agent'),
+            reason: 'user_not_found'
+          });
         }
+        
+        // Audit: Failed login
+        logger.audit('Login failed', {
+          email: email,
+          userId: userId || 'unknown',
+          callSign: userCallSign || 'unknown',
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+          reason: 'invalid_credentials'
+        });
       }
 
       throw loginError;
@@ -291,8 +325,8 @@ async function refreshToken(req, res, next) {
 async function logout(req, res, next) {
   try {
     const accessToken = req.headers.authorization?.split(' ')[1];
-    const refreshToken = req.body.refreshToken;
-
+    const refreshToken = req.body?.refreshToken;
+    
     if (!accessToken) {
       throw new ValidationError('Access token required');
     }
