@@ -85,9 +85,6 @@ function isValidTokenPayload(decodedToken) {
  * @param {function} next - Express next middleware function
  */
 async function firebaseAuthMiddleware(req, res, next) {
-  // Initialize auth status as failed - must be explicitly set to success
-  let authenticationSuccessful = false;
-  
   try {
     // Step 1: Extract and validate Authorization header
     const authHeader = req.headers.authorization;
@@ -154,9 +151,6 @@ async function firebaseAuthMiddleware(req, res, next) {
     req.uid = decodedToken.uid;
     req.email = decodedToken.email;
     
-    // Mark authentication as successful
-    authenticationSuccessful = true;
-    
     logger.debug('Firebase user authenticated successfully', {
       uid: decodedToken.uid,
       email: decodedToken.email,
@@ -167,9 +161,6 @@ async function firebaseAuthMiddleware(req, res, next) {
     next();
     
   } catch (error) {
-    // Ensure authentication is marked as failed
-    authenticationSuccessful = false;
-    
     // Pass through AuthError as-is
     if (error instanceof AuthError) {
       return next(error);
@@ -182,12 +173,6 @@ async function firebaseAuthMiddleware(req, res, next) {
     });
     
     // Return generic auth error for unexpected failures
-    return next(new AuthError('Authentication failed', 401));
-  }
-  
-  // Safety check: if we somehow reach here without success or calling next(), reject
-  if (!authenticationSuccessful) {
-    logger.error('Firebase auth: reached end of middleware without success');
     return next(new AuthError('Authentication failed', 401));
   }
 }
