@@ -5,11 +5,11 @@ import { Clock, Lightbulb, Orbit, Radio, HelpCircle, Activity, Terminal } from "
 import { useSimulatorState } from "@/contexts/SimulatorStateContext"
 
 export function SimulatorFooter({ 
-  missionTime,
-  hintsUsed = 2,
-  totalHints = 5,
-  orbitStatus = "Analyzing"
+  missionStarted,
+  sessionId,
+  satellite
 }) {
+  const [hintsUsed, setHintsUsed] = useState(0)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   
   // Use simulator state for connection status and command count
@@ -17,8 +17,33 @@ export function SimulatorFooter({
     connected, 
     commands, 
     sessionStartTime,
-    missionStarted
+    telemetry,
+    scenario
   } = useSimulatorState()
+  
+  // Fetch hints used from backend
+  useEffect(() => {
+    const fetchHints = async () => {
+      if (!sessionId) return
+      
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/ai/stats/${sessionId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setHintsUsed(data.data?.hint_count || 0)
+        }
+      } catch (error) {
+        console.error('Error fetching hint stats:', error)
+      }
+    }
+    
+    if (missionStarted && sessionId) {
+      fetchHints()
+      // Refresh every 10 seconds
+      const interval = setInterval(fetchHints, 10000)
+      return () => clearInterval(interval)
+    }
+  }, [sessionId, missionStarted])
   
   // Calculate elapsed time from session start
   useEffect(() => {
@@ -44,11 +69,16 @@ export function SimulatorFooter({
 
   const commStatusColor = connected ? "text-status-nominal" : "text-status-critical"
   const commStatusLabel = connected ? "Connected" : "Disconnected"
+  
+  // Get satellite name and scenario max hints
+  const satelliteName = satellite?.name || scenario?.satellite?.name || 'Satellite'
+  const totalHints = scenario?.maxHints || 5
+  const orbitStatus = telemetry?.orbit ? "Nominal" : "Analyzing"
 
   return (
-    <footer className="border-t border-border px-6 py-3 bg-muted/50">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-6">
+    <footer className="border-t border-border px-6 py-3 bg-muted/50 w-full">
+      <div className="flex items-center justify-between w-full">
+        <div className="flex items-center gap-6 flex-wrap">
           {/* Mission Time */}
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary" />
@@ -75,9 +105,18 @@ export function SimulatorFooter({
               {hintsUsed} / {totalHints}
             </span>
           </div>
+          
+          {/* Satellite Name */}
+          <div className="flex items-center gap-2">
+            <Orbit className="w-4 h-4 text-primary" />
+            <span className="text-xs text-muted-foreground">Satellite:</span>
+            <span className="text-sm font-semibold text-foreground">
+              {satelliteName}
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-6 flex-wrap">
           {/* Orbit Status */}
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-primary" />

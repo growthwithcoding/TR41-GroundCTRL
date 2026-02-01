@@ -848,6 +848,70 @@ async function resetPassword(token, newPassword) {
 }
 
 
+/**
+ * Exchange Firebase ID token for backend JWT tokens
+ * Works for all Firebase-authenticated users (email/password, Google, etc.)
+ * @param {string} firebaseUid - Firebase UID (from verified Firebase ID token)
+ * @returns {Promise<object>} User data with backend JWT tokens
+ */
+async function exchangeFirebaseToken(firebaseUid) {
+  const db = getFirestore();
+  
+  try {
+    // Get user from Firestore
+    const userDoc = await db.collection('users').doc(firebaseUid).get();
+    
+    if (!userDoc.exists) {
+      throw new AuthError('User not found in database', 404);
+    }
+    
+    const userData = userDoc.data();
+    
+    // Check if user is active
+    if (userData.isActive === false) {
+      throw new AuthError('Account is deactivated', 403);
+    }
+    
+    // Update last login time
+    await db.collection('users').doc(firebaseUid).update({
+      lastLoginAt: new Date(),
+      updatedAt: new Date()
+    });
+    
+    // Generate backend JWT tokens
+    const accessToken = jwtUtil.createAccessToken(
+      firebaseUid,
+      userData.callSign,
+      userData.isAdmin || false
+    );
+    const refreshToken = jwtUtil.createRefreshToken(firebaseUid);
+    
+    logger.info('Firebase token exchanged for backend JWT', {
+      uid: firebaseUid,
+      callSign: userData.callSign
+    });
+    
+    return {
+      user: {
+        uid: firebaseUid,
+        email: userData.email,
+        callSign: userData.callSign,
+        displayName: userData.displayName,
+        isAdmin: userData.isAdmin || false
+      },
+      accessToken,
+      refreshToken
+    };
+  } catch (error) {
+    logger.error('Firebase token exchange error', { 
+      error: error.message, 
+      uid: firebaseUid 
+    });
+    throw error;
+  }
+}
+
+
 module.exports = {
   register,
   syncOAuthProfile,
@@ -858,5 +922,6 @@ module.exports = {
   bootstrapAdmin,
   changePassword,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  exchangeFirebaseToken
 };

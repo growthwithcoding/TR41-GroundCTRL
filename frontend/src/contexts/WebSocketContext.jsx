@@ -24,6 +24,13 @@ export function WebSocketProvider({ children }) {
   const [isInitializing, setIsInitializing] = useState(false);
   const [groundStations, setGroundStations] = useState([]);
   
+  // Mission Control Enhancement - Phase 6 state
+  const [commandQueueStatus, setCommandQueueStatus] = useState(new Map()); // commandId -> status
+  const [beaconStatus, setBeaconStatus] = useState({ received: false, lastBeacon: null });
+  const [groundStationLink, setGroundStationLink] = useState({ isVisible: false, station: null });
+  const [timeScale, setTimeScale] = useState(1);
+  const [stepValidation, setStepValidation] = useState(null);
+  
   // Use refs to avoid dependency issues in useCallback
   const telemetrySocketRef = useRef(null);
   const commandSocketRef = useRef(null);
@@ -184,9 +191,63 @@ export function WebSocketProvider({ children }) {
         });
 
         commandSock.on('command:status', (statusUpdate) => {
-          console.log('Command status update:', statusUpdate);
-          // Emit event for components to listen to
+          console.log('🔄 Command status update:', statusUpdate);
+          // Update command queue status map
+          setCommandQueueStatus(prev => {
+            const newMap = new Map(prev);
+            newMap.set(statusUpdate.commandId, statusUpdate);
+            return newMap;
+          });
+          // Also emit event for direct component listening
           window.dispatchEvent(new CustomEvent('command:status', { detail: statusUpdate }));
+        });
+        
+        // Mission Control Enhancement - Phase 6 event handlers
+        telemetrySock.on('beacon:received', (beaconData) => {
+          console.log('📡 Beacon received:', beaconData);
+          setBeaconStatus({
+            received: true,
+            lastBeacon: beaconData.beacon,
+            timestamp: Date.now(),
+            signalStrength: beaconData.signalStrength,
+            groundStation: beaconData.groundStation
+          });
+          setGroundStationLink({
+            isVisible: true,
+            station: beaconData.groundStation,
+            visibility: beaconData.visibility
+          });
+        });
+        
+        telemetrySock.on('beacon:transmitted', (beaconData) => {
+          console.log('📡 Beacon transmitted (not received):', beaconData);
+          setBeaconStatus({
+            received: false,
+            lastBeacon: beaconData.beacon,
+            timestamp: Date.now(),
+            reason: beaconData.reason,
+            nextPass: beaconData.nextPass
+          });
+          setGroundStationLink({
+            isVisible: false,
+            station: null,
+            nextPass: beaconData.nextPass
+          });
+        });
+        
+        telemetrySock.on('time:scale_change', (timeData) => {
+          console.log('⏱️ Time scale changed:', timeData);
+          setTimeScale(timeData.scale || 1);
+        });
+        
+        telemetrySock.on('step:validation_update', (validationData) => {
+          console.log('✅ Step validation update:', validationData);
+          setStepValidation(validationData);
+        });
+        
+        telemetrySock.on('ground_station:visibility', (visibilityData) => {
+          console.log('🛰️ Ground station visibility:', visibilityData);
+          setGroundStationLink(visibilityData);
         });
 
       setTelemetrySocket(telemetrySock);
@@ -301,6 +362,7 @@ export function WebSocketProvider({ children }) {
   }, [telemetrySocket]);
 
   const value = {
+    // Existing
     connected,
     sessionState,
     currentSessionId,
@@ -312,7 +374,14 @@ export function WebSocketProvider({ children }) {
     sendCommand,
     requestState,
     telemetrySocket,
-    commandSocket
+    commandSocket,
+    
+    // Mission Control Enhancement - Phase 6
+    commandQueueStatus,
+    beaconStatus,
+    groundStationLink,
+    timeScale,
+    stepValidation
   };
 
   return (

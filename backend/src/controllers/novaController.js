@@ -297,6 +297,7 @@ async function deleteConversation(req, res, next) {
 /**
  * POST /ai/help/ask
  * Ask NOVA a help question (public endpoint, no authentication required)
+ * Enhanced with multi-bubble responses and smart suggestions
  */
 async function askHelpQuestion(req, res, next) {
   try {
@@ -310,13 +311,20 @@ async function askHelpQuestion(req, res, next) {
       conversationId,
     });
 
+    // Format response with paragraphs and generate suggestions
+    const formatted = novaService.formatNovaResponse(novaResponse.content, context || 'help');
+    const suggestions = novaService.generateSuggestions(context || 'help', novaResponse.content);
+
     const response = responseFactory.createSuccessResponse(
       {
         message: {
           role: 'assistant',
           content: novaResponse.content,
+          paragraphs: formatted.paragraphs,
           is_fallback: novaResponse.is_fallback,
+          hint_type: null,
         },
+        suggestions: suggestions,
         conversationId: novaResponse.conversationId,
         userId: novaResponse.userId,
       },

@@ -69,19 +69,15 @@ export async function apiRequest(endpoint, options = {}, requiresAuth = true) {
 
   // Add authentication token if required
   if (requiresAuth) {
-    const user = auth.currentUser
-    if (!user) {
-      throw new APIError('Not authenticated', 401, { brief: 'User not logged in' })
+    // Use backend JWT token instead of Firebase token
+    const backendToken = getBackendAccessToken()
+    
+    if (!backendToken) {
+      throw new APIError('Not authenticated', 401, { brief: 'No backend token available. Please log in.' })
     }
     
-    try {
-      const firebaseToken = await user.getIdToken(true) // Force refresh
-      console.log('Using Firebase token')
-      headers['Authorization'] = `Bearer ${firebaseToken}`
-    } catch (error) {
-      console.error('Failed to get token:', error)
-      throw new APIError('Failed to get auth token', 401, { brief: error.message })
-    }
+    console.log('✅ Using backend JWT token')
+    headers['Authorization'] = `Bearer ${backendToken}`
   }
 
   try {

@@ -197,6 +197,25 @@ const updateSessionHintsSchema = z.object({
   }).strict(),
 }).strict();
 
+// ---------- SUGGESTION SCHEMA ----------
+// Smart action suggestions displayed as buttons in the chat UI
+
+const novaSuggestionSchema = z.object({
+  id: z.string()
+    .min(1, 'Suggestion ID is required')
+    .describe('Unique suggestion identifier (e.g., "modules", "recommend", "hint")'),
+  
+  label: z.string()
+    .min(1, 'Label is required')
+    .max(50, 'Label must be 50 characters or fewer')
+    .describe('Button display text (e.g., "Show training modules")'),
+  
+  action: z.string()
+    .min(1, 'Action is required')
+    .max(500, 'Action must be 500 characters or fewer')
+    .describe('Full message text to send when button is clicked'),
+});
+
 // ---------- ASK HELP QUESTION schema (Public NOVA endpoint) ----------
 // For unauthenticated help queries
 
@@ -207,16 +226,25 @@ const askHelpQuestionSchema = z.object({
       .max(1000, 'Question must be 1000 characters or fewer')
       .describe('User help question'),
     
-    context: z.string()
+    context: z.enum(['help', 'simulator'])
       .optional()
-      .describe('Optional help article slug for context'),
+      .default('help')
+      .describe('Context determines which suggestions are returned'),
     
     conversationId: z.string()
       .optional()
       .describe('Optional conversation ID for multi-turn chat (generated on first request)'),
     
-  }).strict(),
-}).strict();
+    sessionId: z.string()
+      .optional()
+      .describe('Optional session ID for authenticated users in training mode'),
+    
+    stepId: z.string()
+      .optional()
+      .describe('Optional step ID for simulator context'),
+    
+  }).passthrough(), // Allow additional fields
+}).passthrough(); // Allow additional fields at top level
 
 module.exports = {
   // Schemas
@@ -227,6 +255,7 @@ module.exports = {
   aiMessageDocumentSchema,
   updateSessionHintsSchema,
   askHelpQuestionSchema,
+  novaSuggestionSchema,
   
   // Enums
   MessageRole,

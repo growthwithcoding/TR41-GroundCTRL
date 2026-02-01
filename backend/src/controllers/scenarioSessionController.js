@@ -23,13 +23,18 @@ const hooks = {
     if (req.user?.isAdmin) {
       return options;
     }
-    return { ...options, createdBy: req.user?.id };
+    return { ...options, user_id: req.user?.uid };
   },
 
   beforeCreate: async (req, data) => {
+    // CRITICAL: Set user_id from authenticated user (not from request body)
+    // This is required for Firestore security rules
+    data.user_id = req.user?.uid;
+    
     logger.debug('Session pre-create validation', {
       scenario_id: data.scenario_id,
-      userId: req.user?.id
+      userId: req.user?.uid,
+      user_id: data.user_id
     });
   },
 
