@@ -49,7 +49,33 @@ export async function signUp(email, password, displayName, callSign) {
 
 // Sign in with email and password
 export async function signIn(email, password) {
+  console.log('signIn called with email:', email)
+  
+  // Login via backend to get JWT tokens
+  console.log('Calling backend login...')
+  const response = await apiAuthService.loginWithCredentials(email, password)
+  
+  console.log('Login response:', { 
+    hasAccessToken: !!response?.accessToken, 
+    hasRefreshToken: !!response?.refreshToken,
+    accessTokenPreview: response?.accessToken?.substring(0, 20) 
+  })
+  
+  // Store backend JWT tokens
+  if (response?.accessToken) {
+    console.log('Storing tokens...')
+    const { setBackendTokens } = await import('../api/httpClient')
+    setBackendTokens(response.accessToken, response.refreshToken || null)
+    console.log('Tokens stored in localStorage')
+  } else {
+    console.error('No accessToken in response!')
+  }
+  
+  // Then sign in with Firebase
+  console.log('Signing in with Firebase...')
   const userCredential = await signInWithEmailAndPassword(auth, email, password)
+  console.log('Firebase sign in complete')
+  
   return userCredential.user
 }
 

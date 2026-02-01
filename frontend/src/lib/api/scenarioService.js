@@ -94,11 +94,12 @@ export async function deleteScenario(scenarioId) {
  */
 export async function createScenarioStep(stepData) {
   try {
+    console.log('Creating scenario step with data:', stepData)
     const response = await api.post('/scenario-steps', stepData)
     return response.payload || response
   } catch (error) {
     console.error('Failed to create scenario step:', error)
-    console.error('Step validation errors:', error.data?.errors || error.data)
+    console.error('Step validation errors:', error.data?.payload?.error || error.data?.errors || error.data)
     throw new Error(error.message || 'Failed to create step')
   }
 }

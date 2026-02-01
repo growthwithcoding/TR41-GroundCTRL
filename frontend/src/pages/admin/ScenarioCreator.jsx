@@ -200,7 +200,13 @@ export default function ScenarioCreator() {
       // Create scenario
       const createdScenario = await createScenario(scenarioData)
       console.log('Scenario created:', createdScenario)
-      const scenarioId = createdScenario.id
+      const scenarioId = createdScenario.data?.id || createdScenario.id
+      
+      if (!scenarioId) {
+        throw new Error('Failed to get scenario ID from response')
+      }
+      
+      console.log('Using scenario ID:', scenarioId)
 
       // Create steps
       for (const step of steps) {

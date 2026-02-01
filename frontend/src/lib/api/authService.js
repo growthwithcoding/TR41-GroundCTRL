@@ -6,6 +6,34 @@
 import api from './httpClient'
 
 /**
+ * Login with email and password via backend
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @returns {Promise<object>} Backend JWT tokens and user data
+ */
+export async function loginWithCredentials(email, password) {
+  try {
+    const response = await api.post('/auth/login', { email, password }, {}, false)
+    console.log('Raw login response:', response)
+    
+    // Extract tokens from nested structure
+    const payload = response.payload || response
+    const tokens = payload.tokens || {}
+    const user = payload.user || {}
+    
+    return {
+      ...payload,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user
+    }
+  } catch (error) {
+    console.error('Failed to login:', error)
+    throw new Error(error.message || 'Failed to authenticate')
+  }
+}
+
+/**
  * Exchange Firebase token for backend JWT
  * @param {string} firebaseToken - Firebase ID token
  * @returns {Promise<object>} Backend JWT tokens
@@ -41,8 +69,18 @@ export async function loginWithFirebaseToken(firebaseToken) {
 export async function registerUser(userData) {
   try {
     const response = await api.post('/auth/register', userData, {}, false)
-    // Return full response including accessToken and refreshToken
-    return response.payload || response
+    
+    // Extract tokens from nested structure
+    const payload = response.payload || response
+    const tokens = payload.tokens || {}
+    const user = payload.user || {}
+    
+    return {
+      ...payload,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user
+    }
   } catch (error) {
     console.error('Failed to register user:', error)
     throw new Error(error.message || 'Failed to register user')
