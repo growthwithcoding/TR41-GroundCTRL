@@ -237,11 +237,11 @@ const askHelpQuestionSchema = z.object({
       .min(1, 'Question content is required')
       .max(1000, 'Question must be 1000 characters or fewer')
       .refine(
-        (val) => !/<script.*?>/i.test(val) && !/<\/script>/i.test(val),
+        (val) => !/<\s*script\b[^>]*>/i.test(val) && !/<\s*\/\s*script\b[^>]*>/i.test(val),
         { message: 'Scripts not allowed in content' }
       )
       .refine(
-        (val) => !/<iframe.*?>/i.test(val) && !/<\/iframe>/i.test(val),
+        (val) => !/<\s*iframe\b[^>]*>/i.test(val) && !/<\s*\/\s*iframe\b[^>]*>/i.test(val),
         { message: 'Iframes not allowed in content' }
       )
       .refine(
