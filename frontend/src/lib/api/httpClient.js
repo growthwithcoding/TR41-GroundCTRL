@@ -76,7 +76,9 @@ export async function apiRequest(endpoint, options = {}, requiresAuth = true) {
       throw new APIError('Not authenticated', 401, { brief: 'No backend token available. Please log in.' })
     }
     
-    console.log('✅ Using backend JWT token')
+    if (import.meta.env.DEV) {
+      console.log('✅ Using backend JWT token')
+    }
     headers['Authorization'] = `Bearer ${backendToken}`
   }
 

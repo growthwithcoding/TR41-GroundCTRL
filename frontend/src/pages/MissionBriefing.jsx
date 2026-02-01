@@ -281,16 +281,12 @@ export default function MissionBriefingPage() {
       // Create the session via backend API
       const newSessionId = await createSession(sessionData)
       
-      console.log('✅ Session created successfully:', newSessionId)
-      console.log('📋 Starting countdown sequence...')
-      
       setSessionId(newSessionId)
       setSessionData(sessionData) // Store session data for launch animation
       setPhase("countdown")
       setCreatingSession(false)
     } catch (err) {
       console.error('Error creating session:', err)
-      console.error('Full error:', err)
       setSessionError(`Failed to create session: ${err.message}`)
       setCreatingSession(false)
       

@@ -202,9 +202,10 @@ export function CommandConsole() {
     
     // Execute command through context (which will emit to backend via WebSocket)
     executeCommand({
-      type: command.category,
+      type: commandId, // Use the actual command ID for type to align with backend validation
       name: commandId, // Use the actual command ID from backend
       commandName: commandId, // Backend expects commandName
+      category: command.category, // Preserve category separately for grouping/metadata
       parameters
     })
   }

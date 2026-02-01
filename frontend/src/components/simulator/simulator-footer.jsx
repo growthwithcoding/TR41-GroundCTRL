@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Clock, Lightbulb, Orbit, Radio, HelpCircle, Activity, Terminal } from "lucide-react"
 import { useSimulatorState } from "@/contexts/SimulatorStateContext"
+import api from "@/lib/api/httpClient"
 
 export function SimulatorFooter({ 
   missionStarted,
@@ -27,11 +28,8 @@ export function SimulatorFooter({
       if (!sessionId) return
       
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/ai/stats/${sessionId}`)
-        if (response.ok) {
-          const data = await response.json()
-          setHintsUsed(data.data?.hint_count || 0)
-        }
+        const response = await api.get(`/ai/stats/${sessionId}`)
+        setHintsUsed(response.payload?.data?.hint_count || 0)
       } catch (error) {
         console.error('Error fetching hint stats:', error)
       }

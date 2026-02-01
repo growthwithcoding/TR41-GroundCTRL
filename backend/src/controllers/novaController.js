@@ -322,8 +322,9 @@ async function askHelpQuestion(req, res, _next) {
 
     // Generate help response with timeout protection
     const timeoutMs = 8000; // 8 second timeout
+    let timeoutId;
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
+      timeoutId = setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
     });
 
     const novaPromise = novaService.generateHelpResponse(content, {
@@ -335,7 +336,9 @@ async function askHelpQuestion(req, res, _next) {
     let novaResponse;
     try {
       novaResponse = await Promise.race([novaPromise, timeoutPromise]);
-    } catch {
+      clearTimeout(timeoutId); // Clear timeout on successful completion
+    } catch (error) {
+      clearTimeout(timeoutId); // Clear timeout on error/timeout
       // Timeout occurred - return graceful fallback
       logger.warn('NOVA help request timed out', {
         content: content.substring(0, 100),

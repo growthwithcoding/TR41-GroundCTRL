@@ -10,7 +10,7 @@
  * - Auto-slowdown indicator
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Clock, Pause, Play, FastForward, Zap } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,17 @@ const TIME_SCALES = [
 
 export function TimeControlDisplay({ className = '', sessionId }) {
   const { timeScale, telemetrySocket } = useWebSocket();
-  const [isPaused, setIsPaused] = useState(false);
+  const [lastNonZeroScale, setLastNonZeroScale] = useState(1);
+  
+  // Derive isPaused from authoritative timeScale from backend
+  const isPaused = timeScale === 0;
+  
+  // Track last non-zero scale for resume
+  useEffect(() => {
+    if (timeScale > 0) {
+      setLastNonZeroScale(timeScale);
+    }
+  }, [timeScale]);
   
   // Send time scale change to backend
   const handleTimeScaleChange = (newScale) => {
@@ -47,12 +57,11 @@ export function TimeControlDisplay({ className = '', sessionId }) {
   // Toggle pause/resume
   const handlePauseToggle = () => {
     if (telemetrySocket && sessionId) {
-      const newPausedState = !isPaused;
-      setIsPaused(newPausedState);
+      const newScale = isPaused ? lastNonZeroScale : 0;
       
       telemetrySocket.emit('time:set_scale', {
         sessionId,
-        scale: newPausedState ? 0 : timeScale || 1
+        scale: newScale
       });
     }
   };

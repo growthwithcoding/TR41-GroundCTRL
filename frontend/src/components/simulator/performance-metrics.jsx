@@ -22,6 +22,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import api from '@/lib/api/httpClient';
 
 export function PerformanceMetrics({ sessionId, className = '' }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,13 +35,13 @@ export function PerformanceMetrics({ sessionId, className = '' }) {
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/performance`);
-      if (response.ok) {
-        const data = await response.json();
-        setMetrics(data);
-      }
+      // TODO: Backend endpoint not implemented yet
+      // When implemented, use: const response = await api.get(`/scenario-sessions/${sessionId}/performance`)
+      // For now, show placeholder message
+      setMetrics(null);
     } catch (error) {
       console.error('Error fetching performance metrics:', error);
+      setMetrics(null);
     } finally {
       setLoading(false);
     }
