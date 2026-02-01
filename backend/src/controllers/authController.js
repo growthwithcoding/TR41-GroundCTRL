@@ -19,6 +19,7 @@ const logger = require('../utils/logger');
  * POST /auth/sync-oauth-profile
  * SECURITY: Must be called with authenticated user token
  * Uses authenticated user's UID from token, not from request body
+ * Email is fetched from Firebase Auth (trusted source), not from request
  */
 async function syncOAuthProfile(req, res, next) {
   try {
@@ -29,24 +30,23 @@ async function syncOAuthProfile(req, res, next) {
 
     const authenticatedUid = req.user.uid;
 
-    // Optional user-controlled fields – used only as data, not for auth
+    // Optional user-controlled fields – used only for profile enrichment
+    // Email is NOT from request body - service fetches it from Firebase Auth
     const body = req.body || {};
-    const email = typeof body.email === 'string' ? body.email.trim() : undefined;
     const displayName = body.displayName;
     const photoURL = body.photoURL;
 
     // Call service with UID + optional profile data.
-    // Service is responsible for deciding how to update user collection.
+    // Service fetches email from Firebase Auth using the authenticated UID
     const result = await authService.syncOAuthProfile(
       authenticatedUid,
       {
-        email,
         displayName,
         photoURL
       }
     );
 
-    logger.info('OAuth profile synced', { uid: authenticatedUid, email });
+    logger.info('OAuth profile synced', { uid: authenticatedUid });
 
     const response = responseFactory.createSuccessResponse(result, {
       callSign: result.user.callSign,
