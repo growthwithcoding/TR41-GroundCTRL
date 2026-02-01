@@ -8,7 +8,7 @@
  */
 export function generateTestEmail() {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(7);
+  const random = require('crypto').randomBytes(4).toString('hex');
   return `test-${timestamp}-${random}@groundctrl.test`;
 }
 
@@ -17,7 +17,7 @@ export function generateTestEmail() {
  * @returns {string} Test callSign
  */
 export function generateTestCallSign() {
-  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const random = require('crypto').randomBytes(3).toString('hex').toUpperCase();
   return `TEST-${random}`;
 }
 

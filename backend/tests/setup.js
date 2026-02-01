@@ -134,7 +134,7 @@ const createMockCollection = (collectionName) => {
       return this; 
     }),
     add: jest.fn().mockImplementation(async (data) => {
-      const id = 'test-doc-id-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      const id = 'test-doc-id-' + Date.now() + '-' + require('crypto').randomBytes(6).toString('hex');
       store.set(id, { ...data, id });
       return Promise.resolve({ id });
     })
@@ -170,7 +170,7 @@ jest.mock('firebase-admin', () => ({
         throw error;
       }
       
-      const uid = 'test-uid-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      const uid = 'test-uid-' + Date.now() + '-' + require('crypto').randomBytes(6).toString('hex');
       const user = {
         uid,
         email,

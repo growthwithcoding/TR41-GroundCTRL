@@ -134,7 +134,7 @@ async function retryOperation(fn, retries = 3, delayMs = 1000) {
  * @returns {string} Unique email
  */
 function generateUniqueEmail(prefix = 'test') {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
+  return `${prefix}-${Date.now()}-${require('crypto').randomBytes(4).toString('hex')}@example.com`;
 }
 
 module.exports = {
