@@ -88,7 +88,8 @@ app.use(cors({
       callback(null, true);
     } else {
       logger.warn('CORS blocked origin', { origin, allowedOrigins });
-      callback(new Error('Not allowed by CORS'));
+      // Return false to block without throwing error (prevents 500)
+      callback(null, false);
     }
   },
   credentials: true, // Allow cookies/credentials with allowed origins

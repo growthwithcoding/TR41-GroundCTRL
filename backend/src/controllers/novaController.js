@@ -304,12 +304,65 @@ async function askHelpQuestion(req, res, next) {
     const { content, context, conversationId } = req.body;
     const userId = req.user?.uid; // Optional - will be null for anonymous users
 
-    // Generate help response
-    const novaResponse = await novaService.generateHelpResponse(content, {
+    // Defensive: Ensure we have content
+    if (!content || typeof content !== 'string' || content.trim().length === 0) {
+      const response = responseFactory.createErrorResponse(
+        {
+          statusCode: httpStatus.BAD_REQUEST,
+          code: 'INVALID_INPUT',
+          message: 'Content is required',
+        },
+        {
+          callSign: req.callSign || 'GUEST',
+          requestId: req.id,
+        }
+      );
+      return res.status(httpStatus.BAD_REQUEST).json(response);
+    }
+
+    // Generate help response with timeout protection
+    const timeoutMs = 8000; // 8 second timeout
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
+    });
+
+    const novaPromise = novaService.generateHelpResponse(content, {
       userId,
       context,
       conversationId,
     });
+
+    let novaResponse;
+    try {
+      novaResponse = await Promise.race([novaPromise, timeoutPromise]);
+    } catch (timeoutError) {
+      // Timeout occurred - return graceful fallback
+      logger.warn('NOVA help request timed out', {
+        content: content.substring(0, 100),
+        userId,
+      });
+      
+      const response = responseFactory.createSuccessResponse(
+        {
+          message: {
+            role: 'assistant',
+            content: 'I\'m experiencing high demand right now. Please try again in a moment, or browse our help articles for immediate assistance.',
+            paragraphs: ['I\'m experiencing high demand right now. Please try again in a moment, or browse our help articles for immediate assistance.'],
+            is_fallback: true,
+            hint_type: null,
+          },
+          suggestions: [],
+          conversationId: conversationId || 'timeout',
+          userId: userId || 'anonymous',
+        },
+        {
+          callSign: req.callSign || 'GUEST',
+          requestId: req.id,
+          statusCode: httpStatus.CREATED,
+        }
+      );
+      return res.status(httpStatus.CREATED).json(response);
+    }
 
     // Format response with paragraphs and generate suggestions
     const formatted = novaService.formatNovaResponse(novaResponse.content, context || 'help');
@@ -339,9 +392,31 @@ async function askHelpQuestion(req, res, next) {
   } catch (error) {
     logger.error('Failed to process help question', {
       error: error.message,
+      stack: error.stack,
       content: req.body?.content,
     });
-    next(error);
+    
+    // Don't propagate as 500 - return graceful error response
+    const response = responseFactory.createSuccessResponse(
+      {
+        message: {
+          role: 'assistant',
+          content: 'I\'m having trouble processing your request right now. Please try again or contact support if the issue persists.',
+          paragraphs: ['I\'m having trouble processing your request right now. Please try again or contact support if the issue persists.'],
+          is_fallback: true,
+          hint_type: null,
+        },
+        suggestions: [],
+        conversationId: req.body?.conversationId || 'error',
+        userId: req.user?.uid || 'anonymous',
+      },
+      {
+        callSign: req.callSign || 'GUEST',
+        requestId: req.id,
+        statusCode: httpStatus.CREATED,
+      }
+    );
+    res.status(httpStatus.CREATED).json(response);
   }
 }
 
