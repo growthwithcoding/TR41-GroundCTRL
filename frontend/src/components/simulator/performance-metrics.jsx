@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, Award, Star, Target, Clock, Zap } from 'lucide-react';
+import { TrendingUp, Star, Target, Clock, Zap } from 'lucide-react';
 import {
   Card,
   CardContent,

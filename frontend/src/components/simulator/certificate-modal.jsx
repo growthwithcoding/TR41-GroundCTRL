@@ -12,7 +12,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Award, Download, Share2, Trophy, Star, X } from 'lucide-react';
+import { Download, Share2, Trophy, Star, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,

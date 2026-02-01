@@ -40,7 +40,6 @@ export function NovaAssistant({ sessionId, stepId }) {
   const { 
     steps, 
     currentStepIndex,
-    missionProgress,
     saveProgress
   } = useSimulatorState()
   
