@@ -283,7 +283,7 @@ export function NovaAssistant({ sessionId, stepId }) {
                   handleSend(suggestion.action)
                   setSuggestions([]) // Clear suggestions after clicking
                 }}
-                className="flex-shrink-0 rounded-lg text-xs bg-transparent"
+                className="shrink-0 rounded-lg text-xs bg-transparent"
               >
                 {suggestion.label}
               </Button>
