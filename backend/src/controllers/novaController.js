@@ -299,7 +299,7 @@ async function deleteConversation(req, res, next) {
  * Ask NOVA a help question (public endpoint, no authentication required)
  * Enhanced with multi-bubble responses and smart suggestions
  */
-async function askHelpQuestion(req, res, next) {
+async function askHelpQuestion(req, res, _next) {
   try {
     const { content, context, conversationId } = req.body;
     const userId = req.user?.uid; // Optional - will be null for anonymous users
@@ -310,7 +310,7 @@ async function askHelpQuestion(req, res, next) {
         {
           statusCode: httpStatus.BAD_REQUEST,
           code: 'INVALID_INPUT',
-          message: 'Content is required',
+          message: 'ABORT: Transmission content required for NOVA uplink',
         },
         {
           callSign: req.callSign || 'GUEST',
@@ -335,7 +335,7 @@ async function askHelpQuestion(req, res, next) {
     let novaResponse;
     try {
       novaResponse = await Promise.race([novaPromise, timeoutPromise]);
-    } catch (timeoutError) {
+    } catch (_timeoutError) {
       // Timeout occurred - return graceful fallback
       logger.warn('NOVA help request timed out', {
         content: content.substring(0, 100),
@@ -346,8 +346,8 @@ async function askHelpQuestion(req, res, next) {
         {
           message: {
             role: 'assistant',
-            content: 'I\'m experiencing high demand right now. Please try again in a moment, or browse our help articles for immediate assistance.',
-            paragraphs: ['I\'m experiencing high demand right now. Please try again in a moment, or browse our help articles for immediate assistance.'],
+            content: '🛰️ STANDBY - NOVA uplink experiencing high traffic. Retry transmission in T-minus 30 seconds or access Mission Archives for immediate assistance.',
+            paragraphs: ['🛰️ STANDBY - NOVA uplink experiencing high traffic. Retry transmission in T-minus 30 seconds or access Mission Archives for immediate assistance.'],
             is_fallback: true,
             hint_type: null,
           },
@@ -401,8 +401,8 @@ async function askHelpQuestion(req, res, next) {
       {
         message: {
           role: 'assistant',
-          content: 'I\'m having trouble processing your request right now. Please try again or contact support if the issue persists.',
-          paragraphs: ['I\'m having trouble processing your request right now. Please try again or contact support if the issue persists.'],
+          content: '⚠️ SYSTEM ANOMALY - NOVA experiencing signal interference. Reattempt transmission or contact Mission Control if the anomaly persists.',
+          paragraphs: ['⚠️ SYSTEM ANOMALY - NOVA experiencing signal interference. Reattempt transmission or contact Mission Control if the anomaly persists.'],
           is_fallback: true,
           hint_type: null,
         },
