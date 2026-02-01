@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
-import { createScenario, createScenarioStep, getSatellites } from '@/lib/api/scenarioService'
+import { createScenario, createScenarioStep, getSatellites, getGroundStations } from '@/lib/api/scenarioService'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft, ArrowRight, Check, Loader2, Rocket } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
-const STEPS = ['Basic Info', 'Satellite', 'Steps & Objectives', 'Review & Publish']
+const STEPS = ['Basic Info', 'Satellite & Ground Station', 'Steps & Objectives', 'Review & Publish']
 
 const DIFFICULTIES = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
 const TIERS = ['ROOKIE_PILOT', 'MISSION_SPECIALIST', 'MISSION_COMMANDER']
@@ -31,6 +31,7 @@ export default function ScenarioCreator() {
   const [currentStep, setCurrentStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [satellites, setSatellites] = useState([])
+  const [groundStations, setGroundStations] = useState([])
 
   // Form data
   const [scenarioData, setScenarioData] = useState({
@@ -46,6 +47,7 @@ export default function ScenarioCreator() {
     isCore: false,
     isPublic: false,
     satellite_id: '',
+    ground_station_id: '',
     tags: [],
     objectives: [],
     prerequisites: []
@@ -83,14 +85,33 @@ export default function ScenarioCreator() {
       })
     }
   }
-
+  // Load ground stations when on satellite step
+  const loadGroundStations = async () => {
+    try {
+      console.log('Loading ground stations...')
+      const response = await getGroundStations()
+      console.log('Ground stations loaded:', response)
+      
+      // Handle different response structures
+      const stationList = response?.data || response
+      setGroundStations(Array.isArray(stationList) ? stationList : [])
+    } catch (error) {
+      console.error('Error loading ground stations:', error)
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to load ground stations',
+        variant: 'destructive'
+      })
+    }
+  }
   const handleNext = () => {
     if (currentStep < STEPS.length - 1) {
       const nextStep = currentStep + 1
       setCurrentStep(nextStep)
-      // Load satellites when entering step 1 (Satellite Selection)
-      if (nextStep === 1 && satellites.length === 0) {
-        loadSatellites()
+      // Load satellites and ground stations when entering step 1
+      if (nextStep === 1) {
+        if (satellites.length === 0) loadSatellites()
+        if (groundStations.length === 0) loadGroundStations()
       }
     }
   }
@@ -433,9 +454,10 @@ export default function ScenarioCreator() {
               </div>
             )}
 
-            {/* Step 1: Satellite */}
+            {/* Step 1: Satellite & Ground Station */}
             {currentStep === 1 && (
               <div className="space-y-6">
+                {/* Satellite Selection */}
                 <div className="space-y-2">
                   <Label htmlFor="satellite" className="text-sm font-medium">Select Satellite *</Label>
                   <Select
@@ -463,10 +485,44 @@ export default function ScenarioCreator() {
                   </p>
                 </div>
 
+                {/* Ground Station Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="ground_station" className="text-sm font-medium">Select Ground Station (Optional)</Label>
+                  <Select
+                    value={scenarioData.ground_station_id || 'none'}
+                    onValueChange={(value) => handleInputChange('ground_station_id', value === 'none' ? '' : value)}
+                    disabled={loading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={loading ? "Loading ground stations..." : "Choose a ground station..."} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No ground station</SelectItem>
+                      {groundStations.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground">No ground stations available</div>
+                      ) : (
+                        groundStations.map(station => {
+                          const displayName = station.name || station.code || 'Unknown Station';
+                          const location = station.location || (station.latitude && station.longitude ? `${station.latitude.toFixed(2)}°, ${station.longitude.toFixed(2)}°` : 'Location N/A');
+                          return (
+                            <SelectItem key={station.id} value={station.id}>
+                              {displayName} - {location}
+                            </SelectItem>
+                          );
+                        })
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    {groundStations.length} ground station{groundStations.length !== 1 ? 's' : ''} available
+                  </p>
+                </div>
+
                 <div className="p-4 bg-muted/50 rounded-lg border">
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     <strong className="text-foreground">Note:</strong> Initial satellite state can be configured later.
                     The selected satellite's default parameters will be used as the starting point.
+                    Ground station configuration is optional and can be used for communication scenarios.
                   </p>
                 </div>
               </div>
