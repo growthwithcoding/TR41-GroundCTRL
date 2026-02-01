@@ -573,6 +573,56 @@ async function resetPassword(req, res, next) {
   }
 }
 
+/**
+ * Exchange Firebase ID token for backend JWT tokens
+ * POST /auth/exchange-token
+ * SECURITY: Uses firebaseAuthMiddleware to verify Firebase ID token
+ */
+async function exchangeToken(req, res, next) {
+  try {
+    // Firebase UID is already verified by firebaseAuthMiddleware
+    if (!req.user || !req.user.uid) {
+      throw new ValidationError('Firebase authentication required');
+    }
+
+    const firebaseUid = req.user.uid;
+
+    // Exchange Firebase token for backend JWT tokens
+    const result = await authService.exchangeFirebaseToken(firebaseUid);
+
+    logger.info('Firebase token exchanged', { uid: firebaseUid });
+
+    // Set refresh token as HttpOnly cookie
+    if (result.refreshToken) {
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/api/v1/auth'
+      });
+    }
+
+    const responsePayload = {
+      user: result.user,
+      tokens: {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken
+      }
+    };
+
+    const response = responseFactory.createSuccessResponse(responsePayload, {
+      callSign: result.user.callSign,
+      requestId: req.id,
+      flatten: true
+    });
+
+    res.status(httpStatus.OK).json(response);
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   register,
   syncOAuthProfile,
@@ -584,5 +634,6 @@ module.exports = {
   bootstrapAdmin,
   changePassword,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  exchangeToken
 };

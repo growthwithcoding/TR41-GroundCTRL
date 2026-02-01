@@ -319,16 +319,30 @@ function GroundTrackVisualization({
       </g>
       
       {/* Ground Stations - dynamically rendered from WebSocket data */}
-      {groundStations.map((station) => {
-        const stationPos = latLonToSvg(station.location.latitude, station.location.longitude)
+      {groundStations && groundStations.map((station, index) => {
+        // Ground stations from Firestore have latitude/longitude at top level
+        const lat = station.latitude
+        const lon = station.longitude
+        
+        // Skip stations with invalid coordinates
+        if (lat === undefined || lon === undefined || isNaN(lat) || isNaN(lon)) {
+          console.warn('Skipping ground station with invalid coordinates:', station)
+          return null
+        }
+        
+        const stationPos = latLonToSvg(lat, lon)
+        
         // Determine if station is in range (simplified - within visibility cone)
         const distanceToSat = Math.sqrt(
           Math.pow(stationPos.x - satPos.x, 2) + Math.pow(stationPos.y - satPos.y, 2)
         )
         const isInRange = distanceToSat < 50 // Approximate visibility range
         
+        // Get display name - use human-readable 'name' field
+        const displayLabel = station.name || station.code || 'Unknown'
+        
         return (
-          <g key={station.stationId}>
+          <g key={station.id || station.code || `station-${index}`}>
             {/* Coverage circle */}
             <circle 
               cx={stationPos.x} 
@@ -351,12 +365,14 @@ function GroundTrackVisualization({
             {/* Station label */}
             <text 
               x={stationPos.x} 
-              y={stationPos.y + 18} 
-              fill={isInRange ? "#6b9e8a" : "#6b7280"} 
-              fontSize="8" 
+              y={stationPos.y - 12} 
+              fill={isInRange ? "#22c55e" : "#9ca3af"} 
+              fontSize="9" 
+              fontWeight="500"
               textAnchor="middle"
+              style={{ textShadow: '0 0 3px rgba(0,0,0,0.8)' }}
             >
-              {station.displayName}
+              {displayLabel}
             </text>
           </g>
         )

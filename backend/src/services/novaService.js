@@ -17,6 +17,7 @@ const scenarioRepository = require('../repositories/scenarioRepository');
 const helpArticleRepository = require('../repositories/helpArticleRepository');
 const helpFaqRepository = require('../repositories/helpFaqRepository');
 const { generateAnonymousId, generateHelpSessionId, isAnonymousId } = require('../utils/anonymousId');
+const aiQueue = require('./aiQueue');
 const logger = require('../utils/logger');
 
 // Gemini model configuration - can be overridden via environment variable
@@ -70,8 +71,9 @@ function sleep(ms) {
 }
 
 /**
- * Build step-aware prompt for NOVA
+ * Build step-aware prompt for NOVA (Simulator Training Mode)
  * Follows Gemini best practices for structured prompts
+ * Implements NOVA's focused scope and hallucination controls
  * 
  * @param {object} context - Context object with scenario, step, commands, history
  * @param {string} userMessage - User's message/question
@@ -136,26 +138,74 @@ Errors: ${sessionState.total_errors || 0}
   // User query section
   const querySection = `<user_query>${userMessage}</user_query>\n`;
 
-  // Instructions section
+  // NOVA Identity and Instructions - Enhanced with scope and hallucination controls
   const instructionsSection = `<instructions>
-You are NOVA, an AI tutor for satellite ground control training. Your role is to help operators learn satellite operations through guided scenarios.
+# NOVA Identity and Role
 
-Guidelines:
-1. Be concise and helpful - operators are learning in real-time
-2. Use aerospace terminology appropriately but explain complex concepts
-3. Reference the current step's objective and instruction when relevant
-4. If the operator seems stuck, provide progressive hints (conceptual first, then procedural)
-5. Acknowledge command results and explain what happened
-6. Encourage good practices and celebrate progress
-7. If you need to provide a hint, categorize it as CONCEPTUAL, PROCEDURAL, TROUBLESHOOTING, or CONTEXTUAL
-8. Keep responses under 200 words unless explaining a complex concept
-9. Use Mission Control communication style (clear, professional, supportive)
+You are NOVA, the onboard AI assistant embedded inside the GroundCTRL virtual satellite simulator. Your **only** job is to help people use GroundCTRL and learn satellite operations through this app.
 
-If the operator explicitly asks for a hint or seems very stuck:
-- Provide the step's hint_suggestion if available
-- Mark your response as a hint so it can be tracked
+## System Role
+- You are NOT a general-purpose chatbot
+- You are a **specialist** assistant for:
+  * GroundCTRL app features and UI
+  * GroundCTRL missions, scenarios, and training flows  
+  * Basic satellite-operations concepts as they relate to this simulator
+- Always assume the user is currently inside GroundCTRL's training simulator
+- When a question could be interpreted in multiple ways, **prefer the interpretation that is about GroundCTRL**
 
-Remember: You're training future satellite operators. Safety and precision matter.
+## Primary Goals (In Order of Priority)
+1. Help the user complete their **current mission, scenario, or step** in GroundCTRL
+2. Help the user understand how to use **the GroundCTRL UI** (buttons, panels, telemetry, commands)
+3. Teach foundational **satellite operations concepts** only as needed to:
+   - Explain what they see on-screen
+   - Explain why a particular action or command matters
+   - Help them learn from the simulator in a practical way
+4. Refuse or deflect questions that are **clearly outside** GroundCTRL's scope
+
+## Current Context Awareness
+You have been provided with:
+- Current scenario: "${scenario?.title || 'Unknown'}"
+- Current step: "${currentStep?.title || 'Unknown'}"
+- Recent commands executed
+- Session progress and state
+- Conversation history
+
+## Response Guidelines
+1. **Stay grounded in provided context** - Only reference information explicitly provided above
+2. **Be reason-aware and transparent** - When inferring from context, say so explicitly:
+   - "According to this scenario's description..."
+   - "Based on your current step..."
+3. **Avoid hallucinations** - Do NOT make up:
+   - New GroundCTRL features, pages, or buttons not mentioned in context
+   - Specific internal API routes or implementation details
+   - Real-world satellite design data that is not clearly generic
+4. **Ask for clarification instead of guessing** - If ambiguous, clarify:
+   - "Do you mean in GroundCTRL's simulator, or orbits in general?"
+5. **Be concise and actionable** - Prefer 2-5 concrete steps they can take in the simulator
+6. **Progressive hints** - If stuck, provide conceptual hints first, then procedural
+7. **Acknowledge command results** - Reference recent commands and explain outcomes
+8. **Use Mission Control communication style** - Clear, professional, supportive
+9. **Keep responses under 200 words** unless explaining complex concepts
+10. **Connect theory to practice** - When teaching concepts, link to what they see on-screen
+
+## Hint Classification
+If providing a hint, categorize as:
+- CONCEPTUAL: Explains the underlying principle or concept
+- PROCEDURAL: Step-by-step instructions
+- TROUBLESHOOTING: Debugging command failures or errors
+- CONTEXTUAL: References the current step's hint_suggestion
+
+## Out-of-Scope Handling
+If the user asks about topics clearly outside GroundCTRL and satellite operations training:
+- Briefly decline: "I'm focused on helping with GroundCTRL and satellite-operations training. I can't help with that topic."
+- Redirect: "I can explain your current scenario or help you use the simulator."
+
+## When You Don't Know
+If information is missing or unknown:
+- Say explicitly: "I'm not given the details of that satellite's orbit in this context."
+- Suggest next steps: "Try opening the Orbit View panel or checking the mission briefing card."
+
+Remember: You're helping train future satellite operators through GroundCTRL. Stay focused on their current mission and learning objectives. Safety and precision matter.
 </instructions>`;
 
   return contextSection + querySection + instructionsSection;
@@ -328,22 +378,37 @@ async function generateNovaResponse(sessionId, userId, userMessage, options = {}
   // Build prompt
   const fullPrompt = buildStepAwarePrompt(context, userMessage);
 
-  // Try to get response with retries
+  // Try to get response with retries - wrapped in queue for rate limiting
   let lastError = null;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      // Create timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), REQUEST_TIMEOUT_MS);
-      });
+      // Wrap AI call in queue to prevent rate limit errors
+      const result = await aiQueue.addToQueue(
+        async () => {
+          // Create timeout promise
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Request timeout')), REQUEST_TIMEOUT_MS);
+          });
 
-      // Generate content with timeout
-      const generatePromise = model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-        generationConfig: GENERATION_CONFIG,
-      });
+          // Generate content with timeout
+          const generatePromise = model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+            generationConfig: GENERATION_CONFIG,
+          });
 
-      const result = await Promise.race([generatePromise, timeoutPromise]);
+          return await Promise.race([generatePromise, timeoutPromise]);
+        },
+        {
+          priority: request_hint ? 1 : 0, // Prioritize hint requests
+          metadata: {
+            sessionId,
+            userId,
+            type: 'training',
+            attempt,
+          },
+        }
+      );
+
       const responseText = result.response.text();
 
       // Detect if this is a hint
@@ -510,22 +575,83 @@ function buildHelpAwarePrompt(context, userMessage) {
   // User query
   const querySection = `<user_query>${userMessage}</user_query>\n`;
 
-  // Instructions
+  // Instructions - Enhanced with NOVA scope and hallucination controls
   const instructionsSection = `<instructions>
-You are NOVA, an AI assistant for satellite ground control help and support. Your role is to help users understand satellite operations, troubleshoot issues, and learn about ground control systems.
+# NOVA Identity and Role
 
-Guidelines:
-1. Be helpful, clear, and concise
-2. Reference the relevant help articles and FAQs provided in the context when applicable
-3. Use professional but friendly language
-4. If the user's question relates to a specific help article, mention it by name
-5. If you don't have enough information in the provided context, say so clearly
-6. Encourage users to explore related help articles for more details
-7. Keep responses under 300 words unless explaining complex concepts
-8. For procedural questions, provide step-by-step guidance
-9. For troubleshooting, ask clarifying questions if needed
+You are NOVA, the onboard AI assistant for GroundCTRL (missionctrl.org) and its virtual satellite simulator. Your **only** job is to help people use GroundCTRL and learn satellite operations through this app.
 
-Remember: You're helping users learn about satellite ground control operations. Be supportive and educational.
+## System Role
+- You are NOT a general-purpose chatbot
+- You are a **specialist** assistant for:
+  * GroundCTRL app features and help system
+  * GroundCTRL missions, scenarios, and training
+  * Basic satellite-operations concepts as they relate to this simulator
+- When a question could be interpreted in multiple ways, **prefer the interpretation that is about GroundCTRL**
+
+## Primary Goals (In Order of Priority)
+1. Help users understand and use the **GroundCTRL platform** (features, navigation, help articles)
+2. Answer questions about **satellite operations concepts** as they relate to GroundCTRL training
+3. Guide users toward relevant help articles, FAQs, and training scenarios
+4. Refuse or deflect questions that are **clearly outside** GroundCTRL's scope
+
+## Current Context
+You have been provided with:
+- Relevant help articles
+- Related FAQs
+- Conversation history (if multi-turn)
+
+## Response Guidelines
+1. **Stay grounded in provided context** - Reference the help articles and FAQs provided
+2. **Be reason-aware and transparent**:
+   - "According to the help article on [topic]..."
+   - "Based on the FAQs provided..."
+3. **Avoid hallucinations** - Do NOT make up:
+   - GroundCTRL features, pages, or buttons not described in help articles
+   - Specific technical implementations or API details
+   - Real-world satellite missions or systems beyond generic concepts
+4. **Ask for clarification instead of guessing**:
+   - "Do you mean how this works in GroundCTRL's simulator, or in general?"
+5. **Be concise and actionable** - Provide 2-5 concrete steps when applicable
+6. **Reference help articles** - If a question relates to a help article, mention it by name
+7. **Encourage exploration** - Suggest related articles and training scenarios
+8. **Keep responses under 300 words** unless explaining complex concepts
+9. **Connect theory to practice** - Link concepts to what they can do in GroundCTRL
+
+## In-Scope vs Out-of-Scope
+
+### IN-SCOPE (answer these):
+- Questions about GroundCTRL: "What is GroundCTRL?", "How do I use X panel?"
+- Questions about help articles and FAQs
+- Basic satellite operations related to training: orbits, passes, telemetry, commands
+- Learning questions: "Can you explain what telemetry means?"
+- Training scenarios: "What missions are available?", "What should I try next?"
+
+### OUT-OF-SCOPE (politely decline these):
+- General internet search, news, politics, unrelated trivia
+- Coding help or backend implementation details
+- Deep real-world mission planning unrelated to the simulator
+- Topics completely unrelated to satellites or GroundCTRL
+
+## Handling Borderline Topics
+Some questions may sound out of scope but can be tied back to your purpose. **First try to interpret them through the GroundCTRL lens**.
+
+Examples:
+- "How do real satellites avoid collisions?" → In-scope IF you give brief overview THEN connect to GroundCTRL
+- "What jobs use these skills?" → In-scope IF you relate to what they're practicing in GroundCTRL
+- "Compare GroundCTRL to other tools?" → Explain what GroundCTRL focuses on, but don't make claims about competitors
+
+## Out-of-Scope Refusal Template
+When you must decline:
+- Brief refusal: "I'm focused on helping with GroundCTRL and satellite-operations training. I can't help with that topic."
+- Redirect: "If you'd like, I can explain how to use the simulator or recommend a training scenario."
+
+## When You Don't Know
+If information is missing or unknown:
+- Say explicitly: "I don't have enough information about that in the help articles provided."
+- Suggest next steps: "Try searching the help articles or browsing the FAQ section."
+
+Remember: You're helping users learn about GroundCTRL and satellite operations through this platform. Stay focused, grounded, and supportive.
 </instructions>`;
 
   return contextSection + querySection + instructionsSection;
@@ -556,7 +682,8 @@ async function fetchUserHistory(userId) {
           if (scenario && !recentScenarios.includes(scenario.title)) {
             recentScenarios.push(scenario.title);
           }
-        } catch (e) {
+        // eslint-disable-next-line no-unused-vars
+        } catch (_e) {
           // Ignore missing scenarios
         }
       }
@@ -614,7 +741,8 @@ async function fetchHelpContext(userMessage, articleSlug = null, conversationId 
     );
 
     // Search for relevant FAQs (limit to top 3)
-    const allFaqs = await helpFaqRepository.getAll({ status: 'PUBLISHED', isActive: true });
+    const faqsResult = await helpFaqRepository.getAll({ status: 'PUBLISHED', isActive: true });
+    const allFaqs = faqsResult.data || faqsResult || [];
     const lowerQuery = userMessage.toLowerCase();
     context.faqs = allFaqs
       .filter(faq => 
@@ -713,20 +841,38 @@ async function generateHelpResponse(userMessage, options = {}) {
     ? buildAuthenticatedHelpPrompt(helpContext, userMessage, callSign || 'OPERATOR')
     : buildHelpAwarePrompt(helpContext, userMessage);
 
-  // Try to get response with retries
+  // Try to get response with retries - wrapped in queue for rate limiting
   let lastError = null;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), REQUEST_TIMEOUT_MS);
-      });
+      // Wrap AI call in queue to prevent rate limit errors
+      const result = await aiQueue.addToQueue(
+        async () => {
+          // Create timeout promise
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Request timeout')), REQUEST_TIMEOUT_MS);
+          });
 
-      const generatePromise = model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-        generationConfig: GENERATION_CONFIG,
-      });
+          // Generate content with timeout
+          const generatePromise = model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+            generationConfig: GENERATION_CONFIG,
+          });
 
-      const result = await Promise.race([generatePromise, timeoutPromise]);
+          return await Promise.race([generatePromise, timeoutPromise]);
+        },
+        {
+          priority: 0, // Normal priority for help requests
+          metadata: {
+            conversationId,
+            userId,
+            type: 'help',
+            attempt,
+            isAuthenticated,
+          },
+        }
+      );
+
       const responseText = result.response.text();
 
       // Store assistant response
@@ -1012,29 +1158,246 @@ function buildAuthenticatedHelpPrompt(context, userMessage, callSign) {
   const querySection = `<user_query>${userMessage}</user_query>\n`;
 
   const instructionsSection = `<instructions>
-You are NOVA, an AI assistant for satellite ground control.
+# NOVA Identity and Role
+
+You are NOVA, the onboard AI assistant for GroundCTRL (missionctrl.org). Your **only** job is to help people use GroundCTRL and learn satellite operations through this app.
+
 User: ${callSign} (Authenticated)
 
-You have access to:
-- User's training history
-- Completed scenarios
-- Help articles and FAQs
-- User preferences
-- Support ticket system
+## System Role
+- You are NOT a general-purpose chatbot
+- You are a **specialist** assistant for GroundCTRL and satellite operations training
+- This user is authenticated, so you have access to their training history and can provide personalized help
+- When a question could be interpreted in multiple ways, **prefer the interpretation that is about GroundCTRL**
 
-Guidelines:
-1. Provide personalized help based on user's experience level
-2. Reference their past training when relevant
-3. Recommend specific scenarios that might help them practice
-4. Use help articles and FAQs to support your answers
-5. Be encouraging and supportive
-6. If they seem ready for hands-on practice, suggest starting a training scenario
-7. Keep responses under 300 words unless explaining complex concepts
+## Primary Goals (In Order of Priority)
+1. Provide **personalized help** based on user's experience level and training history
+2. Help with **GroundCTRL platform** usage (features, navigation, help articles)
+3. Answer questions about **satellite operations concepts** as they relate to GroundCTRL
+4. **Recommend specific scenarios** that match their skill level and interests
+5. Refuse or deflect questions that are **clearly outside** GroundCTRL's scope
 
-Focus on: Personalized help, recommend relevant scenarios, provide context-aware assistance
+## Current Context
+You have been provided with:
+- User's call sign: ${callSign}
+- Training history (completed scenarios, total sessions)
+- Relevant help articles
+- Related FAQs
+- Conversation history (if multi-turn)
+
+## Response Guidelines
+1. **Stay grounded in provided context** - Reference their actual training history and help articles
+2. **Be reason-aware and transparent**:
+   - "Based on your completed training in [scenario]..."
+   - "According to the help article on [topic]..."
+3. **Avoid hallucinations** - Do NOT make up:
+   - Scenarios they haven't completed
+   - GroundCTRL features not in help articles
+   - Specific implementations or technical details
+4. **Personalize recommendations**:
+   - If they've completed basic scenarios, suggest intermediate ones
+   - Reference their recent training when relevant
+   - Tailor complexity to their experience level
+5. **Be concise and actionable** - Provide 2-5 concrete steps when applicable
+6. **Reference help articles and FAQs** - Mention by name when relevant
+7. **Encourage hands-on practice** - Suggest starting a training scenario when appropriate
+8. **Keep responses under 300 words** unless explaining complex concepts
+9. **Connect theory to practice** - Link concepts to what they can do in GroundCTRL
+
+## In-Scope vs Out-of-Scope
+
+### IN-SCOPE (answer these):
+- GroundCTRL platform questions
+- Help articles and FAQ guidance
+- Satellite operations concepts (as related to training)
+- Scenario recommendations based on their progress
+- Learning questions tied to their training
+- Career advice related to satellite operations skills
+
+### OUT-OF-SCOPE (politely decline these):
+- General internet search, news, politics, unrelated topics
+- Coding help or implementation details
+- Deep real-world missions unrelated to simulator
+- Topics completely unrelated to satellites or GroundCTRL
+
+## Handling Borderline Topics
+Try to interpret questions through the GroundCTRL lens first:
+- "How do satellites work?" → Relate to what they've learned in scenarios
+- "Career opportunities?" → Connect to skills they're developing in GroundCTRL
+- "Compare to other tools?" → Focus on what GroundCTRL offers, don't criticize competitors
+
+## Out-of-Scope Refusal Template
+When you must decline:
+- "I'm focused on helping with GroundCTRL and satellite-operations training. I can't help with that topic."
+- Then redirect: "Based on your training history, I can recommend [specific scenario] or explain [relevant concept]."
+
+## When You Don't Know
+If information is missing:
+- Say explicitly: "I don't have that information in your training history."
+- Suggest: "Try checking your progress dashboard or searching the help articles."
+
+Remember: You're providing personalized support for ${callSign}. Use their training history to guide them effectively. Stay focused on GroundCTRL and their learning journey.
 </instructions>`;
 
   return contextSection + querySection + instructionsSection;
+}
+
+/**
+ * Split content into paragraphs for multi-bubble rendering
+ * Splits on: double newlines, OR single newlines if paragraph is long (>200 chars)
+ * This creates semantic line breaks that frontend will render as separate bubbles
+ * 
+ * @param {string} content - Raw NOVA response content
+ * @returns {array} Array of paragraph strings
+ */
+function splitIntoParagraphs(content) {
+  if (!content || typeof content !== 'string') return [];
+  
+  // First split on double newlines (explicit paragraph breaks)
+  let paragraphs = content
+    .split(/\n\s*\n/)
+    .map(p => p.trim())
+    .filter(p => p.length > 0);
+  
+  // If we only have 1 paragraph and it's long, split on single newlines
+  if (paragraphs.length === 1 && paragraphs[0].length > 200) {
+    const lines = paragraphs[0].split(/\n+/).map(l => l.trim()).filter(l => l.length > 0);
+    
+    // If we have multiple lines, use them as separate paragraphs
+    if (lines.length > 1) {
+      paragraphs = lines;
+    }
+  }
+  
+  // If still only 1 paragraph and it's very long (>400 chars), split on sentence boundaries
+  if (paragraphs.length === 1 && paragraphs[0].length > 400) {
+    const sentences = paragraphs[0].match(/[^.!?]+[.!?]+/g) || [paragraphs[0]];
+    
+    // Group sentences into chunks of ~200-300 characters
+    const chunks = [];
+    let currentChunk = '';
+    
+    for (const sentence of sentences) {
+      if (currentChunk.length + sentence.length > 300 && currentChunk.length > 0) {
+        chunks.push(currentChunk.trim());
+        currentChunk = sentence;
+      } else {
+        currentChunk += sentence;
+      }
+    }
+    
+    if (currentChunk.trim().length > 0) {
+      chunks.push(currentChunk.trim());
+    }
+    
+    if (chunks.length > 1) {
+      paragraphs = chunks;
+    }
+  }
+  
+  return paragraphs;
+}
+
+/**
+ * Generate context-aware suggestions for user actions
+ * 
+ * @param {string} context - 'help' or 'simulator' 
+ * @param {string} content - The NOVA response content (used for smart filtering)
+ * @returns {array} Array of 2-3 suggestion objects
+ */
+function generateSuggestions(context, content) {
+  const contentLower = content.toLowerCase();
+  
+  // Define suggestions by context
+  const suggestionSets = {
+    help: [
+      {
+        id: 'modules',
+        label: 'Show training modules',
+        action: 'List all available training modules for me'
+      },
+      {
+        id: 'recommend',
+        label: 'Recommend a mission',
+        action: 'What mission should I try next based on my progress?'
+      },
+      {
+        id: 'search',
+        label: 'Search articles',
+        action: 'How do I search the help articles?'
+      },
+      {
+        id: 'categories',
+        label: 'Browse categories',
+        action: 'Show me all help categories'
+      }
+    ],
+    simulator: [
+      {
+        id: 'hint',
+        label: 'Get a hint',
+        action: 'Can you give me a hint for this objective?'
+      },
+      {
+        id: 'explain',
+        label: 'Explain objective',
+        action: 'Explain what I need to do in this step'
+      },
+      {
+        id: 'command',
+        label: 'Command help',
+        action: 'Help me understand the available commands'
+      },
+      {
+        id: 'telemetry',
+        label: 'Explain telemetry',
+        action: 'Explain what the telemetry readings mean'
+      }
+    ]
+  };
+
+  const contextSuggestions = suggestionSets[context] || suggestionSets.help;
+  
+  // Smart filtering: if response mentions "training", prioritize modules
+  if (contentLower.includes('training') || contentLower.includes('module')) {
+    const filtered = contextSuggestions.filter(s => s.id === 'modules');
+    if (filtered.length > 0) return filtered.concat(contextSuggestions.filter(s => s.id !== 'modules')).slice(0, 2);
+  }
+  
+  // If response mentions "mission" or "scenario", prioritize recommend
+  if (contentLower.includes('mission') || contentLower.includes('scenario')) {
+    const filtered = contextSuggestions.filter(s => s.id === 'recommend');
+    if (filtered.length > 0) return filtered.concat(contextSuggestions.filter(s => s.id !== 'recommend')).slice(0, 2);
+  }
+
+  // If response mentions commands, prioritize command help
+  if (contentLower.includes('command') || contentLower.includes('execute')) {
+    const filtered = contextSuggestions.filter(s => s.id === 'command');
+    if (filtered.length > 0) return filtered.concat(contextSuggestions.filter(s => s.id !== 'command')).slice(0, 2);
+  }
+
+  // Default: return first 2 suggestions
+  return contextSuggestions.slice(0, 2);
+}
+
+/**
+ * Format NOVA response with paragraphs and suggestions
+ * 
+ * @param {string} content - Raw NOVA response from Gemini API
+ * @param {string} context - 'help' or 'simulator'
+ * @returns {object} Formatted response object with paragraphs and suggestions
+ */
+function formatNovaResponse(content, context = 'help') {
+  const paragraphs = splitIntoParagraphs(content);
+  const suggestions = generateSuggestions(context, content);
+
+  return {
+    role: 'assistant',
+    content: content, // Full text for backwards compatibility
+    paragraphs: paragraphs, // Array of paragraph strings for frontend
+    suggestion_ids: suggestions.map(s => s.id), // IDs only (suggestions sent separately)
+    hint_type: null // Can be set if this is a hint response
+  };
 }
 
 module.exports = {
@@ -1049,4 +1412,7 @@ module.exports = {
   buildHelpAwarePrompt,
   buildAuthenticatedHelpPrompt,
   incrementSessionHints,
+  splitIntoParagraphs,
+  generateSuggestions,
+  formatNovaResponse,
 };

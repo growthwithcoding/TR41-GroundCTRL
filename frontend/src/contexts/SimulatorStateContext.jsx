@@ -292,6 +292,32 @@ export function SimulatorStateProvider({ children }) {
   }, [connected, joinSession]);
   
   /**
+   * Save session progress to backend
+   * Called at strategic moments (not on interval)
+   */
+  const saveProgress = useCallback(() => {
+    if (!stateRef.current.sessionId || !stateRef.current.missionStarted) {
+      return;
+    }
+    
+    const progressData = {
+      currentStepOrder: stateRef.current.currentStepIndex,
+      completedSteps: stateRef.current.completedSteps,
+      state: {
+        missionProgress: stateRef.current.missionProgress,
+        commandCount: stateRef.current.commands.length,
+        telemetrySnapshot: stateRef.current.telemetry
+      }
+    };
+    
+    console.log('💾 Saving session progress...', progressData);
+    
+    saveSessionProgress(stateRef.current.sessionId, progressData).catch(error => {
+      console.error('Failed to save progress:', error);
+    });
+  }, []);
+  
+  /**
    * Start the mission
    */
   const startMission = useCallback(() => {
@@ -329,8 +355,13 @@ export function SimulatorStateProvider({ children }) {
       sendWSCommand(stateRef.current.sessionId, { ...command, id: commandId }, command.parameters);
     }
     
+    // Save progress after command execution
+    setTimeout(() => {
+      saveProgress();
+    }, 100);
+    
     return commandId;
-  }, [connected, sendWSCommand]);
+  }, [connected, sendWSCommand, saveProgress]);
   
   /**
    * Update telemetry data
@@ -354,6 +385,11 @@ export function SimulatorStateProvider({ children }) {
       payload: { stepIndex: currentIndex }
     });
     
+    // Save progress after step completion
+    setTimeout(() => {
+      saveProgress();
+    }, 100);
+    
     // Move to next step if available
     const nextIndex = currentIndex + 1;
     if (nextIndex < stateRef.current.steps.length) {
@@ -364,7 +400,7 @@ export function SimulatorStateProvider({ children }) {
         });
       }, 500);
     }
-  }, []);
+  }, [saveProgress]);
   
   /**
    * Check if a step should be auto-completed based on conditions
@@ -498,60 +534,24 @@ export function SimulatorStateProvider({ children }) {
     };
   }, [checkStepCompletion]);
   
-  // Periodic autosave - save progress every 30 seconds when mission is active
-  useEffect(() => {
-    if (!state.missionStarted || !state.sessionId) {
-      return;
-    }
-    
-    const saveProgress = () => {
-      const elapsedTime = state.sessionStartTime 
-        ? Math.floor((Date.now() - state.sessionStartTime) / 1000)
-        : 0;
-      
-      saveSessionProgress(state.sessionId, {
-        currentStepOrder: state.currentStepIndex,
-        completedSteps: state.completedSteps,
-        elapsedTime: elapsedTime,
-        state: {
-          missionProgress: state.missionProgress,
-          commandCount: state.commands.length
-        }
-      });
-    };
-    
-    // Save immediately when mission starts
-    saveProgress();
-    
-    // Then save every 30 seconds
-    const intervalId = setInterval(saveProgress, 30000);
-    
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [state.missionStarted, state.sessionId, state.currentStepIndex, state.completedSteps, state.sessionStartTime, state.missionProgress, state.commands.length]);
-  
-  // Save progress when user leaves or disconnects
+  // Save progress when user navigates away or closes tab
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (stateRef.current.missionStarted && stateRef.current.sessionId) {
-        const elapsedTime = stateRef.current.sessionStartTime 
-          ? Math.floor((Date.now() - stateRef.current.sessionStartTime) / 1000)
-          : 0;
-        
-        // Use synchronous API for page unload
-        const data = {
+        const progressData = {
           currentStepOrder: stateRef.current.currentStepIndex,
           completedSteps: stateRef.current.completedSteps,
-          elapsedTime: elapsedTime,
           state: {
             missionProgress: stateRef.current.missionProgress,
-            commandCount: stateRef.current.commands.length
+            commandCount: stateRef.current.commands.length,
+            telemetrySnapshot: stateRef.current.telemetry
           }
         };
         
+        console.log('💾 Saving progress on navigation/close...', progressData);
+        
         // Save progress (non-blocking)
-        saveSessionProgress(stateRef.current.sessionId, data);
+        saveSessionProgress(stateRef.current.sessionId, progressData);
       }
     };
     
@@ -572,6 +572,7 @@ export function SimulatorStateProvider({ children }) {
     initializeSession,
     startMission,
     resetSimulator,
+    saveProgress,
     
     // Commands
     executeCommand,

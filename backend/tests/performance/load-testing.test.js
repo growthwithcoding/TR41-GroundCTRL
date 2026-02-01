@@ -76,9 +76,9 @@ describe('Performance - Load Tests', () => {
   });
 
   describe('PERF-003: AI Help Endpoint Concurrency', () => {
-    it('should queue or reject excess requests gracefully', async () => {
-      // Note: This test validates rate limiting behavior
-      // Most requests should be rate limited (429) or return validation errors (400)
+    it('should queue and handle concurrent requests gracefully with p-queue', async () => {
+      // Note: With p-queue implementation, requests are queued and handled gracefully
+      // instead of being rejected with 429 errors
       const requests = Array(100).fill(null).map(() =>
         request(app)
           .post('/api/v1/ai/chat')
@@ -86,15 +86,14 @@ describe('Performance - Load Tests', () => {
       );
 
       const responses = await Promise.all(requests);
-      const rateLimited = responses.filter(r => r.status === 429);
-      const validationErrors = responses.filter(r => r.status === 400);
+      const successful = responses.filter(r => r.status === 200 || r.status === 201);
       const serverErrors = responses.filter(r => r.status >= 500);
 
-      // Verify most requests are handled gracefully (rate limited or validation errors)
-      expect(rateLimited.length + validationErrors.length).toBeGreaterThan(50);
+      // With p-queue, most requests should be handled successfully (queued and processed)
+      expect(successful.length).toBeGreaterThan(50);
       // Verify no server errors
       expect(serverErrors.length).toBe(0);
-    }, 20000);
+    }, 30000);
   });
 
   describe('PERF-004: Pagination Performance', () => {

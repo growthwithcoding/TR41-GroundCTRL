@@ -110,17 +110,17 @@ export function NovaAssistant({
 
       // Add session-specific fields for training mode
       if (hasActiveSession) {
-        payload.session_id = sessionId
-        if (stepId) payload.step_id = stepId
+        payload.sessionId = sessionId
+        if (stepId) payload.stepId = stepId
       }
 
       // Add conversation ID for help modes
       if (!hasActiveSession && conversationId) {
-        payload.conversation_id = conversationId
+        payload.conversationId = conversationId
       }
 
       // Add context hint if provided
-      if (context && context !== 'help' && context !== 'simulator') {
+      if (context) {
         payload.context = context
       }
 
@@ -156,7 +156,9 @@ export function NovaAssistant({
       const data = await response.json()
       
       // Extract response from Mission Control envelope
-      const messageContent = data?.payload?.data?.message?.content
+      const messageData = data?.payload?.data?.message
+      const messageContent = messageData?.content
+      const paragraphs = messageData?.paragraphs || []
       const responseContext = data?.payload?.data?.context
       const newConversationId = data?.payload?.data?.conversation_id
       
@@ -171,14 +173,68 @@ export function NovaAssistant({
         setNovaContext(responseContext)
       }
 
-      const novaResponse = {
-        id: `assistant-${Date.now()}`,
-        type: "assistant",
-        content: messageContent || "I'm sorry, I couldn't process that request.",
-        timestamp: new Date().toISOString(),
-        context: responseContext
+      // Create multiple message bubbles from paragraphs with intelligent timing
+      const timestamp = new Date().toISOString()
+      const contentToUse = paragraphs.length > 0 ? paragraphs : [messageContent || "I'm sorry, I couldn't process that request."]
+      
+      /**
+       * Calculate reading time based on content length
+       * Average reading: ~250 words/min = ~4 words/sec = ~250ms per word
+       * Plus base typing time of 800-1500ms
+       */
+      const calculateDelay = (previousContent, currentContent) => {
+        if (!previousContent) return 100 // First bubble: appear immediately (tiny delay for smooth animation)
+        
+        // Calculate reading time for previous bubble
+        const wordCount = previousContent.split(/\s+/).length
+        const readingTime = Math.min(wordCount * 250, 3000) // Cap at 3 seconds
+        
+        // Calculate typing time for current bubble (50-80ms per char, capped)
+        const typingTime = Math.min(currentContent.length * 60, 1500) // Cap at 1.5 seconds
+        
+        return readingTime + typingTime
       }
-      setMessages(prev => [...prev, novaResponse])
+      
+      // Add bubbles one at a time with intelligent delays and typing indicators
+      let cumulativeDelay = 0
+      
+      contentToUse.forEach((para, idx) => {
+        const previousContent = idx > 0 ? contentToUse[idx - 1] : null
+        const delay = calculateDelay(previousContent, para)
+        cumulativeDelay += delay
+        
+        // Show typing indicator before bubble appears
+        if (idx > 0) {
+          const typingDelay = cumulativeDelay - Math.min(para.length * 60, 1500)
+          setTimeout(() => {
+            setMessages(prev => [...prev, {
+              id: `typing-${Date.now()}`,
+              type: "typing",
+              content: "",
+              timestamp: ""
+            }])
+          }, typingDelay)
+        }
+        
+        // Show actual bubble and remove typing indicator
+        setTimeout(() => {
+          setMessages(prev => {
+            // Remove typing indicator if present
+            const filtered = prev.filter(m => m.type !== "typing")
+            
+            // Add new bubble
+            const bubble = {
+              id: `assistant-${Date.now()}-${idx}`,
+              type: "assistant",
+              content: para,
+              timestamp: idx === contentToUse.length - 1 ? timestamp : '', // Only show timestamp on last bubble
+              context: idx === contentToUse.length - 1 ? responseContext : null // Only attach context to last bubble
+            }
+            
+            return [...filtered, bubble]
+          })
+        }, cumulativeDelay)
+      })
 
       // Show auth benefits hint for anonymous users occasionally
       if (!isAuthenticated && responseContext?.auth_benefits && Math.random() < 0.3) {
@@ -312,11 +368,11 @@ export function NovaAssistant({
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`flex flex-col gap-1 ${
+            className={`flex flex-col gap-0.5 ${
               message.type === "user" 
                 ? "items-end" 
                 : message.type === "system"
@@ -324,28 +380,44 @@ export function NovaAssistant({
                 : "items-start"
             }`}
           >
-            <div className={`p-3 rounded-lg max-w-[85%] text-sm ${
-              message.type === "user"
-                ? "bg-primary text-primary-foreground"
-                : message.type === "system"
-                ? "bg-blue-500/10 text-blue-600 border border-blue-500/20 text-center"
-                : "bg-primary/10 text-foreground border border-primary/20"
-            }`}>
-              {message.content}
-            </div>
-            <span className="text-xs text-muted-foreground px-1">
-              {new Date(message.timestamp).toLocaleTimeString('en-US', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              })}
-            </span>
+            {message.type === "typing" ? (
+              /* Typing indicator */
+              <div className="p-2.5 rounded-lg bg-primary/10 border border-primary/20 flex items-center gap-1">
+                <div className="flex gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }}></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms', animationDuration: '1s' }}></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms', animationDuration: '1s' }}></span>
+                </div>
+              </div>
+            ) : (
+              /* Regular message bubble */
+              <>
+                <div className={`p-2.5 rounded-lg max-w-[85%] text-xs leading-relaxed ${
+                  message.type === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : message.type === "system"
+                    ? "bg-blue-500/10 text-blue-600 border border-blue-500/20 text-center"
+                    : "bg-primary/10 text-foreground border border-primary/20"
+                }`}>
+                  {message.content}
+                </div>
+                {message.timestamp && (
+                  <span className="text-[10px] text-muted-foreground px-1">
+                    {new Date(message.timestamp).toLocaleTimeString('en-US', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </span>
+                )}
+              </>
+            )}
           </div>
         ))}
         
         {/* Loading indicator */}
         {isLoading && (
           <div className="flex items-start">
-            <div className="p-3 rounded-lg text-sm bg-primary/10 text-foreground border border-primary/20 flex items-center gap-2">
+            <div className="p-2.5 rounded-lg text-xs bg-primary/10 text-foreground border border-primary/20 flex items-center gap-2">
               <Loader2 className="h-3 w-3 animate-spin" />
               <span className="text-muted-foreground">NOVA is thinking...</span>
             </div>
@@ -356,9 +428,9 @@ export function NovaAssistant({
       </div>
 
       {/* Input area */}
-      <div className="p-4 border-t border-border space-y-3 bg-muted/30">
+      <div className="p-3 border-t border-border space-y-2 bg-muted/30">
         {/* Quick actions */}
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           {quickActions.map((action, index) => (
             <Button 
               key={index}
@@ -366,10 +438,10 @@ export function NovaAssistant({
               size="sm" 
               disabled={isLoading}
               onClick={() => handleSend(action.prompt)}
-              className="flex-1 rounded-lg text-xs bg-transparent gap-1.5"
+              className="flex-1 rounded-md text-[10px] h-7 bg-transparent gap-1 px-2"
             >
-              <action.icon className="h-3 w-3" />
-              {action.label}
+              <action.icon className="h-2.5 w-2.5" />
+              <span className="hidden sm:inline">{action.label}</span>
             </Button>
           ))}
         </div>
@@ -391,13 +463,13 @@ export function NovaAssistant({
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             disabled={isLoading}
-            className="pr-10 rounded-lg bg-card text-sm"
+            className="pr-10 rounded-lg bg-card text-xs h-11"
           />
           <Button 
             type="submit"
             size="icon" 
             disabled={isLoading || !inputValue.trim()}
-            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md"
+            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-md"
           >
             {isLoading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />

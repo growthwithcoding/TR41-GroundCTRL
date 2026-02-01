@@ -28,6 +28,11 @@ module.exports = {
     '^\\.\\.',
   ],
 
+  // Transform ES modules in node_modules (for p-queue)
+  transformIgnorePatterns: [
+    'node_modules/(?!(p-queue|eventemitter3)/)',
+  ],
+
   // Updated: Point to new tests/setup.js location
   setupFiles: ['<rootDir>/tests/setup.js'],
 
