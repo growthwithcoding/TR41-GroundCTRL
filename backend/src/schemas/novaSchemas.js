@@ -136,6 +136,18 @@ const postUserMessageSchema = z.object({
     content: z.string()
       .min(1, 'Message content is required')
       .max(5000, 'User message must be 5000 characters or fewer')
+      .refine(
+        (val) => !/<script.*?>/i.test(val) && !/<\/script>/i.test(val),
+        { message: 'Scripts not allowed in content' }
+      )
+      .refine(
+        (val) => !/<iframe.*?>/i.test(val) && !/<\/iframe>/i.test(val),
+        { message: 'Iframes not allowed in content' }
+      )
+      .refine(
+        (val) => !/on\w+\s*=/i.test(val),
+        { message: 'Event handlers not allowed in content' }
+      )
       .describe('User message/question'),
     
     // Context hints for better NOVA response
@@ -224,6 +236,18 @@ const askHelpQuestionSchema = z.object({
     content: z.string()
       .min(1, 'Question content is required')
       .max(1000, 'Question must be 1000 characters or fewer')
+      .refine(
+        (val) => !/<script.*?>/i.test(val) && !/<\/script>/i.test(val),
+        { message: 'Scripts not allowed in content' }
+      )
+      .refine(
+        (val) => !/<iframe.*?>/i.test(val) && !/<\/iframe>/i.test(val),
+        { message: 'Iframes not allowed in content' }
+      )
+      .refine(
+        (val) => !/on\w+\s*=/i.test(val),
+        { message: 'Event handlers not allowed in content' }
+      )
       .describe('User help question'),
     
     context: z.enum(['help', 'simulator'])

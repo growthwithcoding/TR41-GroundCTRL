@@ -95,6 +95,7 @@ if (process.env.NODE_ENV !== 'test') {
     credentials: true, // Allow cookies/credentials with allowed origins
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    optionsSuccessStatus: 204, // Return 204 for successful OPTIONS requests
     maxAge: 86400 // 24 hours
   }));
 }
