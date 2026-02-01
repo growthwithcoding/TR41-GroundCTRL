@@ -14,7 +14,7 @@ class MockPQueue {
     this._listeners = {};
   }
 
-  async add(fn, options = {}) {
+  async add(fn, _options = {}) {
     // Simulate queue behavior - just execute immediately in tests
     this.pending++;
     this.size++;
