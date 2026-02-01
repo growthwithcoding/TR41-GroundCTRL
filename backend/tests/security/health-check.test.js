@@ -33,7 +33,7 @@ describe('Health Check & Degraded Mode Security Tests', () => {
     it('should handle degraded mode gracefully', async () => {
       // Simulate degraded mode, e.g., by setting env or mocking
       // For now, assume health check indicates degraded
-      const response = await request(app)
+      await request(app)
         .get('/api/v1/health')
         .expect(200);
 

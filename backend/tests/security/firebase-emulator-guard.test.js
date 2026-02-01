@@ -3,9 +3,6 @@
  * Tests: Emulator detection and protection
  */
 
-const request = require('supertest');
-const app = require('../../src/app');
-
 describe('Firebase Emulator Guard Security Tests', () => {
 
   describe('Emulator Detection', () => {

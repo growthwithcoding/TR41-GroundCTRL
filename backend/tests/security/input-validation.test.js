@@ -29,7 +29,7 @@ describe('Input Validation Security Tests', () => {
     it('should handle large query parameters', async () => {
       // Test with health endpoint which exists
       const longQuery = 'a'.repeat(1000);
-      const response = await request(app)
+      await request(app)
         .get(`/api/v1/health?test=${longQuery}`)
         .expect(200); // Health endpoint should handle this gracefully
     });
@@ -38,13 +38,13 @@ describe('Input Validation Security Tests', () => {
   describe('Sort Whitelist', () => {
     it('should handle sort parameters gracefully', async () => {
       // Health endpoint doesn't validate sort, so it should accept any sort param
-      const response = await request(app)
+      await request(app)
         .get('/api/v1/health?sort=invalidField')
         .expect(200);
     });
 
     it('should handle valid sort fields', async () => {
-      const response = await request(app)
+      await request(app)
         .get('/api/v1/health?sort=name')
         .expect(200);
     });
@@ -53,7 +53,7 @@ describe('Input Validation Security Tests', () => {
   describe('Body Size Limit', () => {
     it('should reject oversized body', async () => {
       const largeBody = 'a'.repeat(1024 * 1024 * 10); // 10MB
-      const response = await request(app)
+      await request(app)
         .post('/api/v1/auth/register')
         .set('Content-Type', 'application/json')
         .send({ data: largeBody })

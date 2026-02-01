@@ -3,7 +3,6 @@
  * Tests: Ownership filter, audit metadata, pagination hardening
  */
 
-const request = require('supertest');
 const app = require('../../src/app');
 
 describe('Ownership & CRUD Security Tests', () => {

@@ -5,8 +5,6 @@
 
 const request = require('supertest');
 const app = require('../../src/app');
-// Assume logger is exported or can be spied
-const logger = require('../../src/utils/logger');
 
 describe('Audit Logging Security Tests', () => {
 

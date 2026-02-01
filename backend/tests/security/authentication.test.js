@@ -4,9 +4,8 @@
  */
 
 const request = require('supertest');
-const { getTestApp, createTestUser, generateUniqueEmail } = require('../helpers/test-utils');
-const jwt = require('jsonwebtoken');
-const { jwtSecret } = require('../../src/config/jwtConfig');
+const { createTestUser } = require('../helpers/test-utils');
+require('../../src/config/jwtConfig');
 
 describe('Authentication Security Tests', () => {
   let app;
