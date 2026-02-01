@@ -58,47 +58,45 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // CORS configuration
-if (process.env.NODE_ENV !== 'test') {
-  const allowedOrigins = process.env.ALLOWED_ORIGINS 
-    ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
-    : [
-      'http://localhost:3001', 
-      'http://localhost:5173',
-      'http://localhost:5174',  // Allow alternate port
-      'http://localhost:5175',  // Allow alternate port
-      'http://localhost:8080'   // Allow backend port
-    ];
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : [
+    'http://localhost:3001', 
+    'http://localhost:5173',
+    'http://localhost:5174',  // Allow alternate port
+    'http://localhost:5175',  // Allow alternate port
+    'http://localhost:8080'   // Allow backend port
+  ];
 
-  logger.info('CORS Configuration', {
-    nodeEnv: process.env.NODE_ENV,
-    allowedOriginsEnv: process.env.ALLOWED_ORIGINS,
-    allowedOriginsArray: allowedOrigins
-  });
+logger.info('CORS Configuration', {
+  nodeEnv: process.env.NODE_ENV,
+  allowedOriginsEnv: process.env.ALLOWED_ORIGINS,
+  allowedOriginsArray: allowedOrigins
+});
 
-  app.use(cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      
-      // In development, allow any localhost origin
-      if (process.env.NODE_ENV === 'development' && origin.startsWith('http://localhost:')) {
-        return callback(null, true);
-      }
-      
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        logger.warn('CORS blocked origin', { origin, allowedOrigins });
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: true, // Allow cookies/credentials with allowed origins
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    optionsSuccessStatus: 204, // Return 204 for successful OPTIONS requests
-    maxAge: 86400 // 24 hours
-  }));
-}
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // In development, allow any localhost origin
+    if (process.env.NODE_ENV === 'development' && origin.startsWith('http://localhost:')) {
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      logger.warn('CORS blocked origin', { origin, allowedOrigins });
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Allow cookies/credentials with allowed origins
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204, // Return 204 for successful OPTIONS requests
+  maxAge: 86400 // 24 hours
+}));
 
 // Expose Firebase status for health checks
 app.locals.firebaseInitialized = firebaseInitialized;
