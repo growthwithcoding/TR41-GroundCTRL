@@ -28,9 +28,15 @@ describe('CI - Secret Scan', () => {
     for (const dir of keysToCheck) {
       if (fs.existsSync(dir)) {
         const files = fs.readdirSync(dir);
+        const baseDir = path.resolve(dir);
 
         files.forEach(file => {
-          const content = fs.readFileSync(path.join(dir, file), 'utf8');
+          const filePath = path.resolve(path.join(dir, file));
+          // Validate path is within base directory to prevent path traversal
+          if (!filePath.startsWith(baseDir)) {
+            throw new Error(`Path traversal detected: ${file}`);
+          }
+          const content = fs.readFileSync(filePath, 'utf8');
 
           // Should not contain common secret patterns
           expect(content).not.toMatch(/api[_-]?key\s*=\s*['"][^"']*['"]|sk_[a-z0-9]{20,}/i);
@@ -78,9 +84,14 @@ describe('CI - Secret Scan', () => {
 
     if (fs.existsSync(dirToCheck)) {
       const files = fs.readdirSync(dirToCheck);
+      const baseDir = path.resolve(dirToCheck);
 
       files.forEach(file => {
-        const filePath = path.join(dirToCheck, file);
+        const filePath = path.resolve(path.join(dirToCheck, file));
+        // Validate path is within base directory to prevent path traversal
+        if (!filePath.startsWith(baseDir)) {
+          throw new Error(`Path traversal detected: ${file}`);
+        }
         if (fs.statSync(filePath).isFile()) {
           const content = fs.readFileSync(filePath, 'utf8');
 
@@ -99,8 +110,13 @@ describe('CI - Secret Scan', () => {
     if (fs.existsSync(srcDir)) {
       const checkForHardcodedCreds = (dir) => {
         const files = fs.readdirSync(dir);
+        const baseDir = path.resolve(dir);
         files.forEach(file => {
-          const filePath = path.join(dir, file);
+          const filePath = path.resolve(path.join(dir, file));
+          // Validate path is within base directory to prevent path traversal
+          if (!filePath.startsWith(baseDir)) {
+            throw new Error(`Path traversal detected: ${file}`);
+          }
           if (fs.statSync(filePath).isDirectory()) {
             checkForHardcodedCreds(filePath);
           } else if (file.endsWith('.js')) {
@@ -152,9 +168,14 @@ describe('CI - Secret Scan', () => {
 
     if (fs.existsSync(srcDir)) {
       const files = fs.readdirSync(srcDir);
+      const baseDir = path.resolve(srcDir);
 
       files.forEach(file => {
-        const filePath = path.join(srcDir, file);
+        const filePath = path.resolve(path.join(srcDir, file));
+        // Validate path is within base directory to prevent path traversal
+        if (!filePath.startsWith(baseDir)) {
+          throw new Error(`Path traversal detected: ${file}`);
+        }
         if (fs.statSync(filePath).isFile()) {
           const content = fs.readFileSync(filePath, 'utf8');
 

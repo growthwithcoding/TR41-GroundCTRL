@@ -6,6 +6,7 @@
 
 const { execSync } = require('child_process');
 const fs = require('fs');
+const path = require('path');
 
 describe('CI - ESLint Security', () => {
   it('should pass ESLint without security errors', async () => {
@@ -74,9 +75,14 @@ describe('CI - ESLint Security', () => {
 
     if (fs.existsSync(srcDir)) {
       const files = fs.readdirSync(srcDir);
+      const baseDir = path.resolve(srcDir);
 
       files.forEach(file => {
-        const filePath = `${srcDir}/${file}`;
+        const filePath = path.resolve(path.join(srcDir, file));
+        // Validate path is within base directory to prevent path traversal
+        if (!filePath.startsWith(baseDir)) {
+          throw new Error(`Path traversal detected: ${file}`);
+        }
         if (fs.statSync(filePath).isFile()) {
           const content = fs.readFileSync(filePath, 'utf8');
 
@@ -93,9 +99,15 @@ describe('CI - ESLint Security', () => {
     if (fs.existsSync(srcDir)) {
       const files = fs.readdirSync(srcDir);
 
+      const baseDir = path.resolve(srcDir);
       files.forEach(file => {
         if (file.includes('password') || file.includes('auth')) {
-          const content = fs.readFileSync(`${srcDir}/${file}`, 'utf8');
+          const filePath = path.resolve(path.join(srcDir, file));
+          // Validate path is within base directory to prevent path traversal
+          if (!filePath.startsWith(baseDir)) {
+            throw new Error(`Path traversal detected: ${file}`);
+          }
+          const content = fs.readFileSync(filePath, 'utf8');
 
           // Should not log passwords
           expect(content).not.toMatch(/console\.log.*password/i);
@@ -130,15 +142,20 @@ describe('CI - ESLint Security', () => {
       // Check all JS files
       const walkDir = (dir) => {
         const files = fs.readdirSync(dir);
+        const baseDir = path.resolve(dir);
 
         files.forEach(file => {
-          const path = `${dir}/${file}`;
-          const stat = fs.statSync(path);
+          const filePath = path.resolve(path.join(dir, file));
+          // Validate path is within base directory to prevent path traversal
+          if (!filePath.startsWith(baseDir)) {
+            throw new Error(`Path traversal detected: ${file}`);
+          }
+          const stat = fs.statSync(filePath);
 
           if (stat.isDirectory()) {
-            walkDir(path);
+            walkDir(filePath);
           } else if (file.endsWith('.js')) {
-            checkFile(path);
+            checkFile(filePath);
           }
         });
       };
@@ -152,9 +169,14 @@ describe('CI - ESLint Security', () => {
 
     if (fs.existsSync(srcDir)) {
       const files = fs.readdirSync(srcDir);
+      const baseDir = path.resolve(srcDir);
 
       files.forEach(file => {
-        const filePath = `${srcDir}/${file}`;
+        const filePath = path.resolve(path.join(srcDir, file));
+        // Validate path is within base directory to prevent path traversal
+        if (!filePath.startsWith(baseDir)) {
+          throw new Error(`Path traversal detected: ${file}`);
+        }
         if (fs.statSync(filePath).isFile()) {
           const content = fs.readFileSync(filePath, 'utf8');
 
@@ -171,9 +193,15 @@ describe('CI - ESLint Security', () => {
     if (fs.existsSync(srcDir)) {
       const files = fs.readdirSync(srcDir);
 
+      const baseDir = path.resolve(srcDir);
       files.forEach(file => {
         if (file.includes('random') || file.includes('token')) {
-          const content = fs.readFileSync(`${srcDir}/${file}`, 'utf8');
+          const filePath = path.resolve(path.join(srcDir, file));
+          // Validate path is within base directory to prevent path traversal
+          if (!filePath.startsWith(baseDir)) {
+            throw new Error(`Path traversal detected: ${file}`);
+          }
+          const content = fs.readFileSync(filePath, 'utf8');
 
           // Should use crypto.randomBytes, not Math.random()
           if (content.includes('token') || content.includes('secret')) {
