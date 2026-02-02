@@ -13,7 +13,6 @@ module.exports = {
 
   // Run tests sequentially to avoid port conflicts
   maxWorkers: 1,
-  runInBand: true,
 
   // Updated: Use new tests/ directory
   testMatch: [

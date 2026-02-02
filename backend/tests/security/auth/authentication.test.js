@@ -4,7 +4,7 @@
  */
 
 const request = require('supertest');
-const { createTestUser } = require('../helpers/test-utils');
+const { createTestUser } = require('../../helpers/test-utils');
 require('../../src/config/jwtConfig');
 
 describe('Authentication Security Tests', () => {
