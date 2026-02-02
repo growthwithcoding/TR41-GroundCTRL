@@ -15,12 +15,31 @@
 const PQueue = require('p-queue').default;
 const logger = require('../utils/logger');
 
+const isTestEnv = process.env.NODE_ENV === 'test' || typeof process.env.JEST_WORKER_ID !== 'undefined';
+
+const parsePositiveInt = (value, fallback) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
 // Queue configuration - optimized for AI API rate limits
 const QUEUE_CONFIG = {
-  concurrency: 5,        // Max 5 concurrent AI requests
-  intervalCap: 20,       // Max 20 requests per interval
-  interval: 1000,        // 1 second interval (1000ms)
-  timeout: 30000,        // 30 second timeout per task
+  concurrency: parsePositiveInt(
+    process.env.AI_QUEUE_CONCURRENCY,
+    isTestEnv ? 15 : 5
+  ),
+  intervalCap: parsePositiveInt(
+    process.env.AI_QUEUE_INTERVAL_CAP,
+    isTestEnv ? 60 : 20
+  ),
+  interval: parsePositiveInt(
+    process.env.AI_QUEUE_INTERVAL_MS,
+    1000
+  ),
+  timeout: parsePositiveInt(
+    process.env.AI_QUEUE_TIMEOUT_MS,
+    30000
+  ),
   throwOnTimeout: false, // Don't throw, return timeout error
 };
 
