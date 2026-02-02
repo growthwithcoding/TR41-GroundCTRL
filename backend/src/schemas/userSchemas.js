@@ -13,11 +13,10 @@ const createUserSchema = z.object({
     .min(1, 'Email is required')
     .email('Invalid email format'),
   password: z.string()
-    .min(8, 'Password must be at least 8 characters')
+    .min(12, 'Password must be at least 12 characters')
     .max(128, 'Password must not exceed 128 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/\d/, 'Password must contain at least one number')
     .regex(/[@$!%*?&#^()_+\-=[\]{}|;:,.<>/]/, 'Password must contain at least one special character'),
   callSign: z.string()
     .min(2, 'Call sign must be at least 2 characters')
@@ -79,11 +78,10 @@ const patchUserSchema = z.object({
   isAdmin: z.boolean()
     .optional(),
   password: z.string()
-    .min(8, 'Password must be at least 8 characters')
+    .min(12, 'Password must be at least 12 characters')
     .max(128, 'Password must not exceed 128 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/\d/, 'Password must contain at least one number')
     .regex(/[@$!%*?&#^()_+\-=[\]{}|;:,.<>/]/, 'Password must contain at least one special character')
     .optional()
 }).strict().refine(

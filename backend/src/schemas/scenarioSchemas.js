@@ -107,6 +107,10 @@ const createScenarioSchema = z.object({
       .min(1, 'Satellite ID is required')
       .describe('FK to satellites.id'),
     
+    ground_station_id: z.string()
+      .optional()
+      .describe('FK to ground_stations.id (optional)'),
+    
     // Simulation configuration
     initialState: initialStateSchema
       .optional()

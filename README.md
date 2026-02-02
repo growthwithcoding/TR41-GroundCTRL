@@ -30,6 +30,18 @@
 
 ## ✨ Implemented Features
 
+### 👨‍💼 Admin Scenario Management (February 2026)
+Comprehensive admin interface for creating and managing training scenarios:
+- **Scenario List Interface** - Search, filter, and manage all scenarios with CRUD operations
+- **Multi-mode Editor** - Create new scenarios, edit existing ones, or view in read-only mode
+- **Dynamic Step Management** - Build multi-step guided missions with objectives and hints
+- **Satellite Configuration** - Link scenarios to satellites and configure ground stations
+- **Publishing Controls** - Draft, publish, archive workflows with status management
+- **Admin Access Control** - Role-based routing with AdminRoute guard component
+
+📚 Documentation:
+- [SCENARIO_CREATOR_PLAN.md](./SCENARIO_CREATOR_PLAN.md) - Implementation plan and features
+
 ### 🎮 Simulator State Management (January 2026)
 Comprehensive real-time state tracking and synchronization system:
 - **Command Tracking** - Track all commands executed since session start with full history

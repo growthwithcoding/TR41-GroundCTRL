@@ -93,18 +93,27 @@ npm run preview
 
 ## 🛣️ Routes
 
+### Public Routes
 - `/` - Home page with authentication
-- `/dashboard` - User dashboard (protected)
-- `/simulator` - Satellite simulator (protected)
-- `/missions` - Mission selection
-- `/mission-briefing/:id` - Mission briefing details
-- `/account` - User account settings (protected)
-- `/settings` - Application settings (protected)
-- `/help` - Help center
-- `/help/article/:slug` - Help article details
 - `/contact` - Contact page
 - `/privacy` - Privacy policy
 - `/terms` - Terms of service
+
+### Protected Routes (Authenticated)
+- `/dashboard` - User dashboard
+- `/simulator` - Satellite simulator
+- `/missions` - Mission selection
+- `/mission-briefing/:id` - Mission briefing details
+- `/account` - User account settings
+- `/settings` - Application settings
+- `/help` - Help center
+- `/help/article/:slug` - Help article details
+
+### Admin Routes (Admin Only)
+- `/admin/scenarios` - Scenario management list (search, filter, CRUD)
+- `/admin/scenario-creator` - Create new scenario
+- `/admin/scenario-creator?edit=id` - Edit existing scenario
+- `/admin/scenario-creator?view=id` - View scenario (read-only)
 
 ## 🔐 Environment Variables
 
@@ -145,6 +154,34 @@ The production build is in the `dist/` folder and can be deployed to:
 - GitHub Pages
 - Cloudflare Pages
 - Any static hosting service
+
+## 👨‍💼 Admin Features (February 2026)
+
+### Scenario Management System
+- **AdminScenarios** (`src/pages/admin/AdminScenarios.jsx`) - Complete CRUD interface
+  - Search scenarios by title or code
+  - Filter by status (draft/published/archived) and difficulty
+  - Publish/unpublish scenarios
+  - Edit, view, and delete operations
+  - Grid and list view modes
+
+- **ScenarioCreator** (`src/pages/admin/ScenarioCreator.jsx`) - Multi-mode scenario editor
+  - **Create mode**: Build new training scenarios with multi-step wizard
+  - **Edit mode**: Update existing scenarios (query param: `?edit=scenarioId`)
+  - **View mode**: Read-only scenario display (query param: `?view=scenarioId`)
+  - Step-by-step creation: Basic Info → Satellite Config → Steps & Objectives → Publishing
+  - Satellite selection with ground station configuration
+  - Dynamic step management with order control
+
+- **AdminRoute** (`src/components/admin/AdminRoute.jsx`) - Admin access guard
+  - Checks `user.isAdmin` flag from AuthContext
+  - Redirects unauthorized users to dashboard
+
+### Known Issues & Workarounds
+- Ground stations currently use direct Firestore access (bypasses backend API)
+  - Temporary workaround in `scenarioService.js`
+  - Firebase security rule added for authenticated read access
+  - Future improvement: Create backend API endpoint for ground stations
 
 ## 🎯 Key Features
 
