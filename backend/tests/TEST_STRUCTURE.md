@@ -9,7 +9,9 @@ backend/tests/
 ├── security/          # Security hardening tests
 ├── ci-cd/            # Pipeline & dependency tests
 ├── performance/      # Load & performance tests
-└── helpers/          # Test utilities
+├── helpers/          # Test utilities
+├── scripts/          # Test automation scripts
+└── __mocks__/        # Mock data and utilities
 ```
 
 ## Unit Tests (`unit/`)
@@ -41,6 +43,7 @@ backend/tests/
 - `query-caps.test.js` - Query parameter limits
 - `sort-whitelist.test.js` - Whitelisted sort fields only
 - `body-size-limit.test.js` - Request body size limits
+- `property-based-validation.test.js` - Property-based testing for edge cases
 
 ### Rate Limiting (`security/rate-limit/`)
 - `rate-limiting.test.js` - Global rate limits
@@ -48,29 +51,70 @@ backend/tests/
 - `help-ai-strict-limit.test.js` - AI endpoint rate limits
 - `rate-limit-memory-leak.test.js` - Memory leak prevention
 - `rate-limit-concurrent.test.js` - Concurrent request handling
+- `global-window-reset.test.js` - Rate limit window reset behavior
 
 ### Authentication (`security/auth/`)
 - `authentication.test.js` - Auth flows & token validation
 - `auth-error-normalization.test.js` - Consistent error responses
 - `token-revocation.test.js` - Token blacklist & revocation
+- `login-success.test.js` - Successful login flow validation
+- `login-bad-password.test.js` - Failed login handling
+- `refresh-reuse.test.js` - Refresh token reuse detection
+- `jwt-expiration.test.js` - JWT expiration enforcement
+- `jwt-algorithm.test.js` - JWT algorithm validation
 
-### HTTP Security (`security/headers/`)
-- `cors-cache-maxage.test.js` - CORS configuration
-- `cookie-max-age.test.js` - Cookie security settings
-- `security-headers.test.js` - Security headers (CSP, HSTS, etc.)
+### HTTP Security Headers (`security/headers/`)
+- `headers.test.js` - General security headers
+- `hsts-header.test.js` - HTTP Strict Transport Security
+- `csp-script-whitelist.test.js` - Content Security Policy script whitelisting
+
+### CORS (`security/cors/`)
+- `cors.test.js` - CORS configuration validation
+- `cors-credentials.test.js` - CORS credentials handling
+- `cors-cache-maxage.test.js` - CORS preflight cache settings
+
+### Cookies (`security/cookies/`)
+- `cookie-max-age.test.js` - Cookie expiration settings
+- `session-cookies.test.js` - Session cookie security
+- `cookie-path-scope.test.js` - Cookie path restrictions
+- `cookie-same-site-none-blocked.test.js` - SameSite attribute enforcement
+
+### Health Checks (`security/health/`)
+- `health-check.test.js` - Basic health endpoint validation
+- `health-ready.test.js` - Readiness probe checks
+- `health-metrics.test.js` - Health metrics reporting
+
+### HTTP Client (`security/http-client/`)
+- `timeout-enforced.test.js` - HTTP timeout enforcement
+- `retry-policy.test.js` - Retry policy validation
+- `circuit-breaker-fallback.test.js` - Circuit breaker pattern
+
+### Firebase Security (`security/firebase/`)
+- `firebase-emulator-guard.test.js` - Emulator-only operations
+- `index-enforcement.test.js` - Firestore index requirements
+
+### CI Security (`security/ci/`)
+- `dependency-pinning.test.js` - Dependency lock file validation
+- `npm-audit.test.js` - NPM vulnerability scanning
+- `secret-scan.test.js` - Secret detection in code
+- `secrets-ci-hardening.test.js` - CI secret management
+- `eslint-security.test.js` - ESLint security rule compliance
 
 ### Audit (`security/audit/`)
 - `audit-anonymous.test.js` - Anonymous user tracking
 - `audit-custom-metadata.test.js` - Custom audit metadata
 - `audit-timestamp.test.js` - Audit timestamp accuracy
+- `audit-logging.test.js` - Comprehensive audit logging
+- `audit-payload-sanitisation.test.js` - Audit payload sanitization
 
 ## CI/CD Tests (`ci-cd/`)
 
 **Purpose:** Validate build, lint, and deployment processes
 
-- `dependency-pinning.test.js` - Lock file integrity
-- `linting.test.js` - ESLint compliance
 - `pipeline.test.js` - CI/CD workflow validation
+- `sanity.test.js` - Basic sanity checks
+
+Note: Dependency pinning and linting tests have been moved to `security/ci/` for better organization.
 
 ## Performance Tests (`performance/`)
 
