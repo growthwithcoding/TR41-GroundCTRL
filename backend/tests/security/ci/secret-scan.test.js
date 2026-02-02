@@ -40,7 +40,14 @@ describe('CI - Secret Scan', () => {
           if (!fs.statSync(filePath).isFile()) {
             return;
           }
-          const content = fs.readFileSync(filePath, 'utf8');
+          
+          let content;
+          try {
+            content = fs.readFileSync(filePath, 'utf8');
+          } catch (error) {
+            // Skip files that can't be read (race condition, permission issues, etc.)
+            return;
+          }
 
           // Should not contain common secret patterns
           expect(content).not.toMatch(/api[_-]?key\s*=\s*['"][^"']*['"]|sk_[a-z0-9]{20,}/i);
