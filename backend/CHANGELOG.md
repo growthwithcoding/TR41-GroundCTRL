@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Ground Stations Firestore Rules - 2026-02-02
+
+Added Firebase security rules to support admin scenario management features.
+
+### Added
+- Firestore security rule for `ground_stations` collection read access
+  - Allows authenticated users to read ground station data
+  - Required for ScenarioCreator satellite configuration step
+  - Temporary workaround until backend API endpoint is created
+
+### Changed
+- Updated `firestore.rules` with ground_stations read permission
+
+### Notes
+- Ground stations currently accessed via direct Firestore queries (temporary)
+- Future improvement: Create `/api/v1/ground-stations` endpoint for proper API architecture
+
+---
+
 ### Critical Test Fixes - 2026-01-17
 
 Fixed 4 critical conflicts causing 80+ test failures. All changes ensure proper security enforcement and standardized response formatting.
