@@ -3,9 +3,25 @@
  * Common functions for all test suites
  */
 
-const admin = require('firebase-admin');
+const { getAuth, getFirestore } = require('../../src/config/firebase');
 
 let appInstance = null;
+let firebaseInitialized = false;
+
+/**
+ * Ensure Firebase Admin SDK is initialized for tests
+ * In test mode, Firebase should already be initialized by the main app
+ */
+function ensureFirebaseInitialized() {
+  if (firebaseInitialized) {
+    return;
+  }
+
+  // In test mode, Firebase should already be initialized by the main app
+  // We don't need to initialize it again
+  firebaseInitialized = true;
+  console.log(' Firebase Admin SDK ready for tests (using main app instance) - FINAL');
+}
 
 /**
  * Get or create the test Express app instance
@@ -16,9 +32,8 @@ function getTestApp() {
     process.env.NODE_ENV = 'test';
     process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
     process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
-    process.env.FIREBASE_WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY || 'test-api-key-for-emulator';
-
-    delete require.cache[require.resolve('../../src/app')];
+    // Note: FIREBASE_WEB_API_KEY is not needed for backend tests
+    // It's a client-side key used only in frontend authentication
     appInstance = require('../../src/app');
   }
   return appInstance;
@@ -42,44 +57,60 @@ function generateUniqueEmail(prefix = 'test') {
  */
 async function createTestUser(email, password = 'TestPassword123!', callSign = null) {
   try {
-    // Quick cleanup
+    // Ensure Firebase is initialized
+    ensureFirebaseInitialized();
+
+    console.log(' createTestUser: Starting user creation for:', email);
+
+    // First, try to delete existing user with this email
     try {
-      const existingUser = await admin.auth().getUserByEmail(email);
-      await admin.auth().deleteUser(existingUser.uid);
-      const db = admin.firestore();
+      const auth = getAuth();
+      const existingUser = await auth.getUserByEmail(email);
+      console.log(' createTestUser: Found existing user, deleting:', existingUser.uid);
+      await auth.deleteUser(existingUser.uid);
+      const db = getFirestore();
       await db.collection('users').doc(existingUser.uid).delete();
     } catch (error) {
-      // User doesn't exist
+      console.log(' createTestUser: No existing user found, continuing...');
     }
 
-    // Create auth user
-    const userRecord = await admin.auth().createUser({
+    console.log(' createTestUser: Creating new user in Auth...');
+    // Create user in Firebase Auth
+    const auth = getAuth();
+    const userRecord = await auth.createUser({
       email,
       password,
       emailVerified: true,
     });
+    console.log(' createTestUser: User created in Auth:', userRecord.uid);
 
-    // Create Firestore document IMMEDIATELY
-    const db = admin.firestore();
+    // Wait for user creation to propagate
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    console.log(' createTestUser: Creating Firestore document...');
+    // Create corresponding Firestore user document
+    const db = getFirestore();
     const generatedCallSign = callSign || `TEST${Date.now().toString().slice(-6)}`;
     await db.collection('users').doc(userRecord.uid).set({
       uid: userRecord.uid,
       email,
       callSign: generatedCallSign,
       displayName: `Test User ${generatedCallSign}`,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
       isAdmin: false,
       isActive: true,
       status: 'ACTIVE'
     });
+    console.log(' createTestUser: Firestore document created');
 
-    // Minimal wait - emulator is usually fast
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Wait for Firestore write to complete
+    await new Promise(resolve => setTimeout(resolve, 500));
 
+    console.log(' createTestUser: User creation completed successfully');
     return userRecord;
   } catch (error) {
-    console.error('Error creating test user:', error);
+    console.error(' createTestUser: Error creating test user:', error);
     throw error;
   }
 }
@@ -90,8 +121,9 @@ async function createTestUser(email, password = 'TestPassword123!', callSign = n
  */
 async function deleteTestUser(uid) {
   try {
-    await admin.auth().deleteUser(uid);
-    const db = admin.firestore();
+    const auth = getAuth();
+    await auth.deleteUser(uid);
+    const db = getFirestore();
     await db.collection('users').doc(uid).delete();
   } catch (error) {
     if (error.code !== 'auth/user-not-found') {
@@ -106,7 +138,8 @@ async function deleteTestUser(uid) {
  * @returns {Promise<string>} Custom token
  */
 async function generateTestToken(uid) {
-  return admin.auth().createCustomToken(uid);
+  const auth = getAuth();
+  return auth.createCustomToken(uid);
 }
 
 /**
@@ -123,5 +156,6 @@ module.exports = {
   deleteTestUser,
   generateTestToken,
   generateUniqueEmail,
+  ensureFirebaseInitialized,
   wait
 };
