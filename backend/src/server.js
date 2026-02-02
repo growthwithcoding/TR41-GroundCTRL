@@ -17,17 +17,48 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
  * Cloud Run requires immediate binding to PORT environment variable
  */
 function startServer() {
+  console.log('🔧 Starting server initialization...');
+  console.log(`Target PORT: ${PORT}`);
+  console.log(`Target HOST: ${HOST}`);
+  
   try {
+    console.log('📡 Creating HTTP server...');
     // Create HTTP server
     const server = http.createServer(app);
     
-    // Initialize Socket.IO
-    const io = initializeWebSocket(server);
+    console.log('🔌 Initializing WebSocket server...');
+    // Initialize Socket.IO with error handling
+    let io;
+    try {
+      io = initializeWebSocket(server);
+      console.log('✅ WebSocket server initialized successfully');
+    } catch (error) {
+      console.error('⚠️  WebSocket initialization failed:', error.message);
+      logger.error('WebSocket initialization failed', { error: error.message, stack: error.stack });
+      // Continue without WebSocket if it fails
+    }
     
-    // Store io instance for potential use in routes
-    app.set('io', io);
+    // Store io instance for potential use in routes (only if initialized)
+    if (io) {
+      app.set('io', io);
+    }
+    
+    console.log(`🚀 Attempting to bind to ${HOST}:${PORT}...`);
+    
+    // Add a startup timeout to prevent hanging
+    const startupTimeout = setTimeout(() => {
+      console.error('❌ Server startup timeout - failed to bind to port within 30 seconds');
+      logger.error('Server startup timeout', { port: PORT, host: HOST });
+      process.exit(1);
+    }, 30000); // 30 second timeout
     
     server.listen(PORT, HOST, () => {
+      clearTimeout(startupTimeout); // Clear timeout on successful startup
+      console.log(`✅ Server successfully listening on ${HOST}:${PORT}`);
+      
+      // Mark server as fully ready
+      app.locals.serverReady = true;
+      
       logger.info('🚀 GroundCTRL Mission Control System ONLINE', {
         port: PORT,
         host: HOST,
@@ -59,6 +90,35 @@ function startServer() {
       console.log('  📡 Telemetry: /telemetry namespace');
       console.log('  🎮 Commands:  /commands namespace');
       console.log('========================================\n');
+    });
+
+    // Add server error handlers
+    server.on('error', (error) => {
+      clearTimeout(startupTimeout);
+      console.error('❌ Server error:', error.message);
+      logger.error('Server error during startup', { 
+        error: error.message, 
+        code: error.code,
+        port: PORT,
+        host: HOST,
+        stack: error.stack 
+      });
+      
+      if (error.code === 'EADDRINUSE') {
+        console.error(`   Port ${PORT} is already in use`);
+        process.exit(1);
+      } else if (error.code === 'EACCES') {
+        console.error(`   Permission denied accessing port ${PORT}`);
+        process.exit(1);
+      } else {
+        console.error(`   Unexpected server error: ${error.code || error.message}`);
+        process.exit(1);
+      }
+    });
+
+    server.on('close', () => {
+      console.log('🔌 HTTP server closed');
+      logger.info('HTTP server closed');
     });
 
     // Setup graceful shutdown handlers

@@ -24,14 +24,31 @@ const logger = require('./utils/logger');
 // Initialize Express app
 const app = express();
 
+// Track application readiness
+let appReady = false;
+app.locals.appReady = false;
+app.locals.firebaseInitialized = false;
+
 // Initialize Firebase with graceful error handling
 // Don't exit process on failure - let server start for Cloud Run health checks
 let firebaseInitialized = false;
+
+// Add startup logging for Cloud Run debugging
+console.log('🚀 Starting GroundCTRL Backend Server...');
+console.log(`Node Version: ${process.version}`);
+console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`PORT: ${process.env.PORT || '8080'}`);
+
 try {
+  console.log('📡 Initializing Firebase Admin SDK...');
   initializeFirebase();
   firebaseInitialized = true;
+  app.locals.firebaseInitialized = true;
+  console.log('✅ Firebase initialized successfully');
   logger.info('Firebase initialized successfully');
 } catch (error) {
+  console.error('❌ Firebase initialization failed:', error.message);
+  app.locals.firebaseInitialized = false;
   logger.error('Failed to initialize Firebase - server will start in degraded mode', { 
     error: error.message,
     stack: error.stack 
@@ -161,5 +178,9 @@ app.use(authErrorNormalizer);
 
 // Global error handler (must be last)
 app.use(errorHandler);
+
+// Mark app as ready after all middleware and routes are configured
+console.log('✅ Express app configuration complete');
+app.locals.appReady = true;
 
 module.exports = app;

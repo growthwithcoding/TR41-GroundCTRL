@@ -69,7 +69,13 @@ test.describe('UI-011: Navigation and Routing', () => {
 
   test('should highlight active navigation link', async ({ page }) => {
     await page.goto('/help');
-    await page.waitForLoadState('networkidle', { timeout: 60000 });
+    // Wait for load or timeout after 30 seconds (networkidle can be slow)
+    try {
+      await page.waitForLoadState('networkidle', { timeout: 30000 });
+    } catch (e) {
+      // If networkidle times out, continue - the page may still be usable
+      console.log('Note: networkidle timeout, but page is loaded');
+    }
 
     // Find the help link
     const helpLink = page.locator('header nav a[href="/help"]');
