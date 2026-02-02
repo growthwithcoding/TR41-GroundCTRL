@@ -84,11 +84,6 @@ export function AuthForm({ view, onViewChange }) {
           setLoading(false)
           return
         }
-        if (!/[0-9]/.test(password)) {
-          setError("Password must include at least one number")
-          setLoading(false)
-          return
-        }
         if (!/[^A-Za-z0-9]/.test(password)) {
           setError("Password must include at least one special character")
           setLoading(false)
@@ -197,6 +192,48 @@ export function AuthForm({ view, onViewChange }) {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          
+          {/* Password Requirements Checklist */}
+          {!isLogin && (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Password must contain:</p>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-xs">
+                  <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                    password.length >= 12 ? 'bg-green-500' : 'bg-gray-300'
+                  }`}>
+                    {password.length >= 12 && <span className="text-white text-[10px]">✓</span>}
+                  </div>
+                  <span className={password.length >= 12 ? 'text-green-600' : 'text-muted-foreground'}>
+                    At least 12 characters
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-2 text-xs">
+                  <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                    /[A-Z]/.test(password) ? 'bg-green-500' : 'bg-gray-300'
+                  }`}>
+                    {/[A-Z]/.test(password) && <span className="text-white text-[10px]">✓</span>}
+                  </div>
+                  <span className={/[A-Z]/.test(password) ? 'text-green-600' : 'text-muted-foreground'}>
+                    One uppercase letter (A-Z)
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-2 text-xs">
+                  <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                    /[^A-Za-z0-9]/.test(password) ? 'bg-green-500' : 'bg-gray-300'
+                  }`}>
+                    {/[^A-Za-z0-9]/.test(password) && <span className="text-white text-[10px]">✓</span>}
+                  </div>
+                  <span className={/[^A-Za-z0-9]/.test(password) ? 'text-green-600' : 'text-muted-foreground'}>
+                    One special character (!@#$%^&*)
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {!isLogin && password && (
             <div className="mt-1">
               <div className="w-full h-2 bg-border rounded">

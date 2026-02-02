@@ -66,6 +66,14 @@ function App() {
             } 
           />
           <Route 
+            path="/admin/scenario-creator" 
+            element={
+              <AdminRoute>
+                <ScenarioCreatorPage />
+              </AdminRoute>
+            } 
+          />
+          <Route 
             path="/admin/scenarios/create" 
             element={
               <AdminRoute>

@@ -38,7 +38,22 @@ export async function fetchUserAuditLogs(userId, maxResults = 10) {
     }
     
     const data = await response.json()
-    const auditLogs = data.payload?.data || []
+    
+    // Backend returns audit logs in payload.data array (paginated response)
+    // Or sometimes just payload (depending on endpoint structure)
+    let auditLogs = []
+    
+    if (Array.isArray(data.payload?.data)) {
+      auditLogs = data.payload.data
+    } else if (Array.isArray(data.payload)) {
+      auditLogs = data.payload
+    } else if (Array.isArray(data.data)) {
+      auditLogs = data.data
+    } else if (Array.isArray(data)) {
+      auditLogs = data
+    }
+    
+    console.log('Fetched audit logs:', auditLogs)
     
     // Convert timestamp strings to Date objects
     return auditLogs.map(log => ({

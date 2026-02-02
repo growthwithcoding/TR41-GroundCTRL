@@ -94,10 +94,12 @@ export async function deleteScenario(scenarioId) {
  */
 export async function createScenarioStep(stepData) {
   try {
+    console.log('Creating scenario step with data:', stepData)
     const response = await api.post('/scenario-steps', stepData)
     return response.payload || response
   } catch (error) {
     console.error('Failed to create scenario step:', error)
+    console.error('Step validation errors:', error.data?.payload?.error || error.data?.errors || error.data)
     throw new Error(error.message || 'Failed to create step')
   }
 }
@@ -190,5 +192,61 @@ export async function getSatellite(satelliteId) {
   } catch (error) {
     console.error('Failed to get satellite:', error)
     throw new Error(error.message || 'Failed to retrieve satellite')
+  }
+}
+
+// ==================== Ground Stations ====================
+
+/**
+ * Get all ground stations (from Firestore directly - no backend endpoint)
+ * @returns {Promise<Array>} Array of ground stations
+ */
+export async function getGroundStations() {
+  try {
+    // Import Firebase Firestore
+    const { getFirestore, collection, getDocs } = await import('firebase/firestore')
+    const { db } = await import('../firebase/config')
+    
+    const querySnapshot = await getDocs(collection(db, 'ground_stations'))
+    const stations = []
+    querySnapshot.forEach((doc) => {
+      stations.push({
+        id: doc.id,
+        ...doc.data()
+      })
+    })
+    
+    console.log('Ground stations loaded from Firestore:', stations)
+    return stations
+  } catch (error) {
+    console.error('Failed to get ground stations:', error)
+    throw new Error(error.message || 'Failed to retrieve ground stations')
+  }
+}
+
+/**
+ * Get ground station by ID (from Firestore directly - no backend endpoint)
+ * @param {string} stationId - Ground station ID
+ * @returns {Promise<object>} Ground station data
+ */
+export async function getGroundStation(stationId) {
+  try {
+    const { getFirestore, doc, getDoc } = await import('firebase/firestore')
+    const { db } = await import('../firebase/config')
+    
+    const docRef = doc(db, 'ground_stations', stationId)
+    const docSnap = await getDoc(docRef)
+    
+    if (!docSnap.exists()) {
+      throw new Error('Ground station not found')
+    }
+    
+    return {
+      id: docSnap.id,
+      ...docSnap.data()
+    }
+  } catch (error) {
+    console.error('Failed to get ground station:', error)
+    throw new Error(error.message || 'Failed to retrieve ground station')
   }
 }
