@@ -28,7 +28,7 @@ jobs:
   e2e-tests:
     name: E2E Tests (${{ matrix.browser }})
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10  # Reduced from 15 to avoid long waits
     strategy:
       fail-fast: false  # Continue running other browsers even if one fails
       max-parallel: 1   # Run tests sequentially to avoid runner queue issues
