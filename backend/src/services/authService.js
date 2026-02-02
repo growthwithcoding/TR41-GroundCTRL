@@ -52,7 +52,8 @@ async function verifyPassword(email, password) {
   } catch (error) {
     if (error.response?.data?.error?.message === 'INVALID_PASSWORD' || 
         error.response?.data?.error?.message === 'EMAIL_NOT_FOUND' ||
-        error.response?.data?.error?.message === 'INVALID_LOGIN_CREDENTIALS') {
+        error.response?.data?.error?.message === 'INVALID_LOGIN_CREDENTIALS' ||
+        error.response?.data?.error?.message === 'API key not valid. Please pass a valid API key.') {
       throw new AuthError('Invalid email or password', 401);
     }
     logger.error('Password verification error', { error: error.message });

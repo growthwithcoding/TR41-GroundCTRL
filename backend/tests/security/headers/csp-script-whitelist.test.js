@@ -78,7 +78,7 @@ describe('Headers - CSP Script Whitelist', () => {
   it('should prevent script injection attacks', async () => {
     const response = await request(app)
       .get('/api/v1/satellites?search=<script>alert("xss")</script>')
-      .expect([200, 401, 404]);
+      .expect([200, 400, 401, 404]);
 
     // CSP header should be present to prevent execution
     expect(response.headers['content-security-policy']).toBeDefined();

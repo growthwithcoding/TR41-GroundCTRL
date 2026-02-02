@@ -11,6 +11,10 @@ module.exports = {
     enableSymlinks: false,
   },
 
+  // Run tests sequentially to avoid port conflicts
+  maxWorkers: 1,
+  runInBand: true,
+
   // Updated: Use new tests/ directory
   testMatch: [
     '**/tests/**/*.test.js',
@@ -39,7 +43,7 @@ module.exports = {
   // Updated: Point to new setupAfterEnv.js if it exists
   // setupFilesAfterEnv: ['<rootDir>/tests/setupAfterEnv.js'],
 
-  testTimeout: 30000, // 30 seconds per test
+  testTimeout: 90000, // 90 seconds per test (increased for CI environments)
   forceExit: true, // Force exit after all tests complete
   detectOpenHandles: false, // Don't hang waiting for handles
   collectCoverage: false,

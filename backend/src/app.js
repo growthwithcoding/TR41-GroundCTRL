@@ -44,18 +44,23 @@ try {
 }
 
 // Security headers middleware (helmet)
-if (process.env.NODE_ENV !== 'test') {
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ['\'self\''],
-        styleSrc: ['\'self\'', '\'unsafe-inline\''], // Allow inline styles for now
-        scriptSrc: ['\'self\''],
-        imgSrc: ['\'self\'', 'data:', 'https:'],
-      },
+// Enable for all environments including tests so security header tests work
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ['\'self\''],
+      styleSrc: ['\'self\'', '\'unsafe-inline\''], // Allow inline styles for now
+      scriptSrc: ['\'self\''],
+      imgSrc: ['\'self\'', 'data:', 'https:'],
+      reportUri: '/csp-report', // CSP violation reporting endpoint
     },
-  }));
-}
+  },
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  }
+}));
 
 // CORS configuration
 const allowedOrigins = process.env.ALLOWED_ORIGINS 

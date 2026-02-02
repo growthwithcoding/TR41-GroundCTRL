@@ -80,12 +80,12 @@ describe('CI - NPM Audit', () => {
       const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 
       // Should have helmet for security headers
-      expect(packageJson.dependencies).toHaveProperty('helmet') || expect(true).toBe(true);
+      expect(packageJson.dependencies).toHaveProperty('helmet');
 
-      // Should have express-validator or similar
-      expect(packageJson.dependencies).toHaveProperty('zod') || 
-      expect(packageJson.dependencies).toHaveProperty('joi') ||
-      expect(true).toBe(true);
+      // Should have zod or joi for validation
+      const hasValidation = packageJson.dependencies.hasOwnProperty('zod') || 
+                           packageJson.dependencies.hasOwnProperty('joi');
+      expect(hasValidation).toBe(true);
     }
   }, 60000);
 

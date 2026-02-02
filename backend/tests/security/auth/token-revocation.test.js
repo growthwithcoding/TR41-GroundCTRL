@@ -37,7 +37,7 @@ describe('Auth - Token Revocation', () => {
       })
       .expect(200);
 
-    const token = loginResponse.body.payload.token;
+    const token = loginResponse.body.payload.tokens.accessToken;
 
     // Logout (if endpoint exists)
     if (true) { // Check if logout endpoint exists
@@ -68,7 +68,7 @@ describe('Auth - Token Revocation', () => {
       })
       .expect(200);
 
-    const token = loginResponse.body.payload.token;
+    const token = loginResponse.body.payload.tokens.accessToken;
 
     // Try to use token for protected operation
     const firstRequest = await request(app)
@@ -104,7 +104,7 @@ describe('Auth - Token Revocation', () => {
       })
       .expect(200);
 
-    const token = loginResponse.body.payload.token;
+    const token = loginResponse.body.payload.tokens.accessToken;
     const decoded = jwt.decode(token);
 
     // Token should have a jti (JWT ID) for tracking
@@ -139,7 +139,7 @@ describe('Auth - Token Revocation', () => {
       })
       .expect(200);
 
-    const token = loginResponse.body.payload.token;
+    const token = loginResponse.body.payload.tokens.accessToken;
 
     // Logout
     await request(app)

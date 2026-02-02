@@ -40,9 +40,10 @@ describe('Auth - Login Success', () => {
       .expect(200);
 
     expect(response.body).toHaveProperty('payload');
-    expect(response.body.payload).toHaveProperty('token');
+    expect(response.body.payload).toHaveProperty('tokens');
+    expect(response.body.payload.tokens).toHaveProperty('accessToken');
 
-    const token = response.body.payload.token;
+    const token = response.body.payload.tokens.accessToken;
     expect(typeof token).toBe('string');
 
     // Decode and validate JWT claims
@@ -50,13 +51,12 @@ describe('Auth - Login Success', () => {
     expect(decoded).not.toBeNull();
     expect(decoded.header.alg).toBe('HS256');
     expect(decoded.payload).toHaveProperty('uid');
-    expect(decoded.payload).toHaveProperty('email');
-    expect(decoded.payload.email).toBe(userData.email);
+    expect(decoded.payload).toHaveProperty('callSign');
 
     // Verify expiration is approximately 1 hour from now
     const now = Math.floor(Date.now() / 1000);
-    expect(decoded.payload.exp).toBeGreaterThan(now + 3500); // At least 58 minutes
-    expect(decoded.payload.exp).toBeLessThan(now + 3700); // At most 62 minutes
+    expect(decoded.payload.exp).toBeGreaterThan(now + 840); // At least 14 minutes
+    expect(decoded.payload.exp).toBeLessThan(now + 960); // At most 16 minutes
   }, 60000);
 
   it('should return refresh token for token refresh capability', async () => {
@@ -80,9 +80,9 @@ describe('Auth - Login Success', () => {
       })
       .expect(200);
 
-    expect(response.body.payload).toHaveProperty('token');
+    expect(response.body.payload).toHaveProperty('tokens');
     // Check if refreshToken or similar mechanism exists
-    expect(response.body.payload.token).toBeTruthy();
+    expect(response.body.payload.tokens.accessToken).toBeTruthy();
   }, 60000);
 
   it('should not expose sensitive user data in JWT payload', async () => {
@@ -105,7 +105,7 @@ describe('Auth - Login Success', () => {
       })
       .expect(200);
 
-    const decoded = jwt.decode(response.body.payload.token);
+    const decoded = jwt.decode(response.body.payload.tokens.accessToken);
 
     // Ensure no passwords or sensitive data in JWT
     expect(decoded).not.toHaveProperty('password');

@@ -36,9 +36,10 @@ describe('Auth - JWT Algorithm', () => {
       })
       .expect(200);
 
-    const token = response.body.payload.token;
+    const token = response.body.payload.tokens.accessToken;
     const decoded = jwt.decode(token, { complete: true });
 
+    expect(decoded).toBeTruthy();
     expect(decoded.header.alg).toBe('HS256');
     expect(decoded.header.typ).toBe('JWT');
   }, 60000);
@@ -59,7 +60,7 @@ describe('Auth - JWT Algorithm', () => {
       })
       .expect(200);
 
-    const token = response.body.payload.token;
+    const token = response.body.payload.tokens.accessToken;
     const decoded = jwt.decode(token);
 
     // Standard claims
@@ -82,7 +83,7 @@ describe('Auth - JWT Algorithm', () => {
       })
       .expect(200);
 
-    const token = response.body.payload.token;
+    const token = response.body.payload.tokens.accessToken;
     const secret = process.env.JWT_SECRET;
 
     // Should verify successfully with correct secret
@@ -100,7 +101,7 @@ describe('Auth - JWT Algorithm', () => {
       })
       .expect(200);
 
-    const token = response.body.payload.token;
+    const token = response.body.payload.tokens.accessToken;
     const wrongSecret = 'completely-different-secret-key-for-testing';
 
     // Should fail verification with wrong secret

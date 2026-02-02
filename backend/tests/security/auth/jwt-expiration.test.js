@@ -36,12 +36,12 @@ describe('Auth - JWT Expiration', () => {
       })
       .expect(200);
 
-    const token = response.body.payload.token;
+    const token = response.body.payload.tokens.accessToken;
     const decoded = jwt.decode(token);
     const now = Math.floor(Date.now() / 1000);
 
-    // Default 1 hour = 3600 seconds
-    const expectedExpiry = now + 3600;
+    // Default ~15 minutes = 901 seconds (as per config)
+    const expectedExpiry = now + 901;
     const tolerance = 60; // Allow 60 second difference
 
     expect(decoded.exp).toBeGreaterThan(expectedExpiry - tolerance);
@@ -57,7 +57,7 @@ describe('Auth - JWT Expiration', () => {
       })
       .expect(200);
 
-    const token = response.body.payload.token;
+    const token = response.body.payload.tokens.accessToken;
     const decoded = jwt.decode(token);
     const now = Math.floor(Date.now() / 1000);
 
@@ -87,13 +87,14 @@ describe('Auth - JWT Expiration', () => {
       })
       .expect(200);
 
-    const token = response.body.payload.token;
+    const token = response.body.payload.tokens.accessToken;
     const decoded = jwt.decode(token);
 
     const lifetime = decoded.exp - decoded.iat;
 
-    // Should be 3600 seconds (1 hour)
-    expect(lifetime).toBe(3600);
+    // Should be approximately 15 minutes (901 seconds as per config)
+    expect(lifetime).toBeGreaterThan(850); // At least 14 minutes
+    expect(lifetime).toBeLessThan(950); // At most 16 minutes
   }, 60000);
 
   it('should have exp claim in numeric format', async () => {
@@ -105,7 +106,7 @@ describe('Auth - JWT Expiration', () => {
       })
       .expect(200);
 
-    const token = response.body.payload.token;
+    const token = response.body.payload.tokens.accessToken;
     const decoded = jwt.decode(token);
 
     expect(typeof decoded.exp).toBe('number');
@@ -122,7 +123,7 @@ describe('Auth - JWT Expiration', () => {
       })
       .expect(200);
 
-    const token1 = response1.body.payload.token;
+    const token1 = response1.body.payload.tokens.accessToken;
     const decoded1 = jwt.decode(token1);
 
     // Wait a second and login again
@@ -136,7 +137,7 @@ describe('Auth - JWT Expiration', () => {
       })
       .expect(200);
 
-    const token2 = response2.body.payload.token;
+    const token2 = response2.body.payload.tokens.accessToken;
     const decoded2 = jwt.decode(token2);
 
     // Second token should have later expiration
