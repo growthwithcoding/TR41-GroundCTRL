@@ -4,7 +4,7 @@
  * Consolidated from: sprint0/backendPhase2SecurityQuickWins.test.js
  */
 
-const authErrorNormalizer = require('../../src/middleware/authErrorNormalizer');
+const authErrorNormalizer = require('../../../src/middleware/authErrorNormalizer');
 
 describe('Auth Error Normalization - Comprehensive Security Tests', () => {
   describe('AUTH-007, SEC-002: Production Error Normalization', () => {

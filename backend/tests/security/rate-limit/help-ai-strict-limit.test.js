@@ -15,6 +15,16 @@ describe('Rate Limit - Help AI Strict Limit', () => {
     await new Promise(resolve => setTimeout(resolve, 1000));
   }, 60000);
 
+  afterAll(async () => {
+    // Close any open connections and clear rate limit store
+    try {
+      jest.clearAllTimers();
+      jest.clearAllMocks();
+    } catch (error) {
+      // Ignore if already cleared
+    }
+  });
+
   it('should enforce stricter limits on AI help endpoint', async () => {
     const helpAiLimit = parseInt(process.env.HELP_AI_RATE_LIMIT_MAX_REQUESTS || '100');
     const apiLimit = parseInt(process.env.API_RATE_LIMIT_MAX_REQUESTS || '1000');

@@ -15,6 +15,16 @@ describe('Audit - Anonymous', () => {
     await new Promise(resolve => setTimeout(resolve, 1000));
   }, 60000);
 
+  afterAll(async () => {
+    // Close any open connections and clear mocks
+    try {
+      jest.clearAllTimers();
+      jest.clearAllMocks();
+    } catch (error) {
+      // Ignore if already cleared
+    }
+  });
+
   it('should log anonymous requests with IP address', async () => {
     const response = await request(app)
       .get('/api/v1/satellites')

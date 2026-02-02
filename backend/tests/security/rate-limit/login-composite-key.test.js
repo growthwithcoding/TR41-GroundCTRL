@@ -15,6 +15,16 @@ describe('Rate Limit - Login Composite Key', () => {
     await new Promise(resolve => setTimeout(resolve, 1000));
   }, 60000);
 
+  afterAll(async () => {
+    // Close any open connections and clear rate limit store
+    try {
+      jest.clearAllTimers();
+      jest.clearAllMocks();
+    } catch (error) {
+      // Ignore if already cleared
+    }
+  });
+
   it('should apply rate limit per email address', async () => {
     const email = `composite-${Date.now()}@example.com`;
     const windowMs = parseInt(process.env.LOGIN_RATE_LIMIT_WINDOW_MS || '1000');

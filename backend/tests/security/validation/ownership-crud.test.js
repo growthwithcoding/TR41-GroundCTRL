@@ -20,7 +20,7 @@ describe('Ownership & CRUD Security Tests', () => {
   describe('Pagination Hardening', () => {
     it('should validate page size limits in schema', () => {
       // Test that pagination schemas enforce proper limits
-      const { listSatellitesSchema } = require('../../src/schemas/satelliteSchemas');
+      const { listSatellitesSchema } = require('../../../src/schemas/satelliteSchemas');
 
       // Should reject page size > 100
       expect(() => {
@@ -38,7 +38,7 @@ describe('Ownership & CRUD Security Tests', () => {
     });
 
     it('should validate page numbers in schema', () => {
-      const { listSatellitesSchema } = require('../../src/schemas/satelliteSchemas');
+      const { listSatellitesSchema } = require('../../../src/schemas/satelliteSchemas');
 
       // Should reject negative page numbers
       expect(() => {
@@ -56,7 +56,7 @@ describe('Ownership & CRUD Security Tests', () => {
     });
 
     it('should validate sort parameters in schema', () => {
-      const { listSatellitesSchema } = require('../../src/schemas/satelliteSchemas');
+      const { listSatellitesSchema } = require('../../../src/schemas/satelliteSchemas');
 
       // Should reject invalid sort fields
       expect(() => {

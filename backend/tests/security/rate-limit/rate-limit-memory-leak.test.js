@@ -15,6 +15,16 @@ describe('Rate Limit - Memory Leak Prevention', () => {
     await new Promise(resolve => setTimeout(resolve, 1000));
   }, 60000);
 
+  afterAll(async () => {
+    // Close any open connections and clear rate limit store
+    try {
+      jest.clearAllTimers();
+      jest.clearAllMocks();
+    } catch (error) {
+      // Ignore if already cleared
+    }
+  });
+
   it('should not accumulate records for unique identifiers indefinitely', async () => {
     // Create requests from many different identifiers
     const windowMs = parseInt(process.env.API_RATE_LIMIT_WINDOW_MS || '1000');
