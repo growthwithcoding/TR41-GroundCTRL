@@ -11,6 +11,7 @@ on:
       - develop
     paths:
       - 'frontend/**'
+  workflow_dispatch:
 
 # Cancel previous runs when new commits are pushed
 concurrency:
@@ -25,9 +26,13 @@ permissions:
 
 jobs:
   e2e-tests:
-    name: Run Frontend E2E Tests
+    name: E2E Tests (${{ matrix.browser }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false  # Continue running other browsers even if one fails
+      matrix:
+        browser: [chromium, firefox, webkit, 'Mobile Chrome', 'Mobile Safari']
     
     steps:
       - name: Checkout code
@@ -46,11 +51,11 @@ jobs:
       
       - name: Install Playwright browsers
         working-directory: ./frontend
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps
       
-      - name: Run E2E tests
+      - name: Run E2E tests for ${{ matrix.browser }}
         working-directory: ./frontend
-        run: npm run test:e2e
+        run: npx playwright test --project="${{ matrix.browser }}"
         env:
           CI: true
           PLAYWRIGHT_BASE_URL: http://localhost:5173
@@ -62,19 +67,19 @@ jobs:
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID || '123456789' }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID || 'test-app-id' }}
       
-      - name: Upload test results
+      - name: Upload test results for ${{ matrix.browser }}
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.browser }}
           path: frontend/playwright-report/
           retention-days: 7
       
-      - name: Upload test artifacts
+      - name: Upload test artifacts for ${{ matrix.browser }}
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-${{ matrix.browser }}
           path: frontend/test-results/
           retention-days: 7
       
@@ -99,12 +104,14 @@ jobs:
             }
             
             const status = '${{ job.status }}';
+            const browser = '${{ matrix.browser }}';
             const emoji = status === 'success' ? '✅' : '❌';
             const statusText = status === 'success' ? 'Passed' : 'Failed';
             
-            const body = `${emoji} **Frontend E2E Tests ${statusText}**
+            const body = `${emoji} **Frontend E2E Tests ${statusText} - ${browser}**
             
             📊 **Test Summary:**
+            - **Browser/Device:** ${browser}
             - **Total Tests:** ${testResults.stats?.tests || 'N/A'}
             - **Passed:** ✅ ${testResults.stats?.passes || 0}
             - **Failed:** ❌ ${testResults.stats?.failures || 0}

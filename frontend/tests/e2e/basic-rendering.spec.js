@@ -19,10 +19,7 @@ test.describe('UI-001: Basic App Rendering', () => {
     });
 
     // Navigate to home page
-    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-    
-    // Wait for page to be fully loaded
-    await page.waitForLoadState('networkidle', { timeout: 30000 });
+    await page.goto('/', { waitUntil: 'networkidle', timeout: 30000 });
     
     // Check that Header (AppHeader) is visible
     const header = page.locator('header');

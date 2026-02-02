@@ -27,12 +27,35 @@ export function AuthProvider({ children }) {
           })
           
           console.log('✅ Authenticated with Firebase', { isAdmin: profile?.isAdmin })
+          
+          // Exchange Firebase ID token for backend JWT tokens
+          try {
+            const firebaseIdToken = await firebaseUser.getIdToken()
+            const backendResponse = await loginWithFirebaseToken(firebaseIdToken)
+            
+            // Extract tokens from response structure: { user: {...}, tokens: { accessToken, refreshToken } }
+            const accessToken = backendResponse.tokens?.accessToken || backendResponse.accessToken
+            const refreshToken = backendResponse.tokens?.refreshToken || backendResponse.refreshToken
+            
+            // Store backend JWT tokens
+            if (accessToken && refreshToken) {
+              setBackendTokens(accessToken, refreshToken)
+              console.log('✅ Backend JWT tokens obtained and stored')
+            } else {
+              console.warn('⚠️ Backend login successful but no tokens received:', backendResponse)
+            }
+          } catch (tokenError) {
+            console.error('❌ Failed to exchange Firebase token for backend JWT:', tokenError)
+            // Don't throw - user is still authenticated with Firebase
+            // They can still view pages, just API calls will fail until they refresh
+          }
         } catch (e) {
           console.error('Failed to fetch profile:', e)
           setUser({ ...firebaseUser, callSign: "", isAdmin: false })
         }
       } else {
         setUser(null)
+        clearBackendTokens()
       }
       setLoading(false)
     })
@@ -72,6 +95,7 @@ export function AuthProvider({ children }) {
   const handleSignOut = async () => {
     try {
       setError(null)
+      clearBackendTokens()
       await signOut()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to sign out")

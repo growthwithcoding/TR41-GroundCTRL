@@ -4,6 +4,7 @@
  */
 
 const { getFirestore, getAuth } = require('../config/firebase');
+const { ValidationError } = require('../utils/errors');
 const logger = require('../utils/logger');
 
 const COLLECTION_NAME = 'users';
@@ -251,6 +252,22 @@ async function patch(uid, updates, metadata = {}) {
   try {
     const auth = getAuth();
     const db = getFirestore();
+
+    // Check if user is trying to update email
+    if (updates.email) {
+      // Get current user data to check auth provider
+      const userDoc = await db.collection(COLLECTION_NAME).doc(uid).get();
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        // SECURITY: Prevent OAuth users from changing email
+        // OAuth email is managed by provider (Google, Facebook, etc.)
+        if (userData.authProvider && userData.authProvider !== 'password') {
+          throw new ValidationError(
+            `Cannot update email for ${userData.authProvider} users. Email is managed by authentication provider.`
+          );
+        }
+      }
+    }
 
     // Build Firebase Auth update
     const authUpdate = {};

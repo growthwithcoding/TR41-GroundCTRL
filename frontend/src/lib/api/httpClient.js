@@ -69,19 +69,15 @@ export async function apiRequest(endpoint, options = {}, requiresAuth = true) {
 
   // Add authentication token if required
   if (requiresAuth) {
-    const user = auth.currentUser
-    if (!user) {
-      throw new APIError('Not authenticated', 401, { brief: 'User not logged in' })
+    // Use backend JWT token instead of Firebase token
+    const backendToken = getBackendAccessToken()
+    
+    if (!backendToken) {
+      throw new APIError('Not authenticated', 401, { brief: 'No backend token available. Please log in.' })
     }
     
-    try {
-      const firebaseToken = await user.getIdToken(true) // Force refresh
-      console.log('Using Firebase token')
-      headers['Authorization'] = `Bearer ${firebaseToken}`
-    } catch (error) {
-      console.error('Failed to get token:', error)
-      throw new APIError('Failed to get auth token', 401, { brief: error.message })
-    }
+    console.log('✅ Using backend JWT token')
+    headers['Authorization'] = `Bearer ${backendToken}`
   }
 
   try {
@@ -119,32 +115,32 @@ export async function apiRequest(endpoint, options = {}, requiresAuth = true) {
  * Convenience methods for common HTTP verbs
  */
 export const api = {
-  get: (endpoint, options = {}) => 
-    apiRequest(endpoint, { ...options, method: 'GET' }),
+  get: (endpoint, options = {}, requiresAuth = true) => 
+    apiRequest(endpoint, { ...options, method: 'GET' }, requiresAuth),
   
-  post: (endpoint, body, options = {}) => 
+  post: (endpoint, body, options = {}, requiresAuth = true) => 
     apiRequest(endpoint, { 
       ...options, 
       method: 'POST',
       body: JSON.stringify(body) 
-    }),
+    }, requiresAuth),
   
-  patch: (endpoint, body, options = {}) => 
+  patch: (endpoint, body, options = {}, requiresAuth = true) => 
     apiRequest(endpoint, { 
       ...options, 
       method: 'PATCH',
       body: JSON.stringify(body) 
-    }),
+    }, requiresAuth),
   
-  put: (endpoint, body, options = {}) => 
+  put: (endpoint, body, options = {}, requiresAuth = true) => 
     apiRequest(endpoint, { 
       ...options, 
       method: 'PUT',
       body: JSON.stringify(body) 
-    }),
+    }, requiresAuth),
   
-  delete: (endpoint, options = {}) => 
-    apiRequest(endpoint, { ...options, method: 'DELETE' }),
+  delete: (endpoint, options = {}, requiresAuth = true) => 
+    apiRequest(endpoint, { ...options, method: 'DELETE' }, requiresAuth),
 }
 
 export default api

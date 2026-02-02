@@ -14,8 +14,21 @@ export async function createSession(sessionData) {
   try {
     const response = await api.post('/scenario-sessions', sessionData)
     
-    // Backend returns: { success: true, payload: { id: '...', ...sessionData } }
-    return response.payload?.id || response.id
+    console.log('🔍 API Response:', response)
+    console.log('🔍 Response payload:', response.payload)
+    console.log('🔍 Response payload.data:', response.payload?.data)
+    
+    // Backend returns: { status: 'GO', payload: { data: { id: '...', ...sessionData } } }
+    const sessionId = response.payload?.data?.id || response.payload?.id || response.id
+    
+    console.log('🎯 Extracted session ID:', sessionId)
+    
+    if (!sessionId) {
+      console.error('❌ Session ID is missing from response!')
+      throw new Error('Session created but ID not returned')
+    }
+    
+    return sessionId
   } catch (error) {
     console.error('Failed to create session:', error)
     throw new Error(error.message || 'Failed to create training session')

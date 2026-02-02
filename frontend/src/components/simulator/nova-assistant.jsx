@@ -27,6 +27,8 @@ const getFallbackResponse = () => {
 export function NovaAssistant({ sessionId, stepId }) {
   const [inputValue, setInputValue] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [novaStatus, setNovaStatus] = useState('checking') // 'online', 'offline', 'checking'
+  const [suggestions, setSuggestions] = useState([])
   const [messages, setMessages] = useState([
     {
       id: "intro-1",
@@ -39,8 +41,37 @@ export function NovaAssistant({ sessionId, stepId }) {
   const { 
     steps, 
     currentStepIndex,
-    missionProgress 
+    saveProgress
   } = useSimulatorState()
+  
+  // Ping Nova API endpoint to check status
+  useEffect(() => {
+    const checkNovaStatus = async () => {
+      try {
+        const response = await fetch(`${NOVA_API_URL}/health`, {
+          method: 'GET',
+          signal: AbortSignal.timeout(3000) // 3 second timeout
+        })
+        
+        if (response.ok) {
+          setNovaStatus('online')
+        } else {
+          setNovaStatus('offline')
+        }
+      } catch (error) {
+        // Fallback mode - API not available but we can still provide basic help
+        setNovaStatus('fallback')
+      }
+    }
+    
+    // Check immediately
+    checkNovaStatus()
+    
+    // Check every 30 seconds
+    const interval = setInterval(checkNovaStatus, 30000)
+    
+    return () => clearInterval(interval)
+  }, [])
   
   // Add guidance message when step changes
   useEffect(() => {
@@ -102,12 +133,28 @@ export function NovaAssistant({ sessionId, stepId }) {
 
       const data = await response.json()
       
+      // Extract message content from response payload
+      const messageData = data.payload?.data?.message || data.message || {}
+      const suggestionsData = data.payload?.data?.suggestions || data.suggestions || []
+      
       const novaResponse = {
         id: `assistant-${Date.now()}`,
         type: "assistant",
-        content: data.replyText || "I'm sorry, I couldn't process that request."
+        content: messageData.content || data.replyText || "I'm sorry, I couldn't process that request."
       }
       setMessages(prev => [...prev, novaResponse])
+      
+      // Update suggestions if provided
+      if (suggestionsData && suggestionsData.length > 0) {
+        setSuggestions(suggestionsData)
+      } else {
+        setSuggestions([])
+      }
+      
+      // Save progress after chat interaction
+      setTimeout(() => {
+        saveProgress()
+      }, 100)
     } catch (err) {
       // Use fallback response when API is unavailable
       const fallbackMessage = {
@@ -116,6 +163,11 @@ export function NovaAssistant({ sessionId, stepId }) {
         content: getFallbackResponse()
       }
       setMessages(prev => [...prev, fallbackMessage])
+      
+      // Save progress after chat interaction (even with fallback)
+      setTimeout(() => {
+        saveProgress()
+      }, 100)
     } finally {
       setIsLoading(false)
     }
@@ -130,16 +182,33 @@ export function NovaAssistant({ sessionId, stepId }) {
             <Bot className="w-4 h-4 text-primary" />
           </div>
           <div className="flex-1">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-semibold text-foreground">Nova</span>
-              <Sparkles className="w-3 h-3 text-primary" />
-            </div>
-            <span className="text-xs text-muted-foreground">AI Assistant</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-semibold text-foreground">Nova</span>
+            <Sparkles className="w-3 h-3 text-primary" />
           </div>
+          <span className="text-xs text-muted-foreground">AI Assistant</span>
+        </div>
+        {novaStatus === 'online' ? (
           <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-status-nominal/10 border border-status-nominal/20">
             <span className="w-1.5 h-1.5 rounded-full bg-status-nominal animate-pulse" />
             <span className="text-[10px] font-medium text-status-nominal">ONLINE</span>
           </div>
+        ) : novaStatus === 'checking' ? (
+          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-muted/50 border border-border">
+            <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse" />
+            <span className="text-[10px] font-medium text-muted-foreground">CHECKING</span>
+          </div>
+        ) : novaStatus === 'fallback' ? (
+          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-status-warning/10 border border-status-warning/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-status-warning" />
+            <span className="text-[10px] font-medium text-status-warning">FALLBACK</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-status-critical/10 border border-status-critical/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-status-critical" />
+            <span className="text-[10px] font-medium text-status-critical">OFFLINE</span>
+          </div>
+        )}
         </div>
       </div>
       
@@ -200,21 +269,43 @@ export function NovaAssistant({ sessionId, stepId }) {
             )}
           </Button>
         </form>
-        <div className="flex gap-2">
-          {quickActions.map((action, i) => (
-            <Button 
-              key={i}
-              variant="outline" 
-              size="sm" 
-              disabled={isLoading}
-              onClick={() => handleSend(action.prompt)}
-              className="flex-1 rounded-lg text-xs bg-transparent gap-1.5"
-            >
-              <action.icon className="h-3 w-3" />
-              {action.label}
-            </Button>
-          ))}
-        </div>
+        
+        {/* Suggestions from API or quick actions */}
+        {suggestions.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {suggestions.map((suggestion) => (
+              <Button 
+                key={suggestion.id}
+                variant="outline" 
+                size="sm" 
+                disabled={isLoading}
+                onClick={() => {
+                  handleSend(suggestion.action)
+                  setSuggestions([]) // Clear suggestions after clicking
+                }}
+                className="shrink-0 rounded-lg text-xs bg-transparent"
+              >
+                {suggestion.label}
+              </Button>
+            ))}
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            {quickActions.map((action, i) => (
+              <Button 
+                key={i}
+                variant="outline" 
+                size="sm" 
+                disabled={isLoading}
+                onClick={() => handleSend(action.prompt)}
+                className="flex-1 rounded-lg text-xs bg-transparent gap-1.5"
+              >
+                <action.icon className="h-3 w-3" />
+                {action.label}
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
     </aside>
   )

@@ -8,7 +8,8 @@ const router = express.Router();
 const { z } = require('zod');
 const authController = require('../controllers/authController');
 const { authMiddleware, requireAdmin } = require('../middleware/authMiddleware');
-const { 
+const { firebaseAuthMiddleware } = require('../middleware/firebaseAuthMiddleware');
+const {
   loginLimiter, 
   authLimiter,
   passwordChangeLimiter,
@@ -46,7 +47,9 @@ const refreshTokenValidation = z.object({
 });
 
 const logoutValidation = z.object({
-  body: refreshTokenSchema,
+  body: z.object({
+    refreshToken: z.string().optional()
+  }).strict(),
   query: z.object({}).strict(),
   params: z.object({}).strict()
 });
@@ -160,6 +163,72 @@ const resetPasswordValidation = z.object({
  *         $ref: '#/components/responses/RateLimitError'
  */
 router.post('/register', authLimiter, validate(registerValidation), authController.register);
+
+/**
+ * @swagger
+ * /auth/sync-oauth-profile:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Sync OAuth user profile (Google, etc.)
+ *     description: Creates or updates user profile in Firestore for OAuth-authenticated users. Uses Firebase ID token for auth.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               displayName:
+ *                 type: string
+ *                 description: Display name from OAuth provider
+ *               photoURL:
+ *                 type: string
+ *                 description: Profile photo URL from OAuth provider
+ *     responses:
+ *       200:
+ *         description: GO - OAuth profile synced successfully
+ */
+router.post('/sync-oauth-profile', firebaseAuthMiddleware, authLimiter, authController.syncOAuthProfile);
+
+/**
+ * @swagger
+ * /auth/exchange-token:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Exchange Firebase ID token for backend JWT tokens
+ *     description: Exchanges a valid Firebase ID token for backend JWT access and refresh tokens. Works for all Firebase auth methods (email/password, Google, etc.)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: GO - Token exchange successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/MissionControlResponse'
+ *                 - type: object
+ *                   properties:
+ *                     payload:
+ *                       type: object
+ *                       properties:
+ *                         data:
+ *                           type: object
+ *                           properties:
+ *                             user:
+ *                               $ref: '#/components/schemas/User'
+ *                             tokens:
+ *                               $ref: '#/components/schemas/Tokens'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         description: NO-GO - User not found in database
+ */
+router.post('/exchange-token', firebaseAuthMiddleware, authLimiter, authController.exchangeToken);
 
 /**
  * @swagger

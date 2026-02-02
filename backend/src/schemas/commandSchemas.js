@@ -17,6 +17,21 @@ const RESULT_STATUS = ['OK', 'ERROR', 'NO_EFFECT'];
 
 // ---------- Command registry (valid command names) ----------
 const VALID_COMMAND_NAMES = [
+  // Commissioning commands (Mission Control Enhancement - Phase 1)
+  'PING',
+  'UPDATETIME',
+  'DEPLOY_ANTENNA',
+  'WAIT_FOR_BEACON',
+  
+  // Data management commands (Mission Control Enhancement - Phase 1)
+  'REQUEST_TELEMETRY',
+  'SCHEDULE_DOWNLINK',
+  
+  // Advanced operations commands (Mission Control Enhancement - Phase 1)
+  'CALIBRATE_SENSORS',
+  'ENABLE_AUTONOMOUS',
+  'DISABLE_AUTONOMOUS',
+  
   // Orbit commands
   'SET_ORBIT_ALTITUDE',
   'SET_ORBIT_INCLINATION',

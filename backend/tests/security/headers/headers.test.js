@@ -4,12 +4,13 @@
  */
 
 const request = require('supertest');
+const { getTestApp } = require('../../helpers/test-utils');
 
 describe('Security Headers - Comprehensive Tests', () => {
   let app;
 
   beforeAll(() => {
-    app = require('../../src/app');
+    app = getTestApp();
   });
 
   describe('HTTP Security Headers', () => {

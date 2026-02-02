@@ -24,9 +24,6 @@ const logger = require('./utils/logger');
 // Initialize Express app
 const app = express();
 
-console.log('DEBUG: App starting, about to initialize Firebase');
-
-// Initialize Firebase
 // Initialize Firebase with graceful error handling
 // Don't exit process on failure - let server start for Cloud Run health checks
 let firebaseInitialized = false;
@@ -46,80 +43,41 @@ try {
   // Firebase errors will be handled by individual endpoints
 }
 
-// Security headers middleware
-app.use((req, res, next) => {
-  console.log('DEBUG: Setting security headers');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
-  // Add HSTS header in production
-  if (process.env.NODE_ENV === 'production') {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-  }
-  
-  console.log('DEBUG: Headers set:', res.getHeaders());
-  next();
-});
-
 // Security headers middleware (helmet)
-if (process.env.NODE_ENV !== 'test') {
-  app.use(helmet({
-    hsts: {
-      maxAge: 31536000, // 1 year in seconds
-      includeSubDomains: true,
-      preload: true
+// Enable for all environments including tests so security header tests work
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ['\'self\''],
+      styleSrc: ['\'self\'', '\'unsafe-inline\''], // Allow inline styles for now
+      scriptSrc: ['\'self\''],
+      imgSrc: ['\'self\'', 'data:', 'https:'],
+      reportUri: '/csp-report', // CSP violation reporting endpoint
     },
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ['\'self\''],
-        styleSrc: ['\'self\'', '\'unsafe-inline\''], // Allow inline styles for now
-        scriptSrc: ['\'self\''],
-        imgSrc: ['\'self\'', 'data:', 'https:'],
-      },
-    },
-  }));
-}
-
-// CORS configuration
-if (process.env.NODE_ENV !== 'test') {
-  const allowedOrigins = process.env.ALLOWED_ORIGINS 
-    ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
-    : ['http://localhost:3001', 'http://localhost:5173'];
-
-  logger.info('CORS Configuration', {
-    nodeEnv: process.env.NODE_ENV,
-    allowedOriginsEnv: process.env.ALLOWED_ORIGINS,
-    allowedOriginsArray: allowedOrigins
-  });
-
-  app.use(cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: true, // Allow cookies/credentials with allowed origins
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-  }));
-
-  console.log('DEBUG: CORS allowedOrigins:', allowedOrigins);
-}
-// Expose Firebase status for health checks
-app.locals.firebaseInitialized = firebaseInitialized;
+  },
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  }
+}));
 
 // CORS configuration for test and production
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
-  : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:5000', 
-     'https://groundctrl.org', 'https://staging.groundctrl.org'];
+  : [
+    'http://localhost:3001', 
+    'http://localhost:5173',
+    'http://localhost:5174',  // Allow alternate port
+    'http://localhost:5175',  // Allow alternate port
+    'http://localhost:8080'   // Allow backend port
+  ];
+
+logger.info('CORS Configuration', {
+  nodeEnv: process.env.NODE_ENV,
+  allowedOriginsEnv: process.env.ALLOWED_ORIGINS,
+  allowedOriginsArray: allowedOrigins
+});
 
 const corsOptions = {
   origin: (origin, callback) => {
@@ -130,27 +88,29 @@ const corsOptions = {
 
     // Allow requests with no origin (like mobile apps, curl, or server-to-server)
     if (!origin) return callback(null, true);
-
-    // In test environment, be more permissive
-    if (process.env.NODE_ENV === 'test') {
+    
+    // In development, allow any localhost origin
+    if (process.env.NODE_ENV === 'development' && origin.startsWith('http://localhost:')) {
       return callback(null, true);
     }
-
+    
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      logger.warn('CORS blocked origin', { origin, allowedOrigins });
+      // Return false to block without throwing error (prevents 500)
+      callback(null, false);
     }
   },
-  credentials: true,
+  credentials: true, // Allow cookies/credentials with allowed origins
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  maxAge: 86400 // 24 hours for preflight cache
-};
+  optionsSuccessStatus: 204, // Return 204 for successful OPTIONS requests
+  maxAge: 86400 // 24 hours
+}));
 
-app.use(cors(corsOptions));
-// Handle preflight requests
-app.options('*', cors(corsOptions));
+// Expose Firebase status for health checks
+app.locals.firebaseInitialized = firebaseInitialized;
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));

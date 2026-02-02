@@ -13,9 +13,8 @@ import { test, expect } from '@playwright/test';
 test.describe('UI-007: Mobile Responsive Design', () => {
   test('should render header on mobile viewport', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto('/');
     await page.waitForLoadState('networkidle', { timeout: 30000 });
-    await page.waitForTimeout(1000);
     
     // Header should be visible on mobile
     const header = page.locator('header');
@@ -87,7 +86,9 @@ test.describe('UI-007: Mobile Responsive Design', () => {
 
     // Switch to desktop
     await page.setViewportSize({ width: 1024, height: 768 });
-    await page.waitForTimeout(500);
+    
+    // Wait for viewport change to take effect
+    await page.waitForFunction(() => window.innerWidth >= 1024);
 
     const headerDesktop = page.locator('header');
     await expect(headerDesktop).toBeVisible();

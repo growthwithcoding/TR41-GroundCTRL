@@ -9,9 +9,8 @@ import { test, expect } from '@playwright/test';
 
 test.describe('UI-011: Navigation and Routing', () => {
   test('should display all navigation links', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto('/');
     await page.waitForLoadState('networkidle', { timeout: 30000 });
-    await page.waitForTimeout(1000);
 
     // Get all nav links
     const navLinks = page.locator('header nav a');
@@ -38,7 +37,6 @@ test.describe('UI-011: Navigation and Routing', () => {
       console.log(`Navigating to: ${route.path} (${route.title})`);
       await page.goto(route.path);
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(500); // Brief pause for rendering
 
       // Page should load successfully
       const header = page.locator('header');
@@ -71,8 +69,7 @@ test.describe('UI-011: Navigation and Routing', () => {
 
   test('should highlight active navigation link', async ({ page }) => {
     await page.goto('/help');
-    await page.waitForLoadState('domcontentloaded', { timeout: 60000 });
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('networkidle', { timeout: 60000 });
 
     // Find the help link
     const helpLink = page.locator('header nav a[href="/help"]');
@@ -88,13 +85,14 @@ test.describe('UI-011: Navigation and Routing', () => {
 
   test('should navigate via logo click', async ({ page }) => {
     await page.goto('/help');
-    await page.waitForLoadState('domcontentloaded', { timeout: 60000 });
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('networkidle', { timeout: 60000 });
 
     // Click logo to return home
     const logo = page.locator('header a:has(img[alt*="GroundCTRL"])');
     await logo.click();
-    await page.waitForTimeout(2000);
+    
+    // Wait for navigation to complete
+    await page.waitForURL('/');
 
     // Should be back on home page
     await expect(page).toHaveURL('/');

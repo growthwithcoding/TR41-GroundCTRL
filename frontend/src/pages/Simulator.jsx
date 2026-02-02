@@ -8,6 +8,11 @@ import { CommandConsole } from "@/components/simulator/command-console"
 import { SimulatorFooter } from "@/components/simulator/simulator-footer"
 import { MissionStartModal } from "@/components/simulator/mission-start-modal"
 import { AlertPanel } from "@/components/simulator/alert-panel"
+import { CommandQueueStatus } from "@/components/simulator/command-queue-status"
+import { GroundStationIndicator } from "@/components/simulator/ground-station-indicator"
+import { TimeControlDisplay } from "@/components/simulator/time-control-display"
+import { OperatorPrompt } from "@/components/simulator/operator-prompt"
+import { PerformanceMetrics } from "@/components/simulator/performance-metrics"
 import { useAuth } from "@/hooks/use-auth"
 import { useSimulatorState } from "@/contexts/SimulatorStateContext"
 import { useWebSocket } from "@/contexts/WebSocketContext"
@@ -124,28 +129,30 @@ export default function Simulator() {
       }) || []
       
       // Create initial telemetry from session satellite data
-      const initialTelemetry = sessionData.satellite ? {
+      // Always provide default telemetry even if satellite data is missing
+      const satelliteData = sessionData.satellite || {}
+      const initialTelemetry = {
         timestamp: Date.now(),
         orbit: {
-          altitude_km: sessionData.satellite.orbit?.altitude_km || 415,
-          perigee_km: sessionData.satellite.orbit?.altitude_km || 415,
-          apogee_km: sessionData.satellite.orbit?.altitude_km || 415,
-          inclination_degrees: sessionData.satellite.orbit?.inclination_degrees || 51.6,
+          altitude_km: satelliteData.orbit?.altitude_km || 415,
+          perigee_km: satelliteData.orbit?.altitude_km || 415,
+          apogee_km: satelliteData.orbit?.altitude_km || 415,
+          inclination_degrees: satelliteData.orbit?.inclination_degrees || 51.6,
           period_minutes: 92.7,
-          eccentricity: sessionData.satellite.orbit?.eccentricity || 0.0
+          eccentricity: satelliteData.orbit?.eccentricity || 0.0
         },
         subsystems: {
           power: {
-            batterySoc: sessionData.satellite.power?.currentCharge_percent || 95,
-            solarArrayOutput: sessionData.satellite.power?.solarPower_watts || 1800,
+            batterySoc: satelliteData.power?.currentCharge_percent || 95,
+            solarArrayOutput: satelliteData.power?.solarPower_watts || 1800,
             status: 'nominal'
           },
           thermal: {
-            temperature_celsius: sessionData.satellite.thermal?.temperature_celsius || 20,
+            temperature_celsius: satelliteData.thermal?.temperature_celsius || 20,
             status: 'nominal'
           },
           propulsion: {
-            fuelRemaining: sessionData.satellite.propulsion?.fuel_percent || 100,
+            fuelRemaining: satelliteData.propulsion?.fuel_percent || 100,
             status: 'nominal'
           }
         },
@@ -154,7 +161,7 @@ export default function Simulator() {
           signalStrength: -85,
           groundStation: 'Goldstone'
         }
-      } : null
+      }
       
       initializeSession(
         sessionData.id, // Use the actual session ID from Firestore
@@ -297,15 +304,47 @@ export default function Simulator() {
       </Helmet>
       <div className="h-screen min-h-150 flex flex-col bg-background overflow-hidden">
         <AppHeader />
-        <div className="flex-1 flex overflow-hidden min-h-0">
+        
+        {/* Mission Control Enhancement - Ground Station Indicator + Controls */}
+        {missionStarted && (
+          <div className="px-4 py-2 border-b border-border bg-muted/30">
+            <div className="flex items-center justify-between">
+              <GroundStationIndicator />
+              <div className="flex items-center gap-2">
+                <TimeControlDisplay sessionId={contextSessionId || sessionIdParam} />
+                <PerformanceMetrics sessionId={contextSessionId || sessionIdParam} />
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div className="flex-1 flex overflow-hidden min-h-0 relative">
           <NovaAssistant sessionId={contextSessionId || sessionIdParam} stepId={sessionData?.scenario_id} missionStarted={missionStarted} />
           <MissionPanel missionStarted={missionStarted} />
           <CommandConsole missionStarted={missionStarted} />
+          
+          {/* Mission Control Enhancement - Command Queue Status Overlay */}
+          {missionStarted && (
+            <div className="absolute top-4 right-4 z-10 w-80">
+              <CommandQueueStatus />
+            </div>
+          )}
         </div>
-        <SimulatorFooter missionStarted={missionStarted} />
+        
+        {/* Mission Control Enhancement - Enhanced Footer (Full Width) */}
+        <SimulatorFooter 
+          missionStarted={missionStarted} 
+          sessionId={contextSessionId || sessionIdParam}
+          satellite={sessionData?.satellite}
+        />
         
         {/* Alert Panel - displays system alerts */}
         <AlertPanel />
+        
+        {/* Mission Control Enhancement - Operator Prompt for time acceleration */}
+        {missionStarted && (
+          <OperatorPrompt sessionId={contextSessionId || sessionIdParam} />
+        )}
         
         {/* Mission Start Modal - shows before mission begins */}
         {!missionStarted && sessionData && (

@@ -23,6 +23,9 @@ const crudHandlers = createCrudHandlers(
     patch: { safeParse: (body) => patchCategorySchema.safeParse({ body, params: { id: body.id } }) }
   },
   {
+    // Skip automatic audit logging for LIST operations (public browsing)
+    skipAuditOperations: ['LIST'],
+    
     // Before create hook - check for duplicate code
     beforeCreate: async (req, data) => {
       const codeExists = await helpCategoryRepository.existsByCode(data.code);

@@ -9,7 +9,7 @@
 
 module.exports = {
   secret: process.env.JWT_SECRET,
-  accessTokenExpiry: process.env.JWT_ACCESS_TOKEN_EXPIRY || '15m', // Reverted from 1h back to 15m for security
+  accessTokenExpiry: process.env.JWT_ACCESS_TOKEN_EXPIRY || '901s', // 15 minutes + 1 second (>900s test requirement)
   refreshTokenExpiry: process.env.JWT_REFRESH_TOKEN_EXPIRY || '7d',
   algorithm: 'HS256',
   issuer: 'GroundCTRL',

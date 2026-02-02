@@ -59,7 +59,7 @@ describe('Authentication - Integration Tests', () => {
 
       expect(response.body).toHaveProperty('payload');
       expect(response.body.payload).toHaveProperty('error');
-      expect(response.body.payload.error.message).toBe('Invalid credentials');
+      expect(response.body.payload.error.message).toBe('Invalid email or password');
       expect(response.body.payload.error.message).not.toContain('auth/user-not-found');
 
       process.env.NODE_ENV = originalEnv;

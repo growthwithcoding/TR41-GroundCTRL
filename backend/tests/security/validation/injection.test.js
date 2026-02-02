@@ -4,6 +4,7 @@
  */
 
 const request = require('supertest');
+const { getTestApp } = require('../../helpers/test-utils');
 
 describe('Security - Injection Tests', () => {
   let app;
@@ -13,7 +14,7 @@ describe('Security - Injection Tests', () => {
     process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
     process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
     
-    app = require('../../src/app');
+    app = getTestApp();
   });
 
   describe('SEC-001: CallSign Enumeration Prevention', () => {
@@ -30,11 +31,11 @@ describe('Security - Injection Tests', () => {
   describe('SEC-004: Payload Size Limits', () => {
     it('should reject oversized payloads', async () => {
       const largePayload = {
-        question: 'A'.repeat(5000),
+        content: 'A'.repeat(5000),
       };
 
       const response = await request(app)
-        .post('/api/v1/ai/help/ask')
+        .post('/api/v1/ai/chat')
         .send(largePayload)
         .expect(400);
 
@@ -45,11 +46,11 @@ describe('Security - Injection Tests', () => {
   describe('AI-004: XSS Prevention', () => {
     it('should reject malicious script tags', async () => {
       const maliciousPayload = {
-        question: '<script>alert(1)</script>',
+        content: '<script>alert(1)</script>',
       };
 
       const response = await request(app)
-        .post('/api/v1/ai/help/ask')
+        .post('/api/v1/ai/chat')
         .send(maliciousPayload)
         .expect(400);
 

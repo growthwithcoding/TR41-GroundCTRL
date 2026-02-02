@@ -18,46 +18,161 @@ import {
 import { Button } from "@/components/ui/button"
 import { useSimulatorState } from "@/contexts/SimulatorStateContext"
 
+// Mission Control Enhancement - Real backend commands from commandSchemas.js
 const commands = [
+  // Commissioning commands (Mission Control Phase 1)
   {
-    id: "raise-perigee",
-    icon: <Rocket className="w-4 h-4" />,
-    title: "RAISE PERIGEE",
-    subtitle: "Target: 400km",
-    category: "orbital"
+    id: "PING",
+    icon: <Radio className="w-4 h-4" />,
+    title: "PING",
+    subtitle: "Test connection",
+    category: "commissioning",
+    description: "Verify satellite is responsive"
   },
   {
-    id: "station-keeping",
+    id: "UPDATETIME",
+    icon: <Clock className="w-4 h-4" />,
+    title: "UPDATE TIME",
+    subtitle: "Sync clock",
+    category: "commissioning",
+    description: "Update satellite onboard time"
+  },
+  {
+    id: "DEPLOY_ANTENNA",
+    icon: <Radio className="w-4 h-4" />,
+    title: "DEPLOY ANTENNA",
+    subtitle: "Communications",
+    category: "commissioning",
+    description: "Deploy communications antenna"
+  },
+  {
+    id: "WAIT_FOR_BEACON",
+    icon: <Radio className="w-4 h-4" />,
+    title: "WAIT FOR BEACON",
+    subtitle: "Listen mode",
+    category: "commissioning",
+    description: "Wait for satellite beacon transmission"
+  },
+  
+  // Data management commands
+  {
+    id: "REQUEST_TELEMETRY",
+    icon: <Terminal className="w-4 h-4" />,
+    title: "REQUEST TELEMETRY",
+    subtitle: "Get status",
+    category: "data",
+    description: "Request current satellite telemetry"
+  },
+  {
+    id: "SCHEDULE_DOWNLINK",
+    icon: <ChevronRight className="w-4 h-4" />,
+    title: "SCHEDULE DOWNLINK",
+    subtitle: "Data transfer",
+    category: "data",
+    description: "Schedule data downlink pass"
+  },
+  
+  // Advanced operations
+  {
+    id: "CALIBRATE_SENSORS",
+    icon: <Target className="w-4 h-4" />,
+    title: "CALIBRATE SENSORS",
+    subtitle: "Fine-tune",
+    category: "operations",
+    description: "Calibrate onboard sensors"
+  },
+  {
+    id: "ENABLE_AUTONOMOUS",
+    icon: <Zap className="w-4 h-4" />,
+    title: "ENABLE AUTONOMOUS",
+    subtitle: "Auto mode",
+    category: "operations",
+    description: "Enable autonomous operations"
+  },
+  {
+    id: "DISABLE_AUTONOMOUS",
+    icon: <AlertCircle className="w-4 h-4" />,
+    title: "DISABLE AUTONOMOUS",
+    subtitle: "Manual mode",
+    category: "operations",
+    description: "Disable autonomous operations"
+  },
+  
+  // Orbit commands (existing)
+  {
+    id: "SET_ORBIT_ALTITUDE",
+    icon: <Rocket className="w-4 h-4" />,
+    title: "SET ORBIT ALTITUDE",
+    subtitle: "Adjust altitude",
+    category: "orbital",
+    description: "Change orbital altitude"
+  },
+  {
+    id: "STATION_KEEPING",
     icon: <RotateCcw className="w-4 h-4" />,
     title: "STATION KEEPING",
     subtitle: "Maintain position",
-    category: "orbital"
+    category: "orbital",
+    description: "Maintain current orbital position"
   },
+  
+  // Attitude commands (existing)
   {
-    id: "orient-nadir",
+    id: "SET_ATTITUDE_MODE",
     icon: <Navigation className="w-4 h-4" />,
-    title: "ORIENT TO NADIR",
-    subtitle: "Point to Earth",
-    category: "attitude"
+    title: "SET ATTITUDE MODE",
+    subtitle: "Point satellite",
+    category: "attitude",
+    description: "Set satellite pointing mode"
   },
   {
-    id: "sun-pointing",
+    id: "SET_POINTING_TARGET",
     icon: <Target className="w-4 h-4" />,
-    title: "SUN POINTING",
-    subtitle: "Solar charge mode",
-    category: "attitude"
+    title: "SET POINTING TARGET",
+    subtitle: "Target lock",
+    category: "attitude",
+    description: "Set pointing target"
+  },
+  
+  // Power commands
+  {
+    id: "DEPLOY_SOLAR_ARRAYS",
+    icon: <Zap className="w-4 h-4" />,
+    title: "DEPLOY SOLAR ARRAYS",
+    subtitle: "Power up",
+    category: "power",
+    description: "Deploy solar panels"
   },
   {
-    id: "establish-link",
+    id: "SET_POWER_MODE",
+    icon: <Zap className="w-4 h-4" />,
+    title: "SET POWER MODE",
+    subtitle: "Manage power",
+    category: "power",
+    description: "Set power management mode"
+  },
+  
+  // Communication commands
+  {
+    id: "ENABLE_TRANSMITTER",
     icon: <Radio className="w-4 h-4" />,
-    title: "ESTABLISH LINK",
-    subtitle: "Ground station",
-    category: "comms"
+    title: "ENABLE TRANSMITTER",
+    subtitle: "Start TX",
+    category: "comms",
+    description: "Enable transmitter"
+  },
+  {
+    id: "DISABLE_TRANSMITTER",
+    icon: <Radio className="w-4 h-4" />,
+    title: "DISABLE TRANSMITTER",
+    subtitle: "Stop TX",
+    category: "comms",
+    description: "Disable transmitter"
   }
 ]
 
 export function CommandConsole() {
-  const [selectedCommand, setSelectedCommand] = useState("raise-perigee")
+  const [selectedCommand, setSelectedCommand] = useState("PING")
   
   // Use simulator state for command execution
   const { 
@@ -69,30 +184,39 @@ export function CommandConsole() {
   const handleExecuteCommand = (commandId) => {
     const command = commands.find(c => c.id === commandId)
     
-    // Determine command type and parameters based on command ID
-    let commandType = "orbital-maneuver"
-    let parameters = {}
+    if (!command) return;
     
-    if (commandId.includes("orient") || commandId.includes("sun-pointing")) {
-      commandType = "attitude-control"
-    } else if (commandId.includes("link")) {
-      commandType = "communication"
+    // Build parameters based on command type
+    const parameters = {};
+    
+    // Add specific parameters for certain commands
+    if (commandId === 'SET_ORBIT_ALTITUDE') {
+      parameters.targetAltitude_km = 420;
+    } else if (commandId === 'SET_ATTITUDE_MODE') {
+      parameters.mode = 'nadir';
+    } else if (commandId === 'SET_POWER_MODE') {
+      parameters.mode = 'nominal';
+    } else if (commandId === 'UPDATETIME') {
+      parameters.timestamp = Date.now();
     }
     
-    if (commandId === "raise-perigee") {
-      parameters = { targetAltitude: 400 }
-    }
-    
+    // Execute command through context (which will emit to backend via WebSocket)
     executeCommand({
-      type: commandType,
-      name: command?.title || "",
+      type: command.category,
+      name: commandId, // Use the actual command ID from backend
+      commandName: commandId, // Backend expects commandName
       parameters
     })
   }
 
-  const orbitalManeuvers = commands.filter(c => c.category === "orbital")
-  const attitudeControl = commands.filter(c => c.category === "attitude")
-  const communications = commands.filter(c => c.category === "comms")
+  // Group commands by category
+  const commissioningCommands = commands.filter(c => c.category === "commissioning")
+  const dataCommands = commands.filter(c => c.category === "data")
+  const operationsCommands = commands.filter(c => c.category === "operations")
+  const orbitalCommands = commands.filter(c => c.category === "orbital")
+  const attitudeCommands = commands.filter(c => c.category === "attitude")
+  const powerCommands = commands.filter(c => c.category === "power")
+  const commsCommands = commands.filter(c => c.category === "comms")
 
   return (
     <aside className="w-72 shrink-0 bg-card flex flex-col border-l border-border overflow-hidden">
@@ -120,47 +244,117 @@ export function CommandConsole() {
       )}
 
       <div className="flex-1 overflow-y-auto">
+        {/* Commissioning Commands - Mission Control Enhancement */}
+        {commissioningCommands.length > 0 && (
+          <CommandSection title="Commissioning">
+            {commissioningCommands.map((item) => (
+              <CommandButton
+                key={item.id}
+                item={item}
+                selected={selectedCommand === item.id}
+                executing={commandsInProgress.size > 0}
+                onClick={() => setSelectedCommand(item.id)}
+                onExecute={() => handleExecuteCommand(item.id)}
+              />
+            ))}
+          </CommandSection>
+        )}
+
+        {/* Data Management Commands - Mission Control Enhancement */}
+        {dataCommands.length > 0 && (
+          <CommandSection title="Data Management">
+            {dataCommands.map((item) => (
+              <CommandButton
+                key={item.id}
+                item={item}
+                selected={selectedCommand === item.id}
+                executing={commandsInProgress.size > 0}
+                onClick={() => setSelectedCommand(item.id)}
+                onExecute={() => handleExecuteCommand(item.id)}
+              />
+            ))}
+          </CommandSection>
+        )}
+
+        {/* Operations Commands - Mission Control Enhancement */}
+        {operationsCommands.length > 0 && (
+          <CommandSection title="Operations">
+            {operationsCommands.map((item) => (
+              <CommandButton
+                key={item.id}
+                item={item}
+                selected={selectedCommand === item.id}
+                executing={commandsInProgress.size > 0}
+                onClick={() => setSelectedCommand(item.id)}
+                onExecute={() => handleExecuteCommand(item.id)}
+              />
+            ))}
+          </CommandSection>
+        )}
+
         {/* Orbital Maneuvers */}
-        <CommandSection title="Orbital Maneuvers">
-          {orbitalManeuvers.map((item) => (
-            <CommandButton
-              key={item.id}
-              item={item}
-              selected={selectedCommand === item.id}
-              executing={commandsInProgress.size > 0}
-              onClick={() => setSelectedCommand(item.id)}
-              onExecute={() => handleExecuteCommand(item.id)}
-            />
-          ))}
-        </CommandSection>
+        {orbitalCommands.length > 0 && (
+          <CommandSection title="Orbital">
+            {orbitalCommands.map((item) => (
+              <CommandButton
+                key={item.id}
+                item={item}
+                selected={selectedCommand === item.id}
+                executing={commandsInProgress.size > 0}
+                onClick={() => setSelectedCommand(item.id)}
+                onExecute={() => handleExecuteCommand(item.id)}
+              />
+            ))}
+          </CommandSection>
+        )}
 
         {/* Attitude Control */}
-        <CommandSection title="Attitude Control">
-          {attitudeControl.map((item) => (
-            <CommandButton
-              key={item.id}
-              item={item}
-              selected={selectedCommand === item.id}
-              executing={commandsInProgress.size > 0}
-              onClick={() => setSelectedCommand(item.id)}
-              onExecute={() => handleExecuteCommand(item.id)}
-            />
-          ))}
-        </CommandSection>
+        {attitudeCommands.length > 0 && (
+          <CommandSection title="Attitude">
+            {attitudeCommands.map((item) => (
+              <CommandButton
+                key={item.id}
+                item={item}
+                selected={selectedCommand === item.id}
+                executing={commandsInProgress.size > 0}
+                onClick={() => setSelectedCommand(item.id)}
+                onExecute={() => handleExecuteCommand(item.id)}
+              />
+            ))}
+          </CommandSection>
+        )}
+
+        {/* Power Management */}
+        {powerCommands.length > 0 && (
+          <CommandSection title="Power">
+            {powerCommands.map((item) => (
+              <CommandButton
+                key={item.id}
+                item={item}
+                selected={selectedCommand === item.id}
+                executing={commandsInProgress.size > 0}
+                onClick={() => setSelectedCommand(item.id)}
+                onExecute={() => handleExecuteCommand(item.id)}
+              />
+            ))}
+          </CommandSection>
+        )}
 
         {/* Communications */}
-        <CommandSection title="Communications">
-          {communications.map((item) => (
-            <CommandButton
-              key={item.id}
-              item={item}
-              selected={selectedCommand === item.id}
-              executing={commandsInProgress.size > 0}
-              onClick={() => setSelectedCommand(item.id)}
-              onExecute={() => handleExecuteCommand(item.id)}
-            />
-          ))}
-        </CommandSection>
+        {commsCommands.length > 0 && (
+          <CommandSection title="Communications">
+            {commsCommands.map((item) => (
+              <CommandButton
+                key={item.id}
+                item={item}
+                selected={selectedCommand === item.id}
+                executing={commandsInProgress.size > 0}
+                onClick={() => setSelectedCommand(item.id)}
+                onExecute={() => handleExecuteCommand(item.id)}
+              />
+            ))}
+          </CommandSection>
+        )}
 
         {/* Command History - from context */}
         {commandHistory.length > 0 && (

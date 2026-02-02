@@ -22,6 +22,18 @@ const logger = require('../utils/logger');
  * @returns {Promise<string>} Firebase UID
  */
 async function verifyPassword(email, password) {
+  // In test mode, bypass external API and use mock storage
+  if (process.env.NODE_ENV === 'test' && global.mockAuthUsers) {
+    const user = global.mockAuthUsers.get(email);
+    if (!user) {
+      throw new AuthError('Invalid email or password', 401);
+    }
+    if (user.password !== password) {
+      throw new AuthError('Invalid email or password', 401);
+    }
+    return user.uid; // Returns Firebase UID from mock
+  }
+  
   const apiKey = process.env.FIREBASE_WEB_API_KEY;
   
   if (!apiKey) {
@@ -46,6 +58,18 @@ async function verifyPassword(email, password) {
     });
     return response.data.localId; // Returns Firebase UID
   } catch (error) {
+    // Handle API key configuration error separately
+    if (error.response?.data?.error?.message === 'API key not valid. Please pass a valid API key.') {
+      logger.error('CRITICAL: Firebase API key is invalid or misconfigured', { 
+        error: error.message,
+        apiKeyConfigured: !!process.env.FIREBASE_WEB_API_KEY 
+      });
+      // Return 503 Service Unavailable for configuration issues
+      const serviceError = new Error('Authentication service temporarily unavailable');
+      serviceError.statusCode = 503;
+      throw serviceError;
+    }
+    
     if (error.response?.data?.error?.message === 'INVALID_PASSWORD' || 
         error.response?.data?.error?.message === 'EMAIL_NOT_FOUND' ||
         error.response?.data?.error?.message === 'INVALID_LOGIN_CREDENTIALS') {
@@ -56,6 +80,117 @@ async function verifyPassword(email, password) {
   }
 }
 
+/**
+ * Sync OAuth user profile (Google, etc.)
+ * Creates or updates user profile in Firestore for OAuth users
+ * @param {string} uid - Firebase Auth UID (from verified token)
+ * @param {object} profileData - Optional profile data {displayName, photoURL}
+ * @returns {Promise<object>} User data with tokens
+ */
+async function syncOAuthProfile(uid, profileData = {}) {
+  const db = getFirestore();
+  const auth = getAuth();
+  const { displayName, photoURL } = profileData;
+  let email = null; // Declare in function scope for error logging
+  
+  try {
+    // SECURITY: Fetch email from Firebase Auth (trusted source), not from request body
+    const authUser = await auth.getUser(uid);
+    email = authUser.email;
+    
+    if (!email) {
+      throw new AuthError('User email not found in Firebase Auth', 400);
+    }
+    
+    // Determine auth provider (google.com, facebook.com, etc.)
+    const authProvider = authUser.providerData[0]?.providerId || 'unknown';
+    
+    // Check if user already exists in Firestore
+    const userDoc = await db.collection('users').doc(uid).get();
+    
+    if (userDoc.exists) {
+      // User exists, update last login and return
+      const userData = userDoc.data();
+      
+      await db.collection('users').doc(uid).update({
+        lastLoginAt: new Date(),
+        updatedAt: new Date(),
+        // Update photo URL if provided
+        ...(photoURL && { photoURL })
+      });
+      
+      logger.info('OAuth user profile updated', { uid, email });
+      
+      // Generate tokens
+      const accessToken = jwtUtil.createAccessToken(uid, userData.callSign, userData.isAdmin || false);
+      const refreshToken = jwtUtil.createRefreshToken(uid);
+      
+      return {
+        user: {
+          uid,
+          email: userData.email,
+          callSign: userData.callSign,
+          displayName: userData.displayName,
+          isAdmin: userData.isAdmin || false
+        },
+        accessToken,
+        refreshToken
+      };
+    }
+    
+    // New OAuth user - create Firestore document
+    const finalCallSign = displayName || `Pilot-${uid.substring(0, 8)}`;
+    
+    const userData = {
+      uid,
+      email,
+      callSign: finalCallSign,
+      displayName: displayName || finalCallSign,
+      authProvider, // Track auth provider (google.com, facebook.com, etc.)
+      isAdmin: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastLoginAt: new Date(),
+      isActive: true,
+      ...(photoURL && { photoURL })
+    };
+    
+    await db.collection('users').doc(uid).set(userData);
+    
+    logger.info('OAuth user profile created', { uid, email, callSign: finalCallSign });
+    
+    // Create audit log entry
+    const auditEntry = auditFactory.createAuditEntry(
+      'OAUTH_REGISTER_SUCCESS',
+      'auth',
+      uid,
+      finalCallSign,
+      'success',
+      'INFO',
+      { email, method: 'oauth_google' }
+    );
+    await auditRepository.logAudit(auditEntry);
+    
+    // Generate tokens
+    const accessToken = jwtUtil.createAccessToken(uid, finalCallSign, false);
+    const refreshToken = jwtUtil.createRefreshToken(uid);
+    
+    return {
+      user: {
+        uid,
+        email,
+        callSign: finalCallSign,
+        displayName: displayName || finalCallSign,
+        isAdmin: false
+      },
+      accessToken,
+      refreshToken
+    };
+  } catch (error) {
+    logger.error('OAuth profile sync error', { error: error.message, uid, email });
+    throw error;
+  }
+}
 
 /**
  * Register new user
@@ -95,6 +230,7 @@ async function register(email, password, callSign = null, displayName = null) {
       email,
       callSign: finalCallSign,
       displayName: displayName || finalCallSign,
+      authProvider: 'password', // Password-based auth (not OAuth)
       isAdmin: false,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -732,8 +868,73 @@ async function resetPassword(token, newPassword) {
 }
 
 
+/**
+ * Exchange Firebase ID token for backend JWT tokens
+ * Works for all Firebase-authenticated users (email/password, Google, etc.)
+ * @param {string} firebaseUid - Firebase UID (from verified Firebase ID token)
+ * @returns {Promise<object>} User data with backend JWT tokens
+ */
+async function exchangeFirebaseToken(firebaseUid) {
+  const db = getFirestore();
+  
+  try {
+    // Get user from Firestore
+    const userDoc = await db.collection('users').doc(firebaseUid).get();
+    
+    if (!userDoc.exists) {
+      throw new AuthError('User not found in database', 404);
+    }
+    
+    const userData = userDoc.data();
+    
+    // Check if user is active
+    if (userData.isActive === false) {
+      throw new AuthError('Account is deactivated', 403);
+    }
+    
+    // Update last login time
+    await db.collection('users').doc(firebaseUid).update({
+      lastLoginAt: new Date(),
+      updatedAt: new Date()
+    });
+    
+    // Generate backend JWT tokens
+    const accessToken = jwtUtil.createAccessToken(
+      firebaseUid,
+      userData.callSign,
+      userData.isAdmin || false
+    );
+    const refreshToken = jwtUtil.createRefreshToken(firebaseUid);
+    
+    logger.info('Firebase token exchanged for backend JWT', {
+      uid: firebaseUid,
+      callSign: userData.callSign
+    });
+    
+    return {
+      user: {
+        uid: firebaseUid,
+        email: userData.email,
+        callSign: userData.callSign,
+        displayName: userData.displayName,
+        isAdmin: userData.isAdmin || false
+      },
+      accessToken,
+      refreshToken
+    };
+  } catch (error) {
+    logger.error('Firebase token exchange error', { 
+      error: error.message, 
+      uid: firebaseUid 
+    });
+    throw error;
+  }
+}
+
+
 module.exports = {
   register,
+  syncOAuthProfile,
   login,
   refreshAccessToken,
   logout,
@@ -741,5 +942,6 @@ module.exports = {
   bootstrapAdmin,
   changePassword,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  exchangeFirebaseToken
 };

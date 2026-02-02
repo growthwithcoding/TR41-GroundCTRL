@@ -110,7 +110,14 @@ test.describe('UI-006: Tailwind CSS Styling', () => {
       
       // Toggle dark mode
       await darkModeToggle.first().click();
-      await page.waitForTimeout(500);
+      
+      // Wait for theme transition to complete
+      await page.waitForFunction(() => {
+        const body = document.body;
+        const bgColor = window.getComputedStyle(body).backgroundColor;
+        // Wait for background to change from initial color
+        return bgColor !== 'rgba(0, 0, 0, 0)'; // Assuming initial is not transparent
+      }, { timeout: 2000 });
       
       // Get new background color
       const newBg = await page.locator('body').evaluate((el) => {

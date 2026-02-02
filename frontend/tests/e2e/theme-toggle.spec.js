@@ -12,20 +12,28 @@ test.describe('UI-009: Theme Toggle', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // Find theme toggle button (has Sun or Moon icon)
-    const themeToggle = page.locator('button:has(svg)').filter({ hasText: '' }).first();
+    // Find theme toggle button - look for button with theme-related attributes or aria-label
+    const themeToggle = page.locator('button').filter({ 
+      has: page.locator('svg') 
+    }).first();
     await expect(themeToggle).toBeVisible();
 
-    // Get initial theme from html element
-    const initialTheme = await page.locator('html').getAttribute('class');
+    // Get initial theme from html element class
+    const initialTheme = await page.locator('html').getAttribute('class') || '';
     
     // Click to toggle theme
     await themeToggle.click();
-    await page.waitForTimeout(500); // Wait for theme transition
+    
+    // Wait for theme change - check that class has changed
+    await page.waitForFunction(() => {
+      const htmlClass = document.documentElement.className;
+      return htmlClass !== '' && htmlClass.includes('dark') || htmlClass.includes('light');
+    }, { timeout: 2000 });
 
     // Theme should have changed
     const newTheme = await page.locator('html').getAttribute('class');
     expect(newTheme).not.toBe(initialTheme);
+    expect(newTheme).toMatch(/(dark|light)/);
   });
 
   test('should persist theme across navigation', async ({ page }) => {
@@ -33,9 +41,16 @@ test.describe('UI-009: Theme Toggle', () => {
     await page.waitForLoadState('networkidle');
 
     // Toggle theme
-    const themeToggle = page.locator('button:has(svg)').filter({ hasText: '' }).first();
+    const themeToggle = page.locator('button').filter({ 
+      has: page.locator('svg') 
+    }).first();
     await themeToggle.click();
-    await page.waitForTimeout(300);
+    
+    // Wait for theme to be applied
+    await page.waitForFunction(() => {
+      const htmlClass = document.documentElement.className;
+      return htmlClass && (htmlClass.includes('dark') || htmlClass.includes('light'));
+    }, { timeout: 2000 });
 
     const themeAfterToggle = await page.locator('html').getAttribute('class');
 
@@ -52,10 +67,16 @@ test.describe('UI-009: Theme Toggle', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    const themeToggle = page.locator('button:has(svg)').filter({ hasText: '' }).first();
+    const themeToggle = page.locator('button').filter({ 
+      has: page.locator('svg') 
+    }).first();
     
-    // Button should have either Sun or Moon icon (Lucide icons)
-    const hasSvg = await themeToggle.locator('svg').count();
-    expect(hasSvg).toBeGreaterThan(0);
+    // Button should have an SVG icon
+    const svgElement = themeToggle.locator('svg');
+    await expect(svgElement).toBeVisible();
+    
+    // SVG should have proper structure (Lucide icons typically have path elements)
+    const pathCount = await svgElement.locator('path').count();
+    expect(pathCount).toBeGreaterThan(0);
   });
 });

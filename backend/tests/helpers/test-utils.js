@@ -29,11 +29,14 @@ function ensureFirebaseInitialized() {
  */
 function getTestApp() {
   if (!appInstance) {
+    // Set test environment and mock emulator hosts
     process.env.NODE_ENV = 'test';
     process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
     process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
-    // Note: FIREBASE_WEB_API_KEY is not needed for backend tests
-    // It's a client-side key used only in frontend authentication
+
+    // Clear the require cache to ensure fresh initialization
+    delete require.cache[require.resolve('../../src/app')];
+
     appInstance = require('../../src/app');
   }
   return appInstance;
@@ -148,6 +151,33 @@ async function generateTestToken(uid) {
  */
 function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Retry a function multiple times with delay
+ * @param {Function} fn - Function to retry
+ * @param {number} retries - Number of retries
+ * @param {number} delayMs - Delay between retries
+ * @returns {Promise<any>} Function result
+ */
+async function retryOperation(fn, retries = 3, delayMs = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await delay(delayMs);
+    }
+  }
+}
+
+/**
+ * Generate a unique email for testing
+ * @param {string} prefix - Email prefix
+ * @returns {string} Unique email
+ */
+function generateUniqueEmail(prefix = 'test') {
+  return `${prefix}-${Date.now()}-${require('crypto').randomBytes(4).toString('hex')}@example.com`;
 }
 
 module.exports = {

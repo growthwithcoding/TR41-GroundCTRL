@@ -19,7 +19,6 @@ export default function AppHeader({ onAuthViewChange }) {
   const location = useLocation(); const pathname = location.pathname
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
-  console.log("user object:", user)
   
   // Define nav links based on authentication state
   const navLinks = user
@@ -53,7 +52,7 @@ export default function AppHeader({ onAuthViewChange }) {
   }
 
   return (
-    <header className="h-14 border-b border-border bg-card flex items-center justify-between px-6">
+    <header className="h-14 border-b border-border bg-card flex items-center justify-between px-6 relative z-50">
       {/* Logo */}
       <Link to="/" className="flex items-center gap-2 font-bold text-lg tracking-tight">
         <img src="/images/GroundCTRL.png" alt="GroundCTRL Logo" className="h-12 w-12 object-contain" />

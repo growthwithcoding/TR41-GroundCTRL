@@ -13,7 +13,12 @@ test.describe('UI-012: 404 Not Found Page', () => {
 
     await page.goto('/this-page-does-not-exist');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000); // Extra wait for React to render
+    
+    // Wait for React to render 404 content
+    await page.waitForFunction(() => {
+      const body = document.body;
+      return body && body.textContent && body.textContent.length > 0;
+    }, { timeout: 10000 });
 
     // Debug: Log current URL and page content
     const currentUrl = page.url();
@@ -78,7 +83,12 @@ test.describe('UI-012: 404 Not Found Page', () => {
 
     await page.goto('/some/deeply/nested/invalid/path');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000); // Extra wait for React
+    
+    // Wait for React to render 404 content
+    await page.waitForFunction(() => {
+      const body = document.body;
+      return body && body.textContent && body.textContent.length > 0;
+    }, { timeout: 10000 });
 
     const currentUrl = page.url();
     console.log('Current URL:', currentUrl);

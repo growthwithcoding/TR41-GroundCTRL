@@ -12,7 +12,7 @@ test.describe('Smoke Test', () => {
     // Try to load the page
     try {
       const response = await page.goto('/', { 
-        waitUntil: 'domcontentloaded', 
+        waitUntil: 'networkidle', 
         timeout: 60000 
       });
       console.log('Page response status:', response?.status());
@@ -22,8 +22,11 @@ test.describe('Smoke Test', () => {
       throw error;
     }
     
-    // Wait longer for React to initialize
-    await page.waitForTimeout(5000);
+    // Wait for React to initialize by checking for content
+    await page.waitForFunction(() => {
+      const body = document.body;
+      return body && body.textContent && body.textContent.length > 10;
+    }, { timeout: 10000 });
     
     // Take screenshot for debugging
     await page.screenshot({ path: 'test-results/smoke-test.png', fullPage: true });
@@ -72,8 +75,10 @@ test.describe('Smoke Test', () => {
       }
     });
 
-    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.waitForTimeout(2000);
+    await page.goto('/', { waitUntil: 'networkidle', timeout: 60000 });
+    
+    // Wait for page to stabilize
+    await page.waitForLoadState('networkidle');
 
     console.log('Total page errors (excluding Firebase):', errors.length);
     console.log('Total console errors (excluding Firebase):', consoleErrors.length);
@@ -87,8 +92,12 @@ test.describe('Smoke Test', () => {
   });
 
   test('should have React root element', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(2000);
+    await page.goto('/', { waitUntil: 'networkidle', timeout: 30000 });
+    
+    // Wait for React to render
+    await page.waitForFunction(() => {
+      return document.querySelector('#root, #app, [data-reactroot]');
+    }, { timeout: 10000 });
     
     // Check for React root (usually #root or #app)
     const root = page.locator('#root, #app, [data-reactroot]');

@@ -264,41 +264,10 @@ export default function MissionBriefingPage() {
       const scenarioSteps = scenario._firestore?.steps || scenario.steps || []
       console.log('Scenario steps:', scenarioSteps)
       
-      // Create session document directly in Firestore
-      // This creates a snapshot of the scenario at this point in time
+      // Create session via backend API
+      // Backend schema expects only these fields (user_id is set from JWT token)
       const sessionData = {
-        user_id: user.uid,
         scenario_id: id,
-        scenario: {
-          title: scenario.name || scenario.title,
-          description: scenario.description,
-          category: scenario.category,
-          difficulty: scenario.difficulty,
-        },
-        steps: scenarioSteps,
-        satellite: scenario._firestore?.satellite_id ? {
-          id: scenario._firestore.satellite_id,
-          name: 'SAT-01', // Default name
-          orbit: {
-            altitude_km: 415,
-            inclination_degrees: 51.6,
-            eccentricity: 0.0
-          },
-          power: {
-            currentCharge_percent: 95,
-            solarPower_watts: 1800,
-            consumption_watts: 450
-          },
-          thermal: {
-            temperature_celsius: 20
-          },
-          propulsion: {
-            fuel_percent: 100
-          },
-          payload: {
-            status: 'nominal'
-          }
-        } : null,
         status: 'NOT_STARTED',
         currentStepOrder: 0,
         completedSteps: [],
@@ -309,8 +278,11 @@ export default function MissionBriefingPage() {
         version: 1
       }
       
-      // Create the session in Firestore
+      // Create the session via backend API
       const newSessionId = await createSession(sessionData)
+      
+      console.log('✅ Session created successfully:', newSessionId)
+      console.log('📋 Starting countdown sequence...')
       
       setSessionId(newSessionId)
       setSessionData(sessionData) // Store session data for launch animation
@@ -347,40 +319,10 @@ export default function MissionBriefingPage() {
       // Get steps from the right location - check both places
       const scenarioSteps = scenario._firestore?.steps || scenario.steps || []
       
-      // Create session document directly in Firestore
+      // Create session via backend API
+      // Backend schema expects only these fields (user_id is set from JWT token)
       const sessionData = {
-        user_id: user.uid,
         scenario_id: id,
-        scenario: {
-          title: scenario.name || scenario.title,
-          description: scenario.description,
-          category: scenario.category,
-          difficulty: scenario.difficulty,
-        },
-        steps: scenarioSteps,
-        satellite: scenario._firestore?.satellite_id ? {
-          id: scenario._firestore.satellite_id,
-          name: 'SAT-01', // Default name
-          orbit: {
-            altitude_km: 415,
-            inclination_degrees: 51.6,
-            eccentricity: 0.0
-          },
-          power: {
-            currentCharge_percent: 95,
-            solarPower_watts: 1800,
-            consumption_watts: 450
-          },
-          thermal: {
-            temperature_celsius: 20
-          },
-          propulsion: {
-            fuel_percent: 100
-          },
-          payload: {
-            status: 'nominal'
-          }
-        } : null,
         status: 'NOT_STARTED',
         currentStepOrder: 0,
         completedSteps: [],
@@ -391,8 +333,11 @@ export default function MissionBriefingPage() {
         version: 1
       }
       
-      // Create the session in Firestore
+      // Create the session via backend API
       const newSessionId = await createSession(sessionData)
+      
+      console.log('✅ Session created successfully:', newSessionId)
+      console.log('🚀 Navigating to simulator with session:', newSessionId)
       
       setSessionData(sessionData) // Store session data
       navigate(`/simulator?session=${newSessionId}`)

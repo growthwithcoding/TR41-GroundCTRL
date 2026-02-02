@@ -9,12 +9,26 @@ const axios = require('axios');
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3001/api/v1';
 
+// Helper to detect if Firebase is actually initialized (not just mocked)
+function isFirebaseActuallyInitialized() {
+  try {
+    // Try to import the firebase config module
+    const firebaseConfig = require('../../../src/config/firebase');
+    // Try to get firestore - will throw if not initialized
+    firebaseConfig.getFirestore();
+    return true;
+  } catch (error) {
+    // If it throws "Firebase not initialized", we're using mocks
+    return false;
+  }
+}
+
 describe('AUTH-003, SEC-001: UID-Based Identity Enforcement', () => {
   let testUsers = [];
 
   beforeAll(async () => {
-    if (!admin.apps.length) {
-      console.log('⚠️  Firebase not initialized - skipping test setup');
+    if (!isFirebaseActuallyInitialized()) {
+      console.log('⚠️  Firebase not initialized - skipping test setup (tests will skip)');
       return;
     }
 
@@ -43,7 +57,7 @@ describe('AUTH-003, SEC-001: UID-Based Identity Enforcement', () => {
   });
 
   afterAll(async () => {
-    if (!admin.apps.length || testUsers.length === 0) return;
+    if (!isFirebaseActuallyInitialized() || testUsers.length === 0) return;
 
     const db = admin.firestore();
     for (const user of testUsers) {
@@ -56,7 +70,7 @@ describe('AUTH-003, SEC-001: UID-Based Identity Enforcement', () => {
 
   describe('AUTH-002: Duplicate CallSign Support', () => {
     it('allows duplicate callSign across users', async () => {
-      if (!admin.apps.length || testUsers.length === 0) {
+      if (!isFirebaseActuallyInitialized() || testUsers.length === 0) {
         console.log('⚠️  Skipping - Firebase not initialized');
         return;
       }
@@ -77,7 +91,7 @@ describe('AUTH-003, SEC-001: UID-Based Identity Enforcement', () => {
 
   describe('AUTH-003: CallSign Query Prevention', () => {
     it('rejects callSign-based targeting for lookups/updates', async () => {
-      if (!admin.apps.length || testUsers.length === 0) {
+      if (!isFirebaseActuallyInitialized() || testUsers.length === 0) {
         console.log('⚠️  Skipping - Firebase not initialized');
         return;
       }
@@ -98,7 +112,7 @@ describe('AUTH-003, SEC-001: UID-Based Identity Enforcement', () => {
 
   describe('UID-Based Operations', () => {
     it('uses uid for all auth/user CRUD operations', async () => {
-      if (!admin.apps.length || testUsers.length === 0) {
+      if (!isFirebaseActuallyInitialized() || testUsers.length === 0) {
         console.log('⚠️  Skipping - Firebase not initialized');
         return;
       }
@@ -118,7 +132,7 @@ describe('AUTH-003, SEC-001: UID-Based Identity Enforcement', () => {
     });
 
     it('ensures audit logs record actor uid, not callSign/email', async () => {
-      if (!admin.apps.length || testUsers.length === 0) {
+      if (!isFirebaseActuallyInitialized() || testUsers.length === 0) {
         console.log('⚠️  Skipping - Firebase not initialized');
         return;
       }
@@ -142,7 +156,7 @@ describe('AUTH-003, SEC-001: UID-Based Identity Enforcement', () => {
     });
 
     it('prevents cross-user access by uid scoping', async () => {
-      if (!admin.apps.length || testUsers.length === 0) {
+      if (!isFirebaseActuallyInitialized() || testUsers.length === 0) {
         console.log('⚠️  Skipping - Firebase not initialized');
         return;
       }
