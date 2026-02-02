@@ -36,16 +36,12 @@ describe('CI - Secret Scan', () => {
           if (!filePath.startsWith(baseDir)) {
             throw new Error(`Path traversal detected: ${file}`);
           }
-          // Only check files, not directories
-          if (!fs.statSync(filePath).isFile()) {
-            return;
-          }
           
           let content;
           try {
             content = fs.readFileSync(filePath, 'utf8');
           } catch (error) {
-            // Skip files that can't be read (race condition, permission issues, etc.)
+            // Skip files that can't be read (directories, race conditions, permission issues, etc.)
             return;
           }
 
