@@ -13,10 +13,10 @@ on:
       - 'frontend/**'
   workflow_dispatch:
 
-# Cancel previous runs when new commits are pushed
-concurrency:
-  group: frontend-e2e-tests-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+# Concurrency temporarily disabled to resolve queue issues
+# concurrency:
+#   group: frontend-e2e-tests-${{ github.event.pull_request.number || github.ref }}
+#   cancel-in-progress: true
 
 permissions:
   checks: write

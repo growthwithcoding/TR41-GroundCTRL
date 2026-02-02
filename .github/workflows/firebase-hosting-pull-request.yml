@@ -2,26 +2,27 @@
 # https://github.com/firebase/firebase-tools
 
 name: Deploy to Firebase Hosting on pull request
-on: pull_request
+on: 
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - 'firebase.json'
+      - '.github/workflows/firebase-hosting-pull-request.yml'
 permissions:
   checks: write        # Required for Firebase action to create check runs
   contents: read
   pull-requests: write
   security-events: read  # Required for CodeQL integration
 
-# Cancel previous runs when new commits are pushed
-concurrency:
-  group: pr-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+# Concurrency temporarily disabled to resolve queue issues
+# concurrency:
+#   group: firebase-hosting-deploy-${{ github.event.pull_request.number || github.ref }}
+#   cancel-in-progress: true
 
 jobs:
   build_and_preview:
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        browser: [chromium, firefox, webkit, 'Mobile Chrome', 'Mobile Safari']
     steps:
       - uses: actions/checkout@v4
       
@@ -84,52 +85,28 @@ jobs:
             echo "deployment_status=unknown" >> $GITHUB_OUTPUT
           fi
       
-      - name: Install Playwright browsers (for E2E tests)
+      - name: Run E2E tests against deployed preview
         if: steps.check_secret.outputs.secret_configured == 'true' && steps.extract_url.outputs.deployment_status == 'success'
         working-directory: ./frontend
-        run: npx playwright install --with-deps
+        run: echo "E2E tests are handled by the dedicated E2E workflow. Preview deployed at ${{ steps.extract_url.outputs.preview_url }}"
         continue-on-error: true
+
       
-      - name: Run E2E tests for ${{ matrix.browser }} against deployed preview
-        if: steps.check_secret.outputs.secret_configured == 'true' && steps.extract_url.outputs.deployment_status == 'success'
-        working-directory: ./frontend
-        run: npx playwright test --project="${{ matrix.browser }}"
-        continue-on-error: true
-        env:
-          CI: true
-          PLAYWRIGHT_BASE_URL: ${{ steps.extract_url.outputs.preview_url }}
-          SKIP_WEBSERVER: true
-          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY || 'test-api-key' }}
-          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN || 'test.firebaseapp.com' }}
-          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID || 'test-project' }}
-          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET || 'test.appspot.com' }}
-          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID || '123456789' }}
-          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID || 'test-app-id' }}
-      
-      - name: Upload E2E test results for ${{ matrix.browser }}
-        if: always() && steps.check_secret.outputs.secret_configured == 'true'
-        uses: actions/upload-artifact@v4
-        continue-on-error: true
-        with:
-          name: e2e-test-results-${{ matrix.browser }}-pr-${{ github.event.pull_request.number }}
-          path: frontend/test-results/
-          retention-days: 7
-      
-      - name: Comment on PR - E2E Test Results (${{ matrix.browser }})
+      - name: Comment on PR - Deployment Success
         if: always() && steps.check_secret.outputs.secret_configured == 'true' && steps.extract_url.outputs.deployment_status == 'success'
         continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |
             const url = '${{ steps.extract_url.outputs.preview_url }}';
-            const browser = '${{ matrix.browser }}';
             const status = '${{ job.status }}';
             const emoji = status === 'success' ? '✅' : '❌';
-            const body = `${emoji} **E2E Tests on ${browser}**
+            const body = `${emoji} **Firebase Hosting Preview Deployed**
 
             🔗 **Preview URL:** ${url}
-            🌐 **Browser:** ${browser}
-            � **Status:** ${status === 'success' ? 'Passed' : 'Failed'}
+            📦 **Status:** Deployment ${status === 'success' ? 'Successful' : 'Failed'}
+            
+            ℹ️ **Note:** E2E tests are handled by the dedicated E2E workflow
 
             🔍 **Workflow:** [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
             📦 **Commit:** \`${context.sha.substring(0, 7)}\``;

@@ -13,10 +13,10 @@ on:
     paths:
       - 'backend/**'
 
-# Cancel previous test runs when new commits are pushed
-concurrency:
-  group: backend-emulator-tests-${{ github.ref }}
-  cancel-in-progress: true
+# Concurrency temporarily disabled to resolve queue issues
+# concurrency:
+#   group: backend-emulator-tests-${{ github.ref }}
+#   cancel-in-progress: true
 
 # Required permissions for this workflow
 permissions:

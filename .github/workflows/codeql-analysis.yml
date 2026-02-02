@@ -17,10 +17,10 @@ permissions:
   security-events: write  # Required for uploading SARIF results
   actions: read           # Required for private repositories
 
-# Cancel previous runs when new commits are pushed
-concurrency:
-  group: codeql-analysis-${{ github.ref }}
-  cancel-in-progress: true
+# Concurrency temporarily disabled to resolve queue issues
+# concurrency:
+#   group: codeql-analysis-${{ github.ref }}
+#   cancel-in-progress: true
 
 jobs:
   analyze:
