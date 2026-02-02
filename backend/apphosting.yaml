@@ -21,6 +21,8 @@ runConfig:
   memoryMiB: 512
   # Maximum number of concurrent requests per instance
   concurrency: 80
+  # Service account for Cloud Run
+  serviceAccount: firebase-app-hosting-compute@groundctrl-c8860.iam.gserviceaccount.com
 
 # Environment variables (non-sensitive)
 # Sensitive values should be stored in Firebase Secret Manager
@@ -65,3 +67,8 @@ env:
 # firebase apphosting:secrets:set FIREBASE_PRIVATE_KEY --project groundctrl-c8860
 # firebase apphosting:secrets:set SMTP_PASSWORD --project groundctrl-c8860
 # firebase apphosting:secrets:set GEMINI_API_KEY --project groundctrl-c8860
+  
+
+
+  - variable: FIREBASE_CONFIG
+    value: {"databaseURL":"","projectId":"groundctrl-c8860","storageBucket":"groundctrl-c8860.firebasestorage.app"}
