@@ -31,8 +31,9 @@ jobs:
     timeout-minutes: 15
     strategy:
       fail-fast: false  # Continue running other browsers even if one fails
+      max-parallel: 1   # Run tests sequentially to avoid runner queue issues
       matrix:
-        browser: [chromium, firefox, webkit, 'Mobile Chrome', 'Mobile Safari']
+        browser: [chromium, firefox]  # Reduced from 5 to 2 browsers to use fewer runners
     
     steps:
       - name: Checkout code
