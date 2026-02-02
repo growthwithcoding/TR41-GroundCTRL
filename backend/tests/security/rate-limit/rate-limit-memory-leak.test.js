@@ -106,7 +106,6 @@ describe('Rate Limit - Memory Leak Prevention', () => {
 
   it('should use bounded data structures for rate limit tracking', async () => {
     const windowMs = parseInt(process.env.API_RATE_LIMIT_WINDOW_MS || '1000');
-    const maxRequests = parseInt(process.env.API_RATE_LIMIT_MAX_REQUESTS || '1000');
 
     // Create scenario with rapid window boundaries
     for (let window = 0; window < 5; window++) {

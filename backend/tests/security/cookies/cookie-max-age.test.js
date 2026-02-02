@@ -184,7 +184,7 @@ describe('Cookies - Max Age', () => {
     const agent = request.agent(app);
 
     // Login
-    const loginResponse = await agent.post('/api/v1/auth/login').send({
+    await agent.post('/api/v1/auth/login').send({
       email: 'test@example.com',
       password: 'password',
     });

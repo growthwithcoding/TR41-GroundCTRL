@@ -28,7 +28,7 @@ describe('HTTP Client - Retry Policy', () => {
   it('should use exponential backoff for retries', async () => {
     const startTime = Date.now();
 
-    const response = await request(app)
+    await request(app)
       .get('/api/v1/satellites/retry-test')
       .timeout(15000)
       .expect([200, 400, 401, 404, 503]);

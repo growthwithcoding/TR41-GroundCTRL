@@ -27,7 +27,6 @@ describe('Rate Limit - Login Composite Key', () => {
 
   it('should apply rate limit per email address', async () => {
     const email = `composite-${Date.now()}@example.com`;
-    const windowMs = parseInt(process.env.LOGIN_RATE_LIMIT_WINDOW_MS || '1000');
     const maxRequests = parseInt(process.env.LOGIN_RATE_LIMIT_MAX_REQUESTS || '1000');
 
     let blockedResponse = null;
@@ -54,7 +53,6 @@ describe('Rate Limit - Login Composite Key', () => {
   }, 60000);
 
   it('should track limit separately per email', async () => {
-    const windowMs = parseInt(process.env.LOGIN_RATE_LIMIT_WINDOW_MS || '1000');
     const maxRequests = parseInt(process.env.LOGIN_RATE_LIMIT_MAX_REQUESTS || '100');
 
     // Make requests with email1

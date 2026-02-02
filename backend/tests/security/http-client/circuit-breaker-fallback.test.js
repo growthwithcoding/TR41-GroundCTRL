@@ -117,7 +117,7 @@ describe('HTTP Client - Circuit Breaker Fallback', () => {
 
   it('should reset circuit after recovery time', async () => {
     // Circuit should periodically attempt to close if service recovers
-    const response1 = await request(app)
+    await request(app)
       .get('/api/v1/satellites/health')
       .timeout(3000)
       .expect([200, 400, 401, 404, 503]);

@@ -65,7 +65,7 @@ describe('HTTP Client - Timeout Enforced', () => {
   }, 60000);
 
   it('should allow retries after timeout', async () => {
-    const response1 = await request(app)
+    await request(app)
       .get('/api/v1/satellites/external-sync')
       .timeout(2000)
       .expect([200, 400, 401, 404, 408, 503]);

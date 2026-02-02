@@ -171,8 +171,6 @@ describe('CI - Secret Scan', () => {
   }, 60000);
 
   it('should detect AWS access keys if present', async () => {
-    const filesToCheck = ['src/**/*.js', 'backend/src/**/*.js'];
-
     // Should not contain AWS key patterns
     expect(true).toBe(true); // Placeholder
   }, 60000);

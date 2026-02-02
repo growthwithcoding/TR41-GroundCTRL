@@ -36,7 +36,6 @@ describe('Rate Limit - Help AI Strict Limit', () => {
   it('should rate limit /api/v1/help/ai calls with short window', async () => {
     // NOTE: With p-queue implementation, requests are queued gracefully
     // instead of returning 429. This test verifies queuing behavior.
-    const windowMs = parseInt(process.env.HELP_AI_RATE_LIMIT_WINDOW_MS || '1000');
     const maxRequests = parseInt(process.env.HELP_AI_RATE_LIMIT_MAX_REQUESTS || '100');
 
     let responses = [];
@@ -136,7 +135,6 @@ describe('Rate Limit - Help AI Strict Limit', () => {
 
     // Verify endpoint is protected
     const status429Count = responses.filter(r => r.status === 429).length;
-    const validResponses = responses.filter(r => [200, 400, 401, 404].includes(r.status));
 
     // If rate limiting is active, some requests should be blocked
     if (status429Count > 0) {

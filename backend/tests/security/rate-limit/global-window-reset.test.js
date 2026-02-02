@@ -89,7 +89,6 @@ describe('Rate Limit - Global Window Reset', () => {
 
   it('should prevent requests exceeding limit within window', async () => {
     const maxRequests = parseInt(process.env.API_RATE_LIMIT_MAX_REQUESTS || '100');
-    const windowMs = parseInt(process.env.API_RATE_LIMIT_WINDOW_MS || '1000');
 
     let blockedResponse = null;
 
@@ -131,9 +130,6 @@ describe('Rate Limit - Global Window Reset', () => {
   }, 60000);
 
   it('should apply different limits to different endpoints', async () => {
-    const loginMaxRequests = parseInt(process.env.LOGIN_RATE_LIMIT_MAX_REQUESTS || '100');
-    const apiMaxRequests = parseInt(process.env.API_RATE_LIMIT_MAX_REQUESTS || '100');
-
     // Test that both endpoints are rate limited (when limits are low)
     // With test limits of 100, after previous tests in this file, we may hit rate limit
     let loginResponses = 0;

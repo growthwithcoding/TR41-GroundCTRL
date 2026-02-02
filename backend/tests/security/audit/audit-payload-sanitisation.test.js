@@ -79,7 +79,7 @@ describe('Audit - Payload Sanitisation', () => {
       const token = registerResponse.body.payload.token;
 
       // Use token in subsequent request
-      const response = await request(app)
+      await request(app)
         .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${token}`)
         .expect([200, 401]);

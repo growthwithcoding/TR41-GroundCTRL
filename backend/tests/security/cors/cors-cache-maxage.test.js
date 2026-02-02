@@ -78,8 +78,6 @@ describe('CORS - Cache MaxAge', () => {
   }, 60000);
 
   it('should cache preflight responses appropriately', async () => {
-    const startTime = Date.now();
-
     const response1 = await request(app)
       .options('/api/v1/satellites')
       .set('Origin', 'http://localhost:3000')

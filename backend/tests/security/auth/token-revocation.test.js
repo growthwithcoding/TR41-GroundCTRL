@@ -76,7 +76,6 @@ describe('Auth - Token Revocation', () => {
       .set('Authorization', `Bearer ${token}`);
 
     // If endpoint requires auth, store initial status
-    const initialStatus = firstRequest.status;
 
     // If logout exists, revoke token
     await request(app)

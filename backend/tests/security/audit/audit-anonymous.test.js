@@ -150,10 +150,10 @@ describe('Audit - Anonymous', () => {
     const agent = request.agent(app);
 
     // Anonymous request
-    const anonResponse = await agent.get('/api/v1/satellites');
+    await agent.get('/api/v1/satellites');
 
     // Login
-    const loginResponse = await agent.post('/api/v1/auth/login').send({
+    await agent.post('/api/v1/auth/login').send({
       email: 'test@example.com',
       password: 'password',
     });

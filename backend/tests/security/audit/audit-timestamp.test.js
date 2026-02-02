@@ -16,8 +16,6 @@ describe('Audit - Timestamp', () => {
   }, 60000);
 
   it('should record timestamp for each audit event', async () => {
-    const before = new Date();
-
     const response = await request(app)
       .post('/api/v1/auth/register')
       .send({
@@ -26,8 +24,6 @@ describe('Audit - Timestamp', () => {
         displayName: 'Timestamp Test',
       })
       .expect([200, 201, 400, 401]);
-
-    const after = new Date();
 
     // Response should be timestamped when available
     const timestamp = response.timestamp || response.body?.timestamp || response.body?.payload?.timestamp;
