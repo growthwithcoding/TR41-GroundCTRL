@@ -4,12 +4,17 @@
  */
 
 const request = require('supertest');
+const { getTestApp } = require('../../helpers/test-utils');
 
 // Set up test environment for CORS
 process.env.ALLOWED_ORIGINS = 'https://allowed-domain.com';
-const app = require('../../src/app');
 
 describe('CORS Whitelisting Security Tests', () => {
+  let app;
+
+  beforeAll(() => {
+    app = getTestApp();
+  });
 
   describe('Allowed Origins', () => {
     it('should allow requests from whitelisted origin', async () => {

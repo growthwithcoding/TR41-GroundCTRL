@@ -4,6 +4,7 @@
  */
 
 const request = require('supertest');
+const { getTestApp } = require('../../helpers/test-utils');
 
 describe('Security - Injection Tests', () => {
   let app;
@@ -13,7 +14,7 @@ describe('Security - Injection Tests', () => {
     process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
     process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
     
-    app = require('../../src/app');
+    app = getTestApp();
   });
 
   describe('SEC-001: CallSign Enumeration Prevention', () => {

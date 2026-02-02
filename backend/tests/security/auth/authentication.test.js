@@ -4,8 +4,7 @@
  */
 
 const request = require('supertest');
-const { createTestUser } = require('../../helpers/test-utils');
-require('../../src/config/jwtConfig');
+const { createTestUser, getTestApp } = require('../../helpers/test-utils');
 
 describe('Authentication Security Tests', () => {
   let app;
@@ -15,7 +14,7 @@ describe('Authentication Security Tests', () => {
     process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
     process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
     
-    app = require('../../src/app');
+    app = getTestApp();
   });
 
   describe('Login Security', () => {

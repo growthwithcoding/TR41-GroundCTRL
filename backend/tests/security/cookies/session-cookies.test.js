@@ -4,7 +4,9 @@
  */
 
 const request = require('supertest');
-const app = require('../../src/app');
+const { getTestApp } = require('../../helpers/test-utils');
+
+const app = getTestApp();
 
 describe('Session Cookie Hardening Security Tests', () => {
 

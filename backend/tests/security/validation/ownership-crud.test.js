@@ -3,7 +3,9 @@
  * Tests: Ownership filter, audit metadata, pagination hardening
  */
 
-const app = require('../../src/app');
+const { getTestApp } = require('../../helpers/test-utils');
+
+const app = getTestApp();
 
 describe('Ownership & CRUD Security Tests', () => {
 
