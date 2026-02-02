@@ -19,7 +19,7 @@ permissions:
 
 # Cancel previous runs when new commits are pushed
 concurrency:
-  group: codeql-${{ github.ref }}
+  group: codeql-analysis-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

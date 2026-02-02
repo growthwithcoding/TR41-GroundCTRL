@@ -15,7 +15,7 @@ on:
 
 # Cancel previous test runs when new commits are pushed
 concurrency:
-  group: test-${{ github.ref }}
+  group: backend-emulator-tests-${{ github.ref }}
   cancel-in-progress: true
 
 # Required permissions for this workflow

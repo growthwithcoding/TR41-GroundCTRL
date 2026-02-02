@@ -16,7 +16,7 @@ permissions:
 
 # Cancel previous runs when new commits are pushed
 concurrency:
-  group: firebase-deploy-${{ github.event.pull_request.number }}
+  group: firebase-hosting-deploy-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
