@@ -1,44 +1,89 @@
 /**
  * Express App Configuration
  * Initializes Express app with middleware and routes
+ * 
+ * CRITICAL: This module must load quickly and not throw errors that prevent
+ * the server from starting. All initialization must be graceful.
  */
 
+// Load environment variables first
 require('dotenv').config({
   path: process.env.NODE_ENV === 'test' ? '.env.test' : '.env'
 });
+
+console.log('📦 Loading Express application modules...');
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const swaggerUi = require('swagger-ui-express');
-const { initializeFirebase } = require('./config/firebase');
-const swaggerSpec = require('./config/swagger');
-const missionControl = require('./config/missionControl');
-const auditLogger = require('./middleware/auditLogger');
-const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
-const authErrorNormalizer = require('./middleware/authErrorNormalizer');
-const { apiLimiter } = require('./middleware/rateLimiter');
-// const { responseEnvelopeMiddleware } = require('./middleware/responseEnvelope'); // Temporarily disabled
-const routes = require('./routes');
-const logger = require('./utils/logger');
 
-// Initialize Express app
+// Initialize Express app immediately
 const app = express();
+console.log('✓ Express app instance created');
+
+// Load configuration modules with error handling
+let swaggerSpec;
+let missionControl;
+let routes;
+let errorHandler, notFoundHandler;
+let authErrorNormalizer;
+let apiLimiter;
+let auditLogger;
+
+try {
+  console.log('📋 Loading middleware and configuration...');
+  swaggerSpec = require('./config/swagger');
+  missionControl = require('./config/missionControl');
+  auditLogger = require('./middleware/auditLogger');
+  ({ errorHandler, notFoundHandler } = require('./middleware/errorHandler'));
+  authErrorNormalizer = require('./middleware/authErrorNormalizer');
+  ({ apiLimiter } = require('./middleware/rateLimiter'));
+  routes = require('./routes');
+  console.log('✓ Middleware and configuration loaded');
+} catch (error) {
+  console.error('⚠️  Warning: Some middleware failed to load:', error.message);
+  console.error('   Server will start with reduced functionality');
+  // Set defaults for failed modules
+  swaggerSpec = swaggerSpec || {};
+  missionControl = missionControl || { version: 'unknown' };
+  auditLogger = auditLogger || ((req, res, next) => next());
+  apiLimiter = apiLimiter || ((req, res, next) => next());
+  authErrorNormalizer = authErrorNormalizer || ((req, res, next) => next());
+  errorHandler = errorHandler || ((err, req, res, next) => {
+    res.status(500).json({ error: 'Internal server error' });
+  });
+  notFoundHandler = notFoundHandler || ((req, res) => {
+    res.status(404).json({ error: 'Not found' });
+  });
+}
 
 // Initialize Firebase with graceful error handling
 // Don't exit process on failure - let server start for Cloud Run health checks
+console.log('🔥 Initializing Firebase...');
 let firebaseInitialized = false;
 try {
+  const { initializeFirebase } = require('./config/firebase');
   initializeFirebase();
   firebaseInitialized = true;
-  logger.info('Firebase initialized successfully');
+  console.log('✓ Firebase initialized successfully');
 } catch (error) {
-  logger.error('Failed to initialize Firebase - server will start in degraded mode', { 
-    error: error.message,
-    stack: error.stack 
-  });
   console.error('⚠️  WARNING: Firebase initialization failed');
   console.error('    Server will start but Firebase features will be unavailable');
   console.error('    Error:', error.message);
+  
+  // Log for production debugging
+  const logger = require('./utils/logger');
+  logger.error('Failed to initialize Firebase - server will start in degraded mode', { 
+    error: error.message,
+    stack: error.stack,
+    env: {
+      NODE_ENV: process.env.NODE_ENV,
+      FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
+      hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+      hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL
+    }
+  });
   // Don't exit - let the server start so Cloud Run health checks pass
   // Firebase errors will be handled by individual endpoints
 }
@@ -124,32 +169,51 @@ app.use(apiLimiter);
 app.use(auditLogger);
 
 // Swagger API Documentation
-app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'GroundCTRL API Documentation',
-  customfavIcon: '/favicon.ico'
-}));
+if (swaggerSpec && Object.keys(swaggerSpec).length > 0) {
+  app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'GroundCTRL API Documentation',
+    customfavIcon: '/favicon.ico'
+  }));
+} else {
+  app.get('/api/v1/docs', (req, res) => {
+    res.status(503).json({ error: 'API documentation not available' });
+  });
+}
 
 // API Routes (versioned)
-app.use('/api/v1', routes);
+if (routes) {
+  app.use('/api/v1', routes);
+} else {
+  // Fallback routes if main routes failed to load
+  app.get('/api/v1', (req, res) => {
+    res.status(503).json({ 
+      error: 'API routes not available',
+      message: 'Server is in degraded mode due to initialization errors'
+    });
+  });
+}
 
 // Health endpoint at root level for tests and quick checks
+// This MUST always work for Cloud Run health checks
 app.get('/health', (req, res) => {
   res.json({
     status: 'GO',
     service: 'GroundCTRL API',
-    version: missionControl.version
+    version: missionControl?.version || 'unknown',
+    firebase: firebaseInitialized ? 'initialized' : 'unavailable'
   });
 });
 
-// Root endpoint
+// Root endpoint - This MUST always work for Cloud Run
 app.get('/', (req, res) => {
   res.json({
     service: 'GroundCTRL API',
-    version: missionControl.version,
+    version: missionControl?.version || 'unknown',
     status: 'operational',
     documentation: '/api/v1/docs',
-    health: '/api/v1/health'
+    health: '/api/v1/health',
+    firebase: firebaseInitialized ? 'initialized' : 'unavailable'
   });
 });
 
