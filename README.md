@@ -257,8 +257,9 @@ For questions, issues, or suggestions:
 
 - **Full Stack Engineer**: Austin Allen Carlson — [@aacarlson](https://github.com/growthwithcoding)
 - **Backend Software Engineers**: Cameron Carmody — [@gotcurds](https://github.com/gotcurds), Tessa Robinson — [@TeslamodelIT](https://github.com/TeslamodelIT)
-- **Cybersecurity**: Mohana Gautam — [@mohanag7-SHIV](https://github.com/mohanag7-SHIV)
-- **Frontend Software Engineers**: Daniel Ocampo — [@Danielsoftware033](https://github.com/Danielsoftware033)
 - **Quality Assurance / Cybersecurity Implentation and Testing**: Adam Colyer — [@AColyer13](https://github.com/AColyer13)
+- **Cybersecurity Analyst**: Mohana Gautam — [@mohanag7-SHIV](https://github.com/mohanag7-SHIV)
+- **Frontend Software Engineers**: Daniel Ocampo — [@Danielsoftware033](https://github.com/Danielsoftware033)
+
 
 Thank you for using GroundCTRL!
