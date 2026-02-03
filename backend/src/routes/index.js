@@ -30,8 +30,18 @@ router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
 
 // Protected routes (auth required)
+router.use('/users', authMiddleware, userRoutes);
+router.use('/satellites', authMiddleware, satelliteRoutes);
+router.use('/scenarios', authMiddleware, scenarioRoutes);
+router.use('/scenario-steps', authMiddleware, scenarioStepRoutes);
+router.use('/scenario-sessions', authMiddleware, scenarioSessionRoutes);
+// AI routes handle their own auth (some endpoints use optionalAuth)
+router.use('/ai', aiRoutes);
+router.use('/commands', authMiddleware, commandRoutes);
+router.use('/help', authMiddleware, helpRoutes);
+router.use('/websocket-logs', authMiddleware, websocketLogsRoutes);
 
-// API root endpoint - provides information about available routes
+// Root API endpoint
 router.get('/', (req, res) => {
   res.json({
     status: 'GO',
@@ -63,42 +73,5 @@ router.get('/', (req, res) => {
     timestamp: Date.now()
   });
 });
-
-// Network Segmentation: Route Groups with Different Security Levels
-// =================================================================
-
-// Public routes (no authentication required)
-const publicRoutes = express.Router();
-publicRoutes.use('/health', healthRoutes);
-publicRoutes.use('/auth', authRoutes);
-
-// Protected routes (authentication required)
-const protectedRoutes = express.Router();
-protectedRoutes.use(authMiddleware);
-protectedRoutes.use('/users', userRoutes);
-protectedRoutes.use('/satellites', satelliteRoutes);
-protectedRoutes.use('/scenarios', scenarioRoutes);
-protectedRoutes.use('/scenario-steps', scenarioStepRoutes);
-protectedRoutes.use('/scenario-sessions', scenarioSessionRoutes);
-protectedRoutes.use('/ai', aiRoutes);
-protectedRoutes.use('/commands', commandRoutes);
-protectedRoutes.use('/help', helpRoutes);
-protectedRoutes.use('/websocket-logs', websocketLogsRoutes);
-
-// Apply route groups
-router.use('/', publicRoutes);
-router.use('/', protectedRoutes);
-protectedRoutes.use('/satellites', satelliteRoutes);
-protectedRoutes.use('/scenarios', scenarioRoutes);
-protectedRoutes.use('/scenario-steps', scenarioStepRoutes);
-protectedRoutes.use('/scenario-sessions', scenarioSessionRoutes);
-protectedRoutes.use('/ai', aiRoutes);
-protectedRoutes.use('/commands', commandRoutes);
-protectedRoutes.use('/help', helpRoutes);
-protectedRoutes.use('/websocket-logs', websocketLogsRoutes);
-
-// Apply route groups
-router.use('/', publicRoutes);
-router.use('/', protectedRoutes);
 
 module.exports = router;

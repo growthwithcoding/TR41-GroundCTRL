@@ -28,7 +28,7 @@ describe('Audit - Anonymous', () => {
   it('should log anonymous requests with IP address', async () => {
     const response = await request(app)
       .get('/api/v1/satellites')
-      .expect([200, 401, 404]);
+      .expect(401);
 
     // Audit logs should record IP even if unauthenticated
     expect(response.status).toBeDefined();
@@ -64,7 +64,7 @@ describe('Audit - Anonymous', () => {
     // Anonymous request
     await request(app)
       .get('/api/v1/satellites')
-      .expect([200, 401, 404]);
+      .expect(401);
 
     // Check audit logs
     const response = await request(app)

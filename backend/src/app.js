@@ -79,10 +79,10 @@ app.use(helmet({
 }));
 
 // CORS configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
   : [
-    'http://localhost:3001', 
+    'http://localhost:3001',
     'http://localhost:5173',
     'http://localhost:5174',  // Allow alternate port
     'http://localhost:5175',  // Allow alternate port
@@ -95,16 +95,43 @@ logger.info('CORS Configuration', {
   allowedOriginsArray: allowedOrigins
 });
 
+// 1. Handle CORS preflight globally (before auth)
+app.options('*', cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // In development and test, allow any localhost origin
+    if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && origin.startsWith('http://localhost:')) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      logger.warn('CORS blocked origin', { origin, allowedOrigins });
+      // Return false to block without throwing error (prevents 500)
+      callback(null, false);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204,
+  maxAge: 86400
+}));
+
+// 2. Apply CORS to all routes
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
-    // In development, allow any localhost origin
-    if (process.env.NODE_ENV === 'development' && origin.startsWith('http://localhost:')) {
+
+    // In development and test, allow any localhost origin
+    if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && origin.startsWith('http://localhost:')) {
       return callback(null, true);
     }
-    
+
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -123,7 +150,7 @@ app.use(cors({
 // Expose Firebase status for health checks
 app.locals.firebaseInitialized = firebaseInitialized;
 
-// Body parsing middleware
+// Body parsing middleware with size limits
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -146,10 +173,7 @@ app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customfavIcon: '/favicon.ico'
 }));
 
-// API Routes (versioned)
-app.use('/api/v1', routes);
-
-// Health endpoint at root level for tests and quick checks
+// Health endpoint at root level for tests and quick checks (before auth)
 app.get('/health', (req, res) => {
   res.json({
     status: 'GO',
@@ -158,7 +182,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Root endpoint
+// Root endpoint (before auth)
 app.get('/', (req, res) => {
   res.json({
     service: 'GroundCTRL API',
@@ -168,6 +192,9 @@ app.get('/', (req, res) => {
     health: '/api/v1/health'
   });
 });
+
+// API Routes (versioned) - auth is handled within routes
+app.use('/api/v1', routes);
 
 // 404 handler (must be after all routes)
 app.use(notFoundHandler);

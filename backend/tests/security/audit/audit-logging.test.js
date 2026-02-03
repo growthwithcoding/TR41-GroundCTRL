@@ -72,13 +72,15 @@ describe('Audit Logging Security Tests', () => {
     it('should anonymize user data in logs', async () => {
       const spy = jest.spyOn(console, 'log');
 
+      // Try to login with invalid credentials (anonymous access to auth endpoint)
       await request(app)
-        .get('/api/v1/satellites')
-        .expect(200); // With mocks, this endpoint works and returns 200
+        .post('/api/v1/auth/login')
+        .send({ email: 'nonexistent@example.com', password: 'wrongpassword' })
+        .expect(401);
 
       // Find the audit log in the calls
       const auditCall = spy.mock.calls.find(call => 
-        call[0] && call[0].includes('[AUDIT]') && call[0].includes('Satellite list access')
+        call[0] && call[0].includes('[AUDIT]') && call[0].includes('Login failed') && !call[0].includes('unknown user')
       );
       expect(auditCall).toBeDefined();
       
@@ -87,7 +89,7 @@ describe('Audit Logging Security Tests', () => {
       const meta = JSON.parse(metaPart);
       
       // Check that user data is anonymized
-      expect(meta.userId).toBe('unauthenticated');
+      expect(meta.userId).toBe('unknown');
       expect(meta.callSign).toBe('unknown');
       expect(meta).toHaveProperty('timestamp');
 
