@@ -1,127 +1,265 @@
 # GroundCTRL - Mission Control Platform
 
-## Virtual Satellite Simulator
+[![React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
+[![Node.js](https://img.shields.io/badge/Backend-Node.js-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Firebase](https://img.shields.io/badge/Database-Firebase-FFCA28?logo=firebase&logoColor=white)](https://firebase.google.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**GroundCTRL** is a browser-based training simulator that introduces users to the fundamentals of satellite operations through interactive, guided missions. Players manage a virtual Earth-orbiting satellite using a simplified mission console, real-time AI guidance, and structured objectives that blend learning with gameplay. Designed for space enthusiasts, students, and new operators, the platform provides visual feedback, step-by-step tutorials, and progress tracking. The simulator runs in modern desktop browsers and aims to make satellite operations education engaging, accessible, and beginner-friendly. Built with **React**, **Node.js**, and **Firebase**.
+**GroundCTRL** is a browser-based training simulator that introduces users to the fundamentals of satellite operations through interactive, guided missions. Players manage a virtual Earth-orbiting satellite using a simplified mission console, real-time AI guidance, and structured objectives that blend learning with gameplay.
 
-![React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react&logoColor=white)
-![Node.js](https://img.shields.io/badge/Backend-Node.js-339933?logo=node.js&logoColor=white)
-![Firebase](https://img.shields.io/badge/Database-Firebase-FFCA28?logo=firebase&logoColor=white)
+## Table of Contents
 
----
+- [✨ Features](#-features)
+- [🛠️ Built With](#️-built-with)
+- [🚀 Quick Start](#-quick-start)
+- [📦 Installation](#-installation)
+- [📸 Screenshots](#-screenshots)
+- [🏗️ Project Structure](#️-project-structure)
+- [🏛️ Architecture Overview](#️-architecture-overview)
+- [💻 Development Workflow](#-development-workflow)
+- [🧪 Testing](#-testing)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+- [📧 Contact](#-contact)
 
-## Team
+## ✨ Features
 
-- **Full Stack Engineer**  
-  - Austin Allen Carlson — [@aacarlson](https://github.com/growthwithcoding)
+- **👨‍💼 Admin Scenario Management**: Create and manage training scenarios with multi-step guided missions
+- **🎮 Real-Time Simulator**: Track commands, telemetry, and mission progress with Socket.IO synchronization
+- **🏠 Dynamic Mission Display**: Personalized mission suggestions based on user progress
+- **🚀 Interactive Mission Briefings**: Detailed scenario details with start controls
+- **🔧 Optimized Firestore**: Comprehensive index configuration for performance
+- **🤖 AI Guidance**: Real-time assistance for satellite operations
+- **📊 Progress Tracking**: Automatic step completion and state persistence
+- **🔒 Security First**: JWT authentication, rate limiting, and input validation
 
-- **Frontend Software Engineers**  
-  - Daniel Ocampo — [@Danielsoftware033](https://github.com/Danielsoftware033)
+## 🛠️ Built With
 
-- **Backend Software Engineers**  
-  - Cameron Carmody — [@gotcurds](https://github.com/gotcurds)
-  - Tessa Robinson — [@TeslamodelIT](https://github.com/TeslamodelIT)
-  
-- **Cybersecurity**  
-  - Mohana Gautam — [@mohanag7-SHIV](https://github.com/mohanag7-SHIV)
+- **[React](https://reactjs.org/)** - Frontend framework
+- **[Node.js](https://nodejs.org/)** - Backend runtime
+- **[Express](https://expressjs.com/)** - Web framework
+- **[Firebase](https://firebase.google.com/)** - Database and authentication
+- **[Socket.IO](https://socket.io/)** - Real-time communication
+- **[Vite](https://vitejs.dev/)** - Build tool
+- **[Tailwind CSS](https://tailwindcss.com/)** - Styling
+- **[Radix UI](https://www.radix-ui.com/)** - UI components
 
-- **Quality Assurance**  
-  - Adam Colyer — [@AColyer13](https://github.com/AColyer13)
+## 🚀 Quick Start
 
-## ✨ Implemented Features
+Get GroundCTRL running locally in minutes:
 
-### 👨‍💼 Admin Scenario Management (February 2026)
-Comprehensive admin interface for creating and managing training scenarios:
-- **Scenario List Interface** - Search, filter, and manage all scenarios with CRUD operations
-- **Multi-mode Editor** - Create new scenarios, edit existing ones, or view in read-only mode
-- **Dynamic Step Management** - Build multi-step guided missions with objectives and hints
-- **Satellite Configuration** - Link scenarios to satellites and configure ground stations
-- **Publishing Controls** - Draft, publish, archive workflows with status management
-- **Admin Access Control** - Role-based routing with AdminRoute guard component
+```bash
+git clone https://github.com/growthwithcoding/TR41-GroundCTRL.git
+cd TR41-GroundCTRL
 
-📚 Documentation:
-- [SCENARIO_CREATOR_PLAN.md](./SCENARIO_CREATOR_PLAN.md) - Implementation plan and features
+# Backend setup
+cd backend
+npm install
+cp .env.example .env
+npm run dev
 
-### 🎮 Simulator State Management (January 2026)
-Comprehensive real-time state tracking and synchronization system:
-- **Command Tracking** - Track all commands executed since session start with full history
-- **Telemetry Updates** - Real-time satellite telemetry updates every 2 seconds with 100-snapshot history
-- **Scenario Step Progression** - Automatic/manual mission step completion with progress tracking
-- **SocketIO Synchronization** - Real-time state sync between frontend and backend
-- **Command Effects** - Commands actually affect simulation physics (orbital maneuvers, power draw, etc.)
-- **Alert System** - System alerts with acknowledgment tracking
-- **State Persistence** - Automatic Firestore persistence and recovery
+# Frontend setup (new terminal)
+cd ../frontend
+npm install
+cp .env.example .env
+npm run dev
+```
 
-📚 Documentation:
-- [SIMULATOR_STATE_MANAGEMENT.md](./SIMULATOR_STATE_MANAGEMENT.md) - Technical architecture
-- [SIMULATOR_STATE_INTEGRATION_GUIDE.md](./SIMULATOR_STATE_INTEGRATION_GUIDE.md) - Integration examples
+Visit `http://localhost:5173` to start your satellite mission!
 
-### 🏠 Homepage Mission Display (January 2026)
-Dynamic mission suggestion system showing in-progress and next available missions based on user progress.
+## 📦 Installation
 
-📚 Documentation: [HOMEPAGE_MISSION_DISPLAY.md](./HOMEPAGE_MISSION_DISPLAY.md)
+### Prerequisites
+- **Node.js** 18+ and **npm** 9+
+- **Firebase CLI** (for emulators and deployment)
+- **Git**
 
-### 🚀 Mission Start Modal (January 2026)
-Interactive mission briefing interface with scenario details and start controls.
+### Local Setup
 
-📚 Documentation: [MISSION_START_MODAL.md](./MISSION_START_MODAL.md)
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/growthwithcoding/TR41-GroundCTRL.git
+   cd TR41-GroundCTRL
+   ```
 
-### 🧹 Mock Data Removal (January 2026)
-Migrated from hardcoded mock data to Firebase-backed real data.
+2. **Backend setup**
+   ```bash
+   cd backend
+   npm install
+   cp .env.example .env  # Configure Firebase credentials, API keys, etc.
+   npm run dev           # Start development server on port 5000
+   ```
 
-📚 Documentation: [MOCK_DATA_REMOVAL.md](./MOCK_DATA_REMOVAL.md)
+3. **Frontend setup**
+   ```bash
+   cd ../frontend
+   npm install
+   cp .env.example .env  # Configure Firebase config, API endpoint, etc.
+   npm run dev           # Start Vite dev server on port 5173
+   ```
 
-### 🔧 Firestore Index Management (January 2026)
-Comprehensive Firestore index configuration for optimized queries.
+4. **Firebase Emulators (optional)**
+   ```bash
+   firebase emulators:start
+   # Emulator UI at http://localhost:4000
+   ```
 
-📚 Documentation: [FIRESTORE_INDEX_FIX.md](./FIRESTORE_INDEX_FIX.md)
+### Project Environment Files
+- `backend/.env` — Firebase config, JWT secrets, API keys, rate limits
+- `frontend/.env` — Firebase project config, backend API URL
+- `.firebaserc` — Firebase project mapping and deployment settings
 
-## 🧪 Automated Testing Suite (January 2026)
+See individual `README.md` files in `backend/` and `frontend/` for detailed setup instructions.
 
-Comprehensive testing automation with Jest, SuperTest, and Playwright:
+## 📸 Screenshots
+
+*Screenshots and demo GIFs coming soon!*
+
+## 🏗️ Project Structure
+
+```
+TR41-GroundCTRL/
+├── backend/              # Node.js/Express API server
+│   ├── src/
+│   ├── tests/
+│   └── package.json
+├── frontend/             # React/Vite application
+│   ├── src/
+│   ├── tests/
+│   └── package.json
+├── docs/                 # Documentation
+├── helper_scripts/       # Utility scripts
+└── *.md                  # Project documentation
+```
+
+- **Backend:** Core server, API routes, tests and seeders in `backend/` — see [backend/README.md](backend/README.md)
+- **Frontend:** App source, build and E2E config in `frontend/` — see [frontend/README.md](frontend/README.md)
+- **Docs & Guides:** Project documentation at repository root
+
+## 🏛️ Architecture Overview
+
+**Frontend** (React 19 + Vite)
+- Component-based UI with Radix UI for accessibility
+- Real-time updates via Socket.IO
+- Responsive design (mobile, tablet, desktop)
+- Dark/light theme toggle with next-themes
+- Form handling with React Hook Form + Zod validation
+
+**Backend** (Node.js + Express)
+- RESTful API with OpenAPI/Swagger docs
+- Real-time WebSocket server (Socket.IO)
+- Firebase Admin SDK for auth and Firestore
+- Role-based access control (RBAC)
+- Rate limiting and input validation
+- Comprehensive test coverage (unit, integration, security)
+
+**Database** (Firebase)
+- **Firestore** — Primary datastore (scenarios, missions, user progress, telemetry)
+- **Firebase Auth** — User authentication with custom claims
+- **Firebase Emulators** — Local testing environment
+
+**DevOps & Hosting**
+- **Firebase Hosting** — Frontend deployment
+- **Google Cloud App Hosting** — Backend deployment
+- **GitHub Actions** — CI/CD automation (test, lint, build, deploy on PR/merge)
+
+## 💻 Development Workflow
+
+### Branching Strategy
+- `main` — Production-ready code, auto-deployed
+- Feature branches — `feature/ISSUE-description` or `fix/ISSUE-description`
+- All PRs require passing tests and at least one review before merge
+
+### Making Changes
+1. Create a feature branch from `main`
+2. Make your changes and commit with clear messages
+3. Push your branch and open a PR with a description
+4. Ensure CI/CD checks pass (tests, lint, build)
+5. Request review from team members
+6. Merge when approved; main auto-deploys
+
+### Code Quality
+- **Linting**: ESLint enforced on commits and CI
+- **Testing**: Unit, integration, and E2E tests required
+- **Type Safety**: TypeScript for frontend, JSDoc for backend
+- **Security**: Snyk scanning, OWASP validation, rate limiting
+
+## 🧪 Testing
+
+Comprehensive multi-layer testing with **Jest + SuperTest** (backend) and **Playwright** (frontend E2E).
 
 ### Quick Start
 ```bash
 # Backend tests
 cd backend
-npm install
 npm test
 
-# Frontend E2E tests (CURRENTLY DISABLED)
-# E2E tests have been temporarily removed to prevent interference with development
-# They will be re-implemented in a future update when the frontend is more stable
+# Frontend E2E tests
+cd ../frontend
+npm run test:e2e
 ```
 
-### Test Categories
-- **Unit Tests**: Jest for isolated component testing
-- **Integration Tests**: SuperTest for API endpoint testing  
-- **E2E Tests**: ⚠️ Temporarily disabled (future implementation planned)
-- **Security Tests**: Security vulnerability testing
-- **CI/CD**: Automated testing on every PR
+### Test Structure
+
+**Backend** (`backend/tests/`)
+- Unit, integration, security, performance, and CI/CD tests
+
+**Frontend** (`frontend/tests/e2e/`)
+- Smoke, responsive design, theme, and lazy loading tests
 
 ### Available Commands
-```bash
-# Backend testing
-npm run test:unit          # Unit tests only
-npm run test:integration   # Integration tests (requires emulators)
-npm run test:security      # Security tests
-npm run test:coverage      # With coverage report
 
-# Frontend E2E testing - TEMPORARILY DISABLED
-# npm run test:e2e          # (Removed - will be restored in future update)
-# npm run test:e2e:ui       # (Removed - will be restored in future update)
-# npm run test:e2e:headed   # (Removed - will be restored in future update)
+**Backend Testing**
+```bash
+cd backend
+npm run test              # Run all tests
+npm run test:unit         # Unit tests only
+npm run test:integration  # Integration tests
+npm run test:security     # Security tests
+npm run test:performance  # Performance tests
+npm run test:ci-cd        # Build & dependency checks
+```
+
+**Frontend E2E Testing** (Playwright)
+```bash
+cd frontend
+npm run test:e2e           # Run E2E tests
+npm run test:e2e:headed    # Run with visible browser
+npm run test:e2e:debug     # Interactive debug mode
 ```
 
 ### CI/CD Integration
-- ✅ Automated testing on every Pull Request
-- ⚠️ Multi-browser E2E testing (temporarily disabled)
-- ✅ Test result summaries and artifact collection
-- ✅ Firebase emulator integration for isolated testing
+- ✅ Automated testing on every PR
+- ✅ Backend: Jest unit, integration, security, and CI-CD tests
+- ✅ Frontend: Playwright E2E tests on Chromium, Firefox, WebKit
+- ✅ CodeQL security scanning and lint checks
 
-📚 **Complete Testing Documentation**: [backend/tests/](backend/tests/)
-- **[Quick Start Guide](backend/tests/QUICKSTART.md)** - Get started in 5 minutes
-- **[Installation Guide](backend/tests/INSTALLATION.md)** - Complete setup instructions
-- **[Testing Guide](backend/tests/TESTING_GUIDE.md)** - Comprehensive documentation
-- **[E2E Testing](backend/tests/E2E_TESTING.md)** - Playwright setup and usage
+📚 **Testing Documentation**: See [backend/tests/README.md](backend/tests/README.md) and [frontend/tests/README.md](frontend/tests/README.md)
+
+### Guidelines
+- Follow the existing code style
+- Add tests for new features
+- Update documentation as needed
+- Ensure all tests pass
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📧 Contact
+
+For questions, issues, or suggestions:
+- **Team**: Contact the development team through the repository
+
 ---
+
+**Team**
+
+- **Full Stack Engineer**: Austin Allen Carlson — [@aacarlson](https://github.com/growthwithcoding)
+- **Backend Software Engineers**: Cameron Carmody — [@gotcurds](https://github.com/gotcurds), Tessa Robinson — [@TeslamodelIT](https://github.com/TeslamodelIT)
+- **Quality Assurance / Cybersecurity Implentation and Testing**: Adam Colyer — [@AColyer13](https://github.com/AColyer13)
+- **Cybersecurity Analyst**: Mohana Gautam — [@mohanag7-SHIV](https://github.com/mohanag7-SHIV)
+- **Frontend Software Engineers**: Daniel Ocampo — [@Danielsoftware033](https://github.com/Danielsoftware033)
+
+
+Thank you for using GroundCTRL!
