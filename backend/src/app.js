@@ -25,7 +25,6 @@ const logger = require('./utils/logger');
 const app = express();
 
 // Track application readiness
-let appReady = false;
 app.locals.appReady = false;
 app.locals.firebaseInitialized = false;
 
