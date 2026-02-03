@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const missionControl = require('../config/missionControl');
-const authMiddleware = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/authMiddleware');
 
 // Import route modules
 const healthRoutes = require('./health');
@@ -30,16 +30,6 @@ router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
 
 // Protected routes (auth required)
-const authMiddleware = require('../middleware/auth');
-router.use('/users', authMiddleware, userRoutes);
-router.use('/satellites', authMiddleware, satelliteRoutes);
-router.use('/scenarios', authMiddleware, scenarioRoutes);
-router.use('/scenario-steps', authMiddleware, scenarioStepRoutes);
-router.use('/scenario-sessions', authMiddleware, scenarioSessionRoutes);
-router.use('/ai', authMiddleware, aiRoutes);
-router.use('/commands', authMiddleware, commandRoutes);
-router.use('/help', authMiddleware, helpRoutes);
-router.use('/websocket-logs', authMiddleware, websocketLogsRoutes);
 
 // API root endpoint - provides information about available routes
 router.get('/', (req, res) => {
@@ -98,38 +88,17 @@ protectedRoutes.use('/websocket-logs', websocketLogsRoutes);
 // Apply route groups
 router.use('/', publicRoutes);
 router.use('/', protectedRoutes);
+protectedRoutes.use('/satellites', satelliteRoutes);
+protectedRoutes.use('/scenarios', scenarioRoutes);
+protectedRoutes.use('/scenario-steps', scenarioStepRoutes);
+protectedRoutes.use('/scenario-sessions', scenarioSessionRoutes);
+protectedRoutes.use('/ai', aiRoutes);
+protectedRoutes.use('/commands', commandRoutes);
+protectedRoutes.use('/help', helpRoutes);
+protectedRoutes.use('/websocket-logs', websocketLogsRoutes);
 
-// Health check (no /api/v1 prefix needed, applied in app.js)
-router.use('/health', healthRoutes);
-
-// Authentication routes
-router.use('/auth', authRoutes);
-
-// User management routes
-router.use('/users', userRoutes);
-
-// Satellite routes (stub)
-router.use('/satellites', satelliteRoutes);
-
-// Scenario routes (stub)
-router.use('/scenarios', scenarioRoutes);
-
-// Scenario Step routes
-router.use('/scenario-steps', scenarioStepRoutes);
-
-// Scenario Session routes
-router.use('/scenario-sessions', scenarioSessionRoutes);
-
-// AI routes (stub)
-router.use('/ai', aiRoutes);
-
-// Command routes (stub)
-router.use('/commands', commandRoutes);
-
-// Help routes
-router.use('/help', helpRoutes);
-
-// WebSocket logs routes (development only)
-router.use('/websocket-logs', websocketLogsRoutes);
+// Apply route groups
+router.use('/', publicRoutes);
+router.use('/', protectedRoutes);
 
 module.exports = router;
