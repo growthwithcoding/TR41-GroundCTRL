@@ -114,18 +114,7 @@ app.options('*', cors({
       callback(null, false);
     }
   },
-  credentials: (req, callback) => {
-    const origin = req.headers.origin;
-    if (!origin) return callback(null, true);
-    if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && origin.startsWith('http://localhost:')) {
-      return callback(null, true);
-    }
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(null, false);
-    }
-  },
+  credentials: true, // Allow credentials for preflight requests from allowed origins
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 204,
