@@ -60,8 +60,32 @@ export function RecentActivity() {
           rawTimestamp: log.timestamp
         }))
         
-        // Take top 5 most recent
-        setActivities(activityData.slice(0, 5))
+        // Deduplicate activities with same message and similar timestamps (within 10 seconds)
+        const deduped = []
+        const seen = new Map()
+        
+        for (const activity of activityData) {
+          const key = activity.message
+          const existingTime = seen.get(key)
+          
+          if (!existingTime) {
+            // First occurrence of this message
+            deduped.push(activity)
+            seen.set(key, activity.rawTimestamp)
+          } else {
+            // Check if timestamps are more than 10 seconds apart
+            const timeDiff = Math.abs(activity.rawTimestamp - existingTime) / 1000
+            if (timeDiff > 10) {
+              // Different enough to be a separate activity
+              deduped.push(activity)
+              seen.set(key, activity.rawTimestamp)
+            }
+            // Otherwise skip (it's a duplicate)
+          }
+        }
+        
+        // Take top 7 most recent
+        setActivities(deduped.slice(0, 7))
         setError(null)
       } catch (err) {
         console.error('Error loading recent activity:', err)
@@ -134,11 +158,6 @@ export function RecentActivity() {
             </div>
           ))
         )}
-      </div>
-
-      {/* Footer */}
-      <div className="px-5 py-3 border-t border-border bg-muted/30">
-        <button className="text-xs text-primary hover:underline px-2 py-1">View all activity</button>
       </div>
     </div>
   )

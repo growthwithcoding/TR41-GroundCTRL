@@ -183,6 +183,28 @@ The production build is in the `dist/` folder and can be deployed to:
   - Firebase security rule added for authenticated read access
   - Future improvement: Create backend API endpoint for ground stations
 
+### Recent Activity Widget (February 2026)
+- **Component**: `src/components/dashboard/recent-activity.jsx`
+- **Data Source**: Firestore `audit_logs` collection (direct read access)
+- **Features**:
+  - Displays 7 most recent user activities
+  - User-friendly messages: "Signed in", "Started a mission", "Continued training session"
+  - Automatic deduplication (removes duplicates within 10 seconds)
+  - Filters: Shows only successful activities, excludes errors
+  - Real-time relative timestamps ("3 minutes ago", "1 hour ago")
+  - Security: Users can only see their own audit logs
+- **Activity Types**:
+  - Authentication: Sign in/out, account creation
+  - Missions: Start mission, continue training
+  - Profile: Update settings/account
+  - Satellites: Create/update satellites
+  - Commands: Execute satellite commands
+  - AI: Use NOVA assistant
+- **Known Limitations**:
+  - No full activity history page yet
+  - Mission names not shown (shows "Started a mission" generically)
+  - Backend must create audit logs with proper format for activities to appear
+
 ## 🎯 Key Features
 
 ### Core Functionality
