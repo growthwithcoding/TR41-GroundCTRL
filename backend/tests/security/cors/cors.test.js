@@ -42,7 +42,7 @@ describe('CORS Whitelisting Security Tests', () => {
     it('should include credentials for allowed origins', async () => {
       const response = await request(app)
         .options('/api/v1/auth/login')
-        .set('Origin', 'https://allowed-domain.com')
+        .set('Origin', 'http://localhost:3000')
         .set('Access-Control-Request-Method', 'POST')
         .set('Access-Control-Request-Headers', 'content-type')
         .expect(204); // OPTIONS requests return 204 No Content

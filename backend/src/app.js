@@ -96,30 +96,36 @@ logger.info('CORS Configuration', {
 });
 
 // 1. Handle CORS preflight globally (before auth)
-app.options('*', cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    cors({
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
 
-    // In development and test, allow any localhost origin
-    if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && origin.startsWith('http://localhost:')) {
-      return callback(null, true);
-    }
+        // In development and test, allow any localhost origin
+        if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && origin.startsWith('http://localhost:')) {
+          return callback(null, true);
+        }
 
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      logger.warn('CORS blocked origin', { origin, allowedOrigins });
-      // Return false to block without throwing error (prevents 500)
-      callback(null, false);
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 204,
-  maxAge: 86400
-}));
+        if (allowedOrigins.indexOf(origin) !== -1) {
+          callback(null, true);
+        } else {
+          logger.warn('CORS blocked origin', { origin, allowedOrigins });
+          // Return false to block without throwing error (prevents 500)
+          callback(null, false);
+        }
+      },
+      credentials: true, // Allow credentials for preflight requests from allowed origins
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      optionsSuccessStatus: 204,
+      maxAge: 3600
+    })(req, res, next);
+  } else {
+    next();
+  }
+});
 
 // 2. Apply CORS to all routes
 app.use(cors({
@@ -140,11 +146,22 @@ app.use(cors({
       callback(null, false);
     }
   },
-  credentials: true, // Allow cookies/credentials with allowed origins
+  credentials: (req, callback) => {
+    const origin = req.headers.origin;
+    if (!origin) return callback(null, true);
+    if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && origin.startsWith('http://localhost:')) {
+      return callback(null, true);
+    }
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  }, // Allow cookies/credentials with allowed origins
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 204, // Return 204 for successful OPTIONS requests
-  maxAge: 86400 // 24 hours
+  maxAge: 3600 // 24 hours
 }));
 
 // Expose Firebase status for health checks

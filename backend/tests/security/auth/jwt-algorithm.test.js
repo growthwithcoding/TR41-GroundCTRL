@@ -7,6 +7,7 @@
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
 const { getTestApp } = require('../../helpers/test-utils');
+const admin = require('firebase-admin');
 
 describe('Auth - JWT Algorithm', () => {
   let app;
@@ -19,6 +20,14 @@ describe('Auth - JWT Algorithm', () => {
   beforeAll(async () => {
     app = getTestApp();
     await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Clean up existing user if any
+    try {
+      const user = await admin.auth().getUserByEmail(testUser.email);
+      await admin.auth().deleteUser(user.uid);
+    } catch (error) {
+      // User doesn't exist, continue
+    }
 
     // Register test user
     await request(app)
