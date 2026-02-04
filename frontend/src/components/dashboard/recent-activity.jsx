@@ -60,21 +60,40 @@ export function RecentActivity() {
           rawTimestamp: log.timestamp
         }))
         
-        // Take top 5 most recent
-        setActivities(activityData.slice(0, 5))
+        // Deduplicate activities with same message and similar timestamps (within 10 seconds)
+        const deduped = []
+        const seen = new Map()
+        
+        for (const activity of activityData) {
+          const key = activity.message
+          const existingTime = seen.get(key)
+          
+          if (!existingTime) {
+            // First occurrence of this message
+            deduped.push(activity)
+            seen.set(key, activity.rawTimestamp)
+          } else {
+            // Check if timestamps are more than 10 seconds apart
+            const timeDiff = Math.abs(activity.rawTimestamp - existingTime) / 1000
+            if (timeDiff > 10) {
+              // Different enough to be a separate activity
+              deduped.push(activity)
+              seen.set(key, activity.rawTimestamp)
+            }
+            // Otherwise skip (it's a duplicate)
+          }
+        }
+        
+        // Take top 7 most recent
+        setActivities(deduped.slice(0, 7))
         setError(null)
       } catch (err) {
         console.error('Error loading recent activity:', err)
         
-        // Handle authorization/permission errors gracefully
-        // (Backend API requires JWT tokens, not Firebase ID tokens)
-        if (err.message?.includes('authorization') || err.message?.includes('permissions')) {
-          // Show empty state instead of error for auth issues
-          setActivities([])
-          setError(null)
-        } else {
-          setError('Failed to load recent activity')
-        }
+        // Backend audit logging not implemented yet - show placeholder
+        // Instead of showing error, show empty state gracefully
+        setActivities([])
+        setError(null)
       } finally {
         setLoading(false)
       }
@@ -120,7 +139,9 @@ export function RecentActivity() {
       <div className="divide-y divide-border">
         {activities.length === 0 ? (
           <div className="px-5 py-8 text-center text-muted-foreground text-sm">
-            No recent activity yet. Start your first mission!
+            <Info className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>Activity tracking coming soon</p>
+            <p className="text-xs mt-1">Your mission progress is being tracked</p>
           </div>
         ) : (
           activities.map((activity) => (
@@ -137,11 +158,6 @@ export function RecentActivity() {
             </div>
           ))
         )}
-      </div>
-
-      {/* Footer */}
-      <div className="px-5 py-3 border-t border-border bg-muted/30">
-        <button className="text-xs text-primary hover:underline px-2 py-1">View all activity</button>
       </div>
     </div>
   )

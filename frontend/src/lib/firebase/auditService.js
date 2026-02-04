@@ -1,9 +1,8 @@
-import { auth } from './config'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1'
+import { db } from './config'
+import { collection, query, where, orderBy, limit as firestoreLimit, getDocs } from 'firebase/firestore'
 
 /**
- * Fetch user's recent audit logs from backend API
+ * Fetch user's recent audit logs from Firestore
  * Returns activity feed data with relevant, positive events
  * 
  * @param {string} userId - User ID to fetch audit logs for
@@ -12,54 +11,25 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001
  */
 export async function fetchUserAuditLogs(userId, maxResults = 10) {
   try {
-    // Get current user's ID token for authentication
-    const user = auth.currentUser
-    if (!user) {
-      throw new Error('User not authenticated')
-    }
-    
-    const idToken = await user.getIdToken()
-    
-    // Call backend API to fetch audit logs
-    const response = await fetch(
-      `${API_BASE_URL}/users/${userId}/audit?limit=${maxResults}`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${idToken}`,
-          'Content-Type': 'application/json'
-        }
-      }
+    // Query Firestore directly for user's audit logs
+    const auditLogsRef = collection(db, 'audit_logs')
+    const q = query(
+      auditLogsRef,
+      where('userId', '==', userId),
+      orderBy('timestamp', 'desc'),
+      firestoreLimit(maxResults)
     )
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.brief || `Failed to fetch audit logs: ${response.status}`)
-    }
-    
-    const data = await response.json()
-    
-    // Backend returns audit logs in payload.data array (paginated response)
-    // Or sometimes just payload (depending on endpoint structure)
-    let auditLogs = []
-    
-    if (Array.isArray(data.payload?.data)) {
-      auditLogs = data.payload.data
-    } else if (Array.isArray(data.payload)) {
-      auditLogs = data.payload
-    } else if (Array.isArray(data.data)) {
-      auditLogs = data.data
-    } else if (Array.isArray(data)) {
-      auditLogs = data
-    }
-    
-    console.log('Fetched audit logs:', auditLogs)
-    
-    // Convert timestamp strings to Date objects
-    return auditLogs.map(log => ({
-      ...log,
-      timestamp: log.timestamp ? new Date(log.timestamp) : new Date()
+    const querySnapshot = await getDocs(q)
+    const auditLogs = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      timestamp: doc.data().timestamp?.toDate() || new Date()
     }))
+    
+    console.log('Fetched audit logs from Firestore:', auditLogs)
+    
+    return auditLogs
   } catch (error) {
     console.error('Error fetching user audit logs:', error)
     throw error
@@ -74,29 +44,26 @@ export async function fetchUserAuditLogs(userId, maxResults = 10) {
  * @returns {Array} Filtered audit logs
  */
 export function filterRelevantAuditLogs(auditLogs) {
-  // Events we want to show (positive/informational)
-  const relevantActions = new Set([
-    'LOGIN',
-    'REGISTER',
-    'LOGOUT',
-    'EXECUTE_SCENARIO',
-    'CREATE_SCENARIO',
-    'UPDATE_USER',
-    'PATCH_USER',
-    'CREATE_SATELLITE',
-    'UPDATE_SATELLITE',
-    'EXECUTE_COMMAND',
-    'AI_GENERATE',
-    'AI_QUERY'
-  ])
-  
-  // Severity levels we want to show (no warnings/errors/critical)
-  const relevantSeverities = new Set(['INFO'])
-  
-  return auditLogs.filter(log => {
-    // Filter by action and severity
-    return relevantActions.has(log.action) && relevantSeverities.has(log.severity)
+  console.log('[AuditService] Filtering audit logs:', {
+    totalLogs: auditLogs.length,
+    actions: auditLogs.map(log => ({ action: log.action, severity: log.severity, result: log.result, resource: log.resource }))
   })
+  
+  const filtered = auditLogs.filter(log => {
+    // Show all successful activities (INFO severity or success result)
+    // Exclude only errors and API errors
+    const isSuccess = log.result === 'success' || log.severity === 'INFO'
+    const notError = log.action !== 'API_ERROR' && log.severity !== 'ERROR'
+    
+    return isSuccess && notError
+  })
+  
+  console.log('[AuditService] Filtered results:', {
+    filteredCount: filtered.length,
+    filtered: filtered.map(log => ({ action: log.action, severity: log.severity, result: log.result }))
+  })
+  
+  return filtered
 }
 
 /**
@@ -106,24 +73,53 @@ export function filterRelevantAuditLogs(auditLogs) {
  * @returns {string} User-friendly message
  */
 export function formatAuditLogMessage(auditLog) {
-  const { action, metadata = {} } = auditLog
+  const { action, resource, details, metadata = {} } = auditLog
   
+  // User-friendly activity messages
   const messageMap = {
-    'LOGIN': 'Logged in',
-    'LOGOUT': 'Logged out',
-    'REGISTER': 'Account created',
-    'EXECUTE_SCENARIO': metadata.scenarioName ? `Started mission: ${metadata.scenarioName}` : 'Started a mission',
-    'CREATE_SCENARIO': 'Created new scenario',
-    'UPDATE_USER': 'Updated profile',
-    'PATCH_USER': 'Updated profile',
-    'CREATE_SATELLITE': metadata.satelliteName ? `Added satellite: ${metadata.satelliteName}` : 'Added new satellite',
-    'UPDATE_SATELLITE': 'Updated satellite',
-    'EXECUTE_COMMAND': metadata.commandType ? `Executed command: ${metadata.commandType}` : 'Executed command',
+    'LOGIN': 'Signed in',
+    'LOGOUT': 'Signed out',
+    'REGISTER': 'Joined GroundCTRL',
+    'UPDATE_USER': 'Updated profile settings',
+    'PATCH_USER': 'Updated account',
+    'CREATE_SATELLITE': 'Added a new satellite',
+    'UPDATE_SATELLITE': 'Updated satellite configuration',
+    'EXECUTE_COMMAND': 'Executed a command',
     'AI_GENERATE': 'Used AI assistant',
-    'AI_QUERY': 'Asked AI for help'
+    'AI_QUERY': 'Asked NOVA for help'
   }
   
-  return messageMap[action] || action
+  // If we have a specific action mapping, use it
+  if (messageMap[action]) {
+    return messageMap[action]
+  }
+  
+  // Format based on resource for common activities
+  if (resource) {
+    const resourceLower = resource.toLowerCase()
+    
+    if (resourceLower.includes('scenario') || resourceLower.includes('mission')) {
+      return 'Started a mission'
+    }
+    if (resourceLower.includes('session')) {
+      return 'Continued training session'
+    }
+    if (resourceLower.includes('command')) {
+      return 'Executed satellite command'
+    }
+    if (resourceLower.includes('satellite')) {
+      return 'Updated satellite'
+    }
+    if (resourceLower.includes('user') || resourceLower.includes('profile')) {
+      return 'Updated profile'
+    }
+    if (resourceLower.includes('achievement') || resourceLower.includes('badge')) {
+      return 'Earned an achievement'
+    }
+  }
+  
+  // Generic fallback
+  return 'Completed an activity'
 }
 
 /**

@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { Link } from "react-router-dom"
 import { useLocation, useNavigate } from "react-router-dom"
-import { Satellite, User, Bell, LogOut, Settings, UserCircle } from "lucide-react"
+import { Satellite, User, Bell, LogOut, Settings, UserCircle, Shield } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/hooks/use-auth"
 import {
@@ -74,6 +74,21 @@ export default function AppHeader({ onAuthViewChange }) {
             {link.label}
           </Link>
         ))}
+        
+        {/* Admin Link - Only visible for admins */}
+        {user?.isAdmin && (
+          <Link
+            to="/admin/scenarios"
+            className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
+              pathname.startsWith("/admin")
+                ? "text-primary border-b-2 border-primary pb-0.5"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Shield className="h-3.5 w-3.5" />
+            Admin
+          </Link>
+        )}
       </nav>
 
       {/* Right section */}
