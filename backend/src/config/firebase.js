@@ -99,6 +99,11 @@ function initializeFirebase() {
         authEmulator: process.env.FIREBASE_AUTH_EMULATOR_HOST,
       });
       
+      admin.initializeApp({
+        projectId: process.env.FIREBASE_PROJECT_ID || 'test-project',
+      });
+    }
+    
     // Test mode without emulators: Skip Firebase initialization entirely
     if (isTest && !hasEmulators) {
       logger.warn('Skipping Firebase initialization in test environment (no emulators, no credentials)', {
