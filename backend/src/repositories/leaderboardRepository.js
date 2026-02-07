@@ -282,14 +282,16 @@ function getDateThreshold(period) {
   switch (period) {
     case 'today':
       return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    case 'week':
+    case 'week': {
       const weekAgo = new Date(now);
       weekAgo.setDate(weekAgo.getDate() - 7);
       return weekAgo;
-    case 'month':
+    }
+    case 'month': {
       const monthAgo = new Date(now);
       monthAgo.setMonth(monthAgo.getMonth() - 1);
       return monthAgo;
+    }
     case 'all-time':
     default:
       return null;
