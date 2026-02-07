@@ -1,27 +1,27 @@
 /**
  * Scenario Session Routes
- * 
+ *
  * CRUD endpoints for scenario sessions
  * Tracks operator progress through training scenarios
- * 
+ *
  * @swagger
  * tags:
  *   name: Scenario Sessions
  *   description: Operator training session tracking - progress, scoring, hints used, and completion status
  */
 
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { validate } = require('../middleware/validate');
-const { authMiddleware } = require('../middleware/authMiddleware');
-const controller = require('../controllers/scenarioSessionController');
+const { validate } = require("../middleware/validate");
+const { authMiddleware } = require("../middleware/authMiddleware");
+const controller = require("../controllers/scenarioSessionController");
 const {
-  createScenarioSessionSchema,
-  updateScenarioSessionSchema,
-  patchScenarioSessionSchema,
-  listScenarioSessionsSchema
-} = require('../schemas/scenarioSessionSchemas');
-const { z } = require('zod');
+	createScenarioSessionSchema,
+	updateScenarioSessionSchema,
+	patchScenarioSessionSchema,
+	listScenarioSessionsSchema,
+} = require("../schemas/scenarioSessionSchemas");
+const { z } = require("zod");
 
 router.use(authMiddleware);
 
@@ -97,13 +97,15 @@ router.use(authMiddleware);
  *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.get(
-  '/',
-  validate(z.object({
-    body: z.object({}).strict(),
-    query: listScenarioSessionsSchema.shape.query,
-    params: z.object({}).strict()
-  })),
-  controller.list
+	"/",
+	validate(
+		z.object({
+			body: z.object({}).strict(),
+			query: listScenarioSessionsSchema.shape.query,
+			params: z.object({}).strict(),
+		}),
+	),
+	controller.list,
 );
 
 /**
@@ -155,13 +157,15 @@ router.get(
  *         $ref: '#/components/responses/ValidationError'
  */
 router.post(
-  '/',
-  validate(z.object({
-    body: createScenarioSessionSchema.shape.body,
-    query: z.object({}).strict(),
-    params: z.object({}).strict()
-  })),
-  controller.create
+	"/",
+	validate(
+		z.object({
+			body: createScenarioSessionSchema.shape.body,
+			query: z.object({}).strict(),
+			params: z.object({}).strict(),
+		}),
+	),
+	controller.create,
 );
 
 /**
@@ -204,15 +208,19 @@ router.post(
  *         $ref: '#/components/responses/NotFoundError'
  */
 router.get(
-  '/:id',
-  validate(z.object({
-    body: z.object({}).strict(),
-    query: z.object({}).strict(),
-    params: z.object({
-      id: z.string().min(1, 'Session ID is required')
-    }).strict()
-  })),
-  controller.getOne
+	"/:id",
+	validate(
+		z.object({
+			body: z.object({}).strict(),
+			query: z.object({}).strict(),
+			params: z
+				.object({
+					id: z.string().min(1, "Session ID is required"),
+				})
+				.strict(),
+		}),
+	),
+	controller.getOne,
 );
 
 /**
@@ -263,13 +271,15 @@ router.get(
  *         $ref: '#/components/responses/ValidationError'
  */
 router.put(
-  '/:id',
-  validate(z.object({
-    body: updateScenarioSessionSchema.shape.body,
-    query: z.object({}).strict(),
-    params: updateScenarioSessionSchema.shape.params
-  })),
-  controller.update
+	"/:id",
+	validate(
+		z.object({
+			body: updateScenarioSessionSchema.shape.body,
+			query: z.object({}).strict(),
+			params: updateScenarioSessionSchema.shape.params,
+		}),
+	),
+	controller.update,
 );
 
 /**
@@ -364,13 +374,15 @@ router.put(
  *         $ref: '#/components/responses/ValidationError'
  */
 router.patch(
-  '/:id',
-  validate(z.object({
-    body: patchScenarioSessionSchema.shape.body,
-    query: z.object({}).strict(),
-    params: patchScenarioSessionSchema.shape.params
-  })),
-  controller.patch
+	"/:id",
+	validate(
+		z.object({
+			body: patchScenarioSessionSchema.shape.body,
+			query: z.object({}).strict(),
+			params: patchScenarioSessionSchema.shape.params,
+		}),
+	),
+	controller.patch,
 );
 
 /**
@@ -419,9 +431,6 @@ router.patch(
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.delete(
-  '/:id',
-  controller.remove
-);
+router.delete("/:id", controller.remove);
 
 module.exports = router;

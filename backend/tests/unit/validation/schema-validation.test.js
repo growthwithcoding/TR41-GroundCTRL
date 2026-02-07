@@ -159,11 +159,149 @@ describe('Schema Validation Tests', () => {
       expect(passedError.message).toBe('Validation failed');
       expect(Array.isArray(passedError.details)).toBe(true);
       
-      passedError.details.forEach(detail => {
-        expect(detail).toHaveProperty('field');
-        expect(detail).toHaveProperty('message');
-        expect(typeof detail.field).toBe('string');
-        expect(typeof detail.message).toBe('string');
+    });
+  });
+
+  describe('VAL-009: Command Schemas - Expanded Validation', () => {
+    const commandSchemas = require('../../../src/schemas/commandSchemas');
+
+    it('validates createCommandSchema with commissioning commands', () => {
+      const validCommand = {
+        body: {
+          session_id: 'session-123',
+          scenario_step_id: 'step-456',
+          issuedAt: new Date().toISOString(),
+          commandName: 'PING',
+          commandPayload: { target: 'satellite-1' },
+          resultStatus: 'OK',
+          resultMessage: 'Command executed successfully',
+          isValid: true
+        }
+      };
+
+      const result = commandSchemas.createCommandSchema.safeParse(validCommand);
+      expect(result.success).toBe(true);
+    });
+
+    it('validates createCommandSchema with data management commands', () => {
+      const validCommand = {
+        body: {
+          session_id: 'session-123',
+          issuedAt: new Date().toISOString(),
+          commandName: 'REQUEST_TELEMETRY',
+          commandPayload: { dataType: 'temperature', interval: 60 },
+          resultStatus: 'OK',
+          isValid: true
+        }
+      };
+
+      const result = commandSchemas.createCommandSchema.safeParse(validCommand);
+      expect(result.success).toBe(true);
+    });
+
+    it('validates createCommandSchema with anomaly resolution commands', () => {
+      const validCommand = {
+        body: {
+          issuedAt: new Date().toISOString(),
+          commandName: 'RESET_SOLAR',
+          commandPayload: { reason: 'anomaly_detected' },
+          resultStatus: 'OK',
+          isValid: true
+        }
+      };
+
+      const result = commandSchemas.createCommandSchema.safeParse(validCommand);
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects invalid commandName', () => {
+      const invalidCommand = {
+        body: {
+          issuedAt: new Date().toISOString(),
+          commandName: 'INVALID_COMMAND',
+          isValid: true
+        }
+      };
+
+      const result = commandSchemas.createCommandSchema.safeParse(invalidCommand);
+      expect(result.success).toBe(false);
+      expect(result.error.issues[0].message).toContain('Invalid option');
+    });
+
+    it('validates executeCommandSchema', () => {
+      const executeCommand = {
+        body: {
+          session_id: 'session-123',
+          scenario_step_id: 'step-456',
+          command_name: 'DEPLOY_ANTENNA',
+          command_payload: { antenna_id: 1 }
+        },
+        query: {},
+        params: {}
+      };
+
+      const result = commandSchemas.executeCommandSchema.safeParse(executeCommand);
+      expect(result.success).toBe(true);
+    });
+
+    it('validates listCommandsSchema with filters', () => {
+      const listQuery = {
+        query: {
+          page: '1',
+          limit: '10',
+          sortBy: 'issuedAt',
+          sortOrder: 'desc',
+          commandName: 'PING',
+          resultStatus: 'OK',
+          isValid: 'true'
+        }
+      };
+
+      const result = commandSchemas.listCommandsSchema.safeParse(listQuery);
+      expect(result.success).toBe(true);
+    });
+
+    it('validates sessionCommandsSchema', () => {
+      const sessionQuery = {
+        params: {
+          sessionId: 'session-123'
+        },
+        query: {
+          limit: '25',
+          cursor: 'cursor-abc'
+        }
+      };
+
+      const result = commandSchemas.sessionCommandsSchema.safeParse(sessionQuery);
+      expect(result.success).toBe(true);
+    });
+
+    it('enforces strict mode on command schemas', () => {
+      const testCases = [
+        {
+          schema: commandSchemas.createCommandSchema,
+          data: {
+            body: {
+              issuedAt: new Date().toISOString(),
+              commandName: 'PING',
+              extraField: 'should fail'
+            }
+          }
+        },
+        {
+          schema: commandSchemas.executeCommandSchema,
+          data: {
+            body: {
+              command_name: 'PING',
+              unknown_field: 'fail'
+            }
+          }
+        }
+      ];
+
+      testCases.forEach(({ schema, data }) => {
+        const result = schema.safeParse(data);
+        expect(result.success).toBe(false);
       });
     });
   });

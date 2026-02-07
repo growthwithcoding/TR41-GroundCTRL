@@ -1,8 +1,7 @@
-import { useMemo, useEffect, useState } from "react"
+import { useMemo, useEffect, useState, lazy, Suspense } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
 import { Helmet } from "react-helmet-async"
 import AppHeader from "@/components/app-header"
-import { FloatingNovaChat } from "@/components/nova/FloatingNovaChat"
 import { CommandConsoleHUD } from "@/components/simulator/command-console-hud"
 import { MissionStepsPanel } from "@/components/simulator/mission-steps-panel"
 import { SimulatorFooter } from "@/components/simulator/simulator-footer"
@@ -19,6 +18,9 @@ import { useSimulatorState } from "@/contexts/SimulatorStateContext"
 import { useWebSocket } from "@/contexts/WebSocketContext"
 import { fetchSessionById, markSessionInProgress } from "@/lib/firebase/sessionService"
 import { Loader2, AlertCircle, Satellite, Radio } from "lucide-react"
+
+// Lazy load heavy components
+const FloatingNovaChat = lazy(() => import("@/components/nova/FloatingNovaChat").then(module => ({ default: module.FloatingNovaChat })))
 
 export default function Simulator() {
   const navigate = useNavigate()
@@ -371,12 +373,14 @@ export default function Simulator() {
         
         {/* Floating NOVA Chat - Only show when mission started */}
         {missionStarted && (
-          <FloatingNovaChat 
-            sessionId={contextSessionId || sessionIdParam} 
-            stepId={sessionData?.scenario_id}
-            context="simulator"
-            position="left"
-          />
+          <Suspense fallback={null}>
+            <FloatingNovaChat 
+              sessionId={contextSessionId || sessionIdParam} 
+              stepId={sessionData?.scenario_id}
+              context="simulator"
+              position="left"
+            />
+          </Suspense>
         )}
       </div>
     </>

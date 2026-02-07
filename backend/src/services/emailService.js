@@ -1,46 +1,46 @@
 /**
  * Email Service
  * Handles email delivery for password resets and notifications
- * 
+ *
  * This is a stub implementation that logs emails to console/logger.
  * Replace with actual email provider integration (SendGrid, AWS SES, etc.)
  * when ready for production.
  */
 
-const logger = require('../utils/logger');
+const logger = require("../utils/logger");
 
 /**
  * Email configuration from environment
  */
 const EMAIL_CONFIG = {
-  fromAddress: process.env.EMAIL_FROM_ADDRESS || 'noreply@groundctrl.io',
-  fromName: process.env.EMAIL_FROM_NAME || 'GroundCTRL Mission Control',
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
-  enabled: process.env.EMAIL_ENABLED === 'true'
+	fromAddress: process.env.EMAIL_FROM_ADDRESS || "noreply@groundctrl.io",
+	fromName: process.env.EMAIL_FROM_NAME || "GroundCTRL Mission Control",
+	frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
+	enabled: process.env.EMAIL_ENABLED === "true",
 };
 
 /**
  * Send password reset email
- * 
+ *
  * @param {string} email - Recipient email address
  * @param {string} resetToken - Raw reset token (will be included in URL)
  * @param {string} callSign - User's call sign for personalization
  * @returns {Promise<boolean>} True if email was sent (or would be sent)
  */
 async function sendPasswordResetEmail(email, resetToken, callSign) {
-  const resetUrl = `${EMAIL_CONFIG.frontendUrl}/reset-password?token=${resetToken}`;
-  
-  const emailContent = {
-    to: email,
-    from: {
-      address: EMAIL_CONFIG.fromAddress,
-      name: EMAIL_CONFIG.fromName
-    },
-    subject: 'GroundCTRL - Password Reset Request',
-    text: `
+	const resetUrl = `${EMAIL_CONFIG.frontendUrl}/reset-password?token=${resetToken}`;
+
+	const emailContent = {
+		to: email,
+		from: {
+			address: EMAIL_CONFIG.fromAddress,
+			name: EMAIL_CONFIG.fromName,
+		},
+		subject: "GroundCTRL - Password Reset Request",
+		text: `
 Mission Control Password Reset
 
-Operator ${callSign || 'Pilot'},
+Operator ${callSign || "Pilot"},
 
 We received a request to reset your password for your GroundCTRL account.
 
@@ -54,7 +54,7 @@ If you did not request a password reset, please ignore this email. Your password
 Stay in orbit,
 GroundCTRL Mission Control Team
     `.trim(),
-    html: `
+		html: `
 <!DOCTYPE html>
 <html>
 <head>
@@ -77,7 +77,7 @@ GroundCTRL Mission Control Team
       <p>Mission Control Password Reset</p>
     </div>
     <div class="content">
-      <p>Operator <strong>${callSign || 'Pilot'}</strong>,</p>
+      <p>Operator <strong>${callSign || "Pilot"}</strong>,</p>
       <p>We received a request to reset your password for your GroundCTRL account.</p>
       <p style="text-align: center;">
         <a href="${resetUrl}" class="button">Reset Password</a>
@@ -94,56 +94,56 @@ GroundCTRL Mission Control Team
   </div>
 </body>
 </html>
-    `.trim()
-  };
-  
-  if (EMAIL_CONFIG.enabled) {
-    // TODO: Integrate with actual email provider
-    // Example with SendGrid:
-    // const sgMail = require('@sendgrid/mail');
-    // sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    // await sgMail.send(emailContent);
-    
-    logger.info('Password reset email would be sent', { 
-      to: email, 
-      callSign,
-      provider: 'NOT_CONFIGURED'
-    });
-  } else {
-    // Development mode - log email content
-    logger.info('Password reset email (EMAIL_ENABLED=false)', {
-      to: email,
-      callSign,
-      resetUrl,
-      subject: emailContent.subject
-    });
-    
-    // In development, log the reset URL for easy testing
-    logger.debug('DEV MODE - Reset URL:', { resetUrl });
-  }
-  
-  return true;
+    `.trim(),
+	};
+
+	if (EMAIL_CONFIG.enabled) {
+		// TODO: Integrate with actual email provider
+		// Example with SendGrid:
+		// const sgMail = require('@sendgrid/mail');
+		// sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+		// await sgMail.send(emailContent);
+
+		logger.info("Password reset email would be sent", {
+			to: email,
+			callSign,
+			provider: "NOT_CONFIGURED",
+		});
+	} else {
+		// Development mode - log email content
+		logger.info("Password reset email (EMAIL_ENABLED=false)", {
+			to: email,
+			callSign,
+			resetUrl,
+			subject: emailContent.subject,
+		});
+
+		// In development, log the reset URL for easy testing
+		logger.debug("DEV MODE - Reset URL:", { resetUrl });
+	}
+
+	return true;
 }
 
 /**
  * Send password changed confirmation email
- * 
+ *
  * @param {string} email - Recipient email address
  * @param {string} callSign - User's call sign for personalization
  * @returns {Promise<boolean>} True if email was sent
  */
 async function sendPasswordChangedEmail(email, callSign) {
-  const emailContent = {
-    to: email,
-    from: {
-      address: EMAIL_CONFIG.fromAddress,
-      name: EMAIL_CONFIG.fromName
-    },
-    subject: 'GroundCTRL - Password Changed Successfully',
-    text: `
+	const emailContent = {
+		to: email,
+		from: {
+			address: EMAIL_CONFIG.fromAddress,
+			name: EMAIL_CONFIG.fromName,
+		},
+		subject: "GroundCTRL - Password Changed Successfully",
+		text: `
 GroundCTRL Security Alert
 
-Operator ${callSign || 'Pilot'},
+Operator ${callSign || "Pilot"},
 
 Your password was successfully changed.
 
@@ -153,21 +153,24 @@ If you did NOT make this change, please contact Mission Control immediately and 
 
 Stay secure,
 GroundCTRL Mission Control Team
-    `.trim()
-  };
-  
-  if (EMAIL_CONFIG.enabled) {
-    // TODO: Integrate with actual email provider
-    logger.info('Password changed email would be sent', { to: email, callSign });
-  } else {
-    logger.info('Password changed email (EMAIL_ENABLED=false)', {
-      to: email,
-      callSign,
-      subject: emailContent.subject
-    });
-  }
-  
-  return true;
+    `.trim(),
+	};
+
+	if (EMAIL_CONFIG.enabled) {
+		// TODO: Integrate with actual email provider
+		logger.info("Password changed email would be sent", {
+			to: email,
+			callSign,
+		});
+	} else {
+		logger.info("Password changed email (EMAIL_ENABLED=false)", {
+			to: email,
+			callSign,
+			subject: emailContent.subject,
+		});
+	}
+
+	return true;
 }
 
 /**
@@ -175,12 +178,12 @@ GroundCTRL Mission Control Team
  * @returns {boolean} True if email sending is enabled
  */
 function isEmailEnabled() {
-  return EMAIL_CONFIG.enabled;
+	return EMAIL_CONFIG.enabled;
 }
 
 module.exports = {
-  sendPasswordResetEmail,
-  sendPasswordChangedEmail,
-  isEmailEnabled,
-  EMAIL_CONFIG
+	sendPasswordResetEmail,
+	sendPasswordChangedEmail,
+	isEmailEnabled,
+	EMAIL_CONFIG,
 };

@@ -3,9 +3,9 @@
  * Creates standardized audit log entries for system operations
  */
 
-const { v4: uuidv4 } = require('uuid');
-const auditEvents = require('../constants/auditEvents');
-const auditSeverity = require('../constants/auditSeverity');
+const { v4: uuidv4 } = require("uuid");
+const auditEvents = require("../constants/auditEvents");
+const auditSeverity = require("../constants/auditSeverity");
 
 /**
  * Create audit log entry
@@ -18,25 +18,33 @@ const auditSeverity = require('../constants/auditSeverity');
  * @param {object} metadata - Additional metadata
  * @returns {object} Audit log entry
  */
-function createAuditEntry(action, resource, userId, callSign, result, severity = auditSeverity.INFO, metadata = {}) {
-  return {
-    id: uuidv4(),
-    timestamp: new Date(),
-    missionTime: new Date().toISOString(),
-    action,
-    resource,
-    userId: userId || 'ANONYMOUS',
-    callSign: callSign || 'UNKNOWN',
-    result,
-    severity,
-    statusCode: metadata.statusCode || 200,
-    ipAddress: metadata.ipAddress || null,
-    userAgent: metadata.userAgent || null,
-    changes: metadata.changes || null,
-    resourceId: metadata.resourceId || null,
-    details: metadata.details || null,
-    errorMessage: metadata.errorMessage || null
-  };
+function createAuditEntry(
+	action,
+	resource,
+	userId,
+	callSign,
+	result,
+	severity = auditSeverity.INFO,
+	metadata = {},
+) {
+	return {
+		id: uuidv4(),
+		timestamp: new Date(),
+		missionTime: new Date().toISOString(),
+		action,
+		resource,
+		userId: userId || "ANONYMOUS",
+		callSign: callSign || "UNKNOWN",
+		result,
+		severity,
+		statusCode: metadata.statusCode || 200,
+		ipAddress: metadata.ipAddress || null,
+		userAgent: metadata.userAgent || null,
+		changes: metadata.changes || null,
+		resourceId: metadata.resourceId || null,
+		details: metadata.details || null,
+		errorMessage: metadata.errorMessage || null,
+	};
 }
 
 /**
@@ -48,18 +56,18 @@ function createAuditEntry(action, resource, userId, callSign, result, severity =
  * @returns {object} Audit log entry
  */
 function createLoginAudit(userId, callSign, success, metadata = {}) {
-  return createAuditEntry(
-    success ? auditEvents.LOGIN : auditEvents.LOGIN_FAILED,
-    'auth',
-    userId,
-    callSign,
-    success ? 'success' : 'failure',
-    success ? auditSeverity.INFO : auditSeverity.WARNING,
-    {
-      ...metadata,
-      statusCode: success ? 200 : metadata.statusCode || 401
-    }
-  );
+	return createAuditEntry(
+		success ? auditEvents.LOGIN : auditEvents.LOGIN_FAILED,
+		"auth",
+		userId,
+		callSign,
+		success ? "success" : "failure",
+		success ? auditSeverity.INFO : auditSeverity.WARNING,
+		{
+			...metadata,
+			statusCode: success ? 200 : metadata.statusCode || 401,
+		},
+	);
 }
 
 /**
@@ -70,15 +78,15 @@ function createLoginAudit(userId, callSign, success, metadata = {}) {
  * @returns {object} Audit log entry
  */
 function createLogoutAudit(userId, callSign, metadata = {}) {
-  return createAuditEntry(
-    auditEvents.LOGOUT,
-    'auth',
-    userId,
-    callSign,
-    'success',
-    auditSeverity.INFO,
-    metadata
-  );
+	return createAuditEntry(
+		auditEvents.LOGOUT,
+		"auth",
+		userId,
+		callSign,
+		"success",
+		auditSeverity.INFO,
+		metadata,
+	);
 }
 
 /**
@@ -90,18 +98,18 @@ function createLogoutAudit(userId, callSign, metadata = {}) {
  * @returns {object} Audit log entry
  */
 function createRegisterAudit(userId, callSign, success, metadata = {}) {
-  return createAuditEntry(
-    success ? auditEvents.REGISTER : auditEvents.REGISTER_FAILED,
-    'user',
-    userId,
-    callSign,
-    success ? 'success' : 'failure',
-    success ? auditSeverity.INFO : auditSeverity.WARNING,
-    {
-      ...metadata,
-      statusCode: success ? 201 : metadata.statusCode || 400
-    }
-  );
+	return createAuditEntry(
+		success ? auditEvents.REGISTER : auditEvents.REGISTER_FAILED,
+		"user",
+		userId,
+		callSign,
+		success ? "success" : "failure",
+		success ? auditSeverity.INFO : auditSeverity.WARNING,
+		{
+			...metadata,
+			statusCode: success ? 201 : metadata.statusCode || 400,
+		},
+	);
 }
 
 /**
@@ -114,34 +122,41 @@ function createRegisterAudit(userId, callSign, success, metadata = {}) {
  * @param {object} metadata - Additional metadata
  * @returns {object} Audit log entry
  */
-function createCrudAudit(operation, resource, userId, callSign, success, metadata = {}) {
-  const actionMap = {
-    CREATE: `CREATE_${resource.toUpperCase()}`,
-    UPDATE: `UPDATE_${resource.toUpperCase()}`,
-    PATCH: `PATCH_${resource.toUpperCase()}`,
-    DELETE: `DELETE_${resource.toUpperCase()}`,
-    GET: `GET_${resource.toUpperCase()}`,
-    LIST: `LIST_${resource.toUpperCase()}S`
-  };
+function createCrudAudit(
+	operation,
+	resource,
+	userId,
+	callSign,
+	success,
+	metadata = {},
+) {
+	const actionMap = {
+		CREATE: `CREATE_${resource.toUpperCase()}`,
+		UPDATE: `UPDATE_${resource.toUpperCase()}`,
+		PATCH: `PATCH_${resource.toUpperCase()}`,
+		DELETE: `DELETE_${resource.toUpperCase()}`,
+		GET: `GET_${resource.toUpperCase()}`,
+		LIST: `LIST_${resource.toUpperCase()}S`,
+	};
 
-  const severityMap = {
-    CREATE: auditSeverity.INFO,
-    UPDATE: auditSeverity.INFO,
-    PATCH: auditSeverity.INFO,
-    DELETE: auditSeverity.CRITICAL,
-    GET: auditSeverity.INFO,
-    LIST: auditSeverity.INFO
-  };
+	const severityMap = {
+		CREATE: auditSeverity.INFO,
+		UPDATE: auditSeverity.INFO,
+		PATCH: auditSeverity.INFO,
+		DELETE: auditSeverity.CRITICAL,
+		GET: auditSeverity.INFO,
+		LIST: auditSeverity.INFO,
+	};
 
-  return createAuditEntry(
-    actionMap[operation] || operation,
-    resource,
-    userId,
-    callSign,
-    success ? 'success' : 'failure',
-    success ? severityMap[operation] : auditSeverity.ERROR,
-    metadata
-  );
+	return createAuditEntry(
+		actionMap[operation] || operation,
+		resource,
+		userId,
+		callSign,
+		success ? "success" : "failure",
+		success ? severityMap[operation] : auditSeverity.ERROR,
+		metadata,
+	);
 }
 
 /**
@@ -152,19 +167,24 @@ function createCrudAudit(operation, resource, userId, callSign, success, metadat
  * @param {object} metadata - Additional metadata
  * @returns {object} Audit log entry
  */
-function createPermissionDeniedAudit(resource, userId, callSign, metadata = {}) {
-  return createAuditEntry(
-    auditEvents.PERMISSION_DENIED,
-    resource,
-    userId,
-    callSign,
-    'failure',
-    auditSeverity.WARNING,
-    {
-      ...metadata,
-      statusCode: 403
-    }
-  );
+function createPermissionDeniedAudit(
+	resource,
+	userId,
+	callSign,
+	metadata = {},
+) {
+	return createAuditEntry(
+		auditEvents.PERMISSION_DENIED,
+		resource,
+		userId,
+		callSign,
+		"failure",
+		auditSeverity.WARNING,
+		{
+			...metadata,
+			statusCode: 403,
+		},
+	);
 }
 
 /**
@@ -177,28 +197,28 @@ function createPermissionDeniedAudit(resource, userId, callSign, metadata = {}) 
  * @returns {object} Audit log entry
  */
 function createErrorAudit(resource, userId, callSign, error, metadata = {}) {
-  return createAuditEntry(
-    auditEvents.API_ERROR,
-    resource,
-    userId,
-    callSign,
-    'failure',
-    error.statusCode >= 500 ? auditSeverity.CRITICAL : auditSeverity.ERROR,
-    {
-      ...metadata,
-      statusCode: error.statusCode || 500,
-      errorMessage: error.message,
-      details: error.details || null
-    }
-  );
+	return createAuditEntry(
+		auditEvents.API_ERROR,
+		resource,
+		userId,
+		callSign,
+		"failure",
+		error.statusCode >= 500 ? auditSeverity.CRITICAL : auditSeverity.ERROR,
+		{
+			...metadata,
+			statusCode: error.statusCode || 500,
+			errorMessage: error.message,
+			details: error.details || null,
+		},
+	);
 }
 
 module.exports = {
-  createAuditEntry,
-  createLoginAudit,
-  createLogoutAudit,
-  createRegisterAudit,
-  createCrudAudit,
-  createPermissionDeniedAudit,
-  createErrorAudit
+	createAuditEntry,
+	createLoginAudit,
+	createLogoutAudit,
+	createRegisterAudit,
+	createCrudAudit,
+	createPermissionDeniedAudit,
+	createErrorAudit,
 };

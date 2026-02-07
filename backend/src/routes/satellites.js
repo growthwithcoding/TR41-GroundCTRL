@@ -3,64 +3,75 @@
  * Complete CRUD operations for satellite management with ownership scoping
  */
 
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { z } = require('zod');
-const satelliteController = require('../controllers/satelliteController');
-const { authMiddleware, optionalAuth } = require('../middleware/authMiddleware');
-const { validate } = require('../middleware/validate');
+const { z } = require("zod");
+const satelliteController = require("../controllers/satelliteController");
 const {
-  createSatelliteSchema,
-  updateSatelliteSchema,
-  patchSatelliteSchema,
-  listSatellitesSchema
-} = require('../schemas/satelliteSchemas');
+	authMiddleware,
+	optionalAuth,
+} = require("../middleware/authMiddleware");
+const { validate } = require("../middleware/validate");
+const {
+	createSatelliteSchema,
+	updateSatelliteSchema,
+	patchSatelliteSchema,
+	listSatellitesSchema,
+} = require("../schemas/satelliteSchemas");
 
 // Wrapper schemas for unified validation (body + query + params)
 const createSatelliteValidation = z.object({
-  body: createSatelliteSchema.shape.body,
-  query: z.object({}).strict(),
-  params: z.object({}).strict()
+	body: createSatelliteSchema.shape.body,
+	query: z.object({}).strict(),
+	params: z.object({}).strict(),
 });
 
 const updateSatelliteValidation = z.object({
-  body: updateSatelliteSchema.shape.body,
-  query: z.object({}).strict(),
-  params: updateSatelliteSchema.shape.params
+	body: updateSatelliteSchema.shape.body,
+	query: z.object({}).strict(),
+	params: updateSatelliteSchema.shape.params,
 });
 
 const patchSatelliteValidation = z.object({
-  body: patchSatelliteSchema.shape.body,
-  query: z.object({}).strict(),
-  params: patchSatelliteSchema.shape.params
+	body: patchSatelliteSchema.shape.body,
+	query: z.object({}).strict(),
+	params: patchSatelliteSchema.shape.params,
 });
 
 const listSatellitesValidation = z.object({
-  body: z.object({}).strict(),
-  query: listSatellitesSchema.shape.query,
-  params: z.object({}).strict()
+	body: z.object({}).strict(),
+	query: listSatellitesSchema.shape.query,
+	params: z.object({}).strict(),
 });
 
 const getSatelliteValidation = z.object({
-  body: z.object({}).strict(),
-  query: z.object({}).strict(),
-  params: z.object({
-    id: z.string({
-      required_error: 'Satellite ID is required',
-      invalid_type_error: 'Satellite ID must be a string',
-    }).min(1, 'Satellite ID is required'),
-  }).strict()
+	body: z.object({}).strict(),
+	query: z.object({}).strict(),
+	params: z
+		.object({
+			id: z
+				.string({
+					required_error: "Satellite ID is required",
+					invalid_type_error: "Satellite ID must be a string",
+				})
+				.min(1, "Satellite ID is required"),
+		})
+		.strict(),
 });
 
 const deleteSatelliteValidation = z.object({
-  body: z.object({}).strict(),
-  query: z.object({}).strict(),
-  params: z.object({
-    id: z.string({
-      required_error: 'Satellite ID is required',
-      invalid_type_error: 'Satellite ID must be a string',
-    }).min(1, 'Satellite ID is required'),
-  }).strict()
+	body: z.object({}).strict(),
+	query: z.object({}).strict(),
+	params: z
+		.object({
+			id: z
+				.string({
+					required_error: "Satellite ID is required",
+					invalid_type_error: "Satellite ID must be a string",
+				})
+				.min(1, "Satellite ID is required"),
+		})
+		.strict(),
 });
 
 /**
@@ -201,7 +212,12 @@ const deleteSatelliteValidation = z.object({
  *       422:
  *         $ref: '#/components/responses/ValidationError'
  */
-router.get('/', optionalAuth, validate(listSatellitesValidation), satelliteController.list);
+router.get(
+	"/",
+	optionalAuth,
+	validate(listSatellitesValidation),
+	satelliteController.list,
+);
 
 /**
  * @swagger
@@ -312,7 +328,12 @@ router.get('/', optionalAuth, validate(listSatellitesValidation), satelliteContr
  *       422:
  *         $ref: '#/components/responses/ValidationError'
  */
-router.get('/:id', optionalAuth, validate(getSatelliteValidation), satelliteController.getOne);
+router.get(
+	"/:id",
+	optionalAuth,
+	validate(getSatelliteValidation),
+	satelliteController.getOne,
+);
 
 /**
  * @swagger
@@ -538,7 +559,12 @@ router.get('/:id', optionalAuth, validate(getSatelliteValidation), satelliteCont
  *       422:
  *         $ref: '#/components/responses/ValidationError'
  */
-router.post('/', authMiddleware, validate(createSatelliteValidation), satelliteController.create);
+router.post(
+	"/",
+	authMiddleware,
+	validate(createSatelliteValidation),
+	satelliteController.create,
+);
 
 /**
  * @swagger
@@ -795,7 +821,12 @@ router.post('/', authMiddleware, validate(createSatelliteValidation), satelliteC
  *       422:
  *         $ref: '#/components/responses/ValidationError'
  */
-router.put('/:id', authMiddleware, validate(updateSatelliteValidation), satelliteController.update);
+router.put(
+	"/:id",
+	authMiddleware,
+	validate(updateSatelliteValidation),
+	satelliteController.update,
+);
 
 /**
  * @swagger
@@ -1023,7 +1054,12 @@ router.put('/:id', authMiddleware, validate(updateSatelliteValidation), satellit
  *       422:
  *         $ref: '#/components/responses/ValidationError'
  */
-router.patch('/:id', authMiddleware, validate(patchSatelliteValidation), satelliteController.patch);
+router.patch(
+	"/:id",
+	authMiddleware,
+	validate(patchSatelliteValidation),
+	satelliteController.patch,
+);
 
 /**
  * @swagger
@@ -1092,6 +1128,11 @@ router.patch('/:id', authMiddleware, validate(patchSatelliteValidation), satelli
  *       422:
  *         $ref: '#/components/responses/ValidationError'
  */
-router.delete('/:id', authMiddleware, validate(deleteSatelliteValidation), satelliteController.remove);
+router.delete(
+	"/:id",
+	authMiddleware,
+	validate(deleteSatelliteValidation),
+	satelliteController.remove,
+);
 
 module.exports = router;

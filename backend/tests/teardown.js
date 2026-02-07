@@ -23,13 +23,21 @@ afterAll(async () => {
     const admin = require('firebase-admin');
     const apps = admin.apps;
     if (apps && apps.length > 0) {
+      // Wait for all apps to be deleted
       await Promise.all(apps.map(app => app.delete()));
+      // Give a moment for cleanup
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   } catch (error) {
     // Ignore errors if firebase-admin not initialized or already closed
   }
-  
+
   // Clear all timers and mocks
   jest.clearAllTimers();
   jest.clearAllMocks();
+
+  // Force garbage collection if available (helps with open handles)
+  if (global.gc) {
+    global.gc();
+  }
 });

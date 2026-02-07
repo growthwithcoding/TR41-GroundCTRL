@@ -1,30 +1,33 @@
 /**
  * Scenario Routes
- * 
+ *
  * CRUD endpoints for scenario management with ownership scoping
  * All routes protected by authentication
  * Ownership scoping enforced by controller hooks
  */
 
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { validate } = require('../middleware/validate');
-const { authMiddleware, optionalAuth } = require('../middleware/authMiddleware');
-const scenarioController = require('../controllers/scenarioController');
+const { validate } = require("../middleware/validate");
 const {
-  createScenarioSchema,
-  updateScenarioSchema,
-  patchScenarioSchema,
-  listScenariosSchema
-} = require('../schemas/scenarioSchemas');
-const { z } = require('zod');
+	authMiddleware,
+	optionalAuth,
+} = require("../middleware/authMiddleware");
+const scenarioController = require("../controllers/scenarioController");
+const {
+	createScenarioSchema,
+	updateScenarioSchema,
+	patchScenarioSchema,
+	listScenariosSchema,
+} = require("../schemas/scenarioSchemas");
+const { z } = require("zod");
 
 // Note: GET routes use optionalAuth for public access, others require authMiddleware
 
 /**
  * GET /api/v1/scenarios
  * List all scenarios owned by user (paginated)
- * 
+ *
  * Query parameters:
  * - page: number (default: 1)
  * - limit: number (default: 20, max: 100)
@@ -36,7 +39,7 @@ const { z } = require('zod');
  * - status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' (optional filter)
  * - isActive: 'true' | 'false' (optional filter)
  * - satellite_id: string (optional filter)
- * 
+ *
  * Response: 200 OK
  * {
  *   "status": "success",
@@ -213,20 +216,22 @@ const { z } = require('zod');
  *         $ref: '#/components/responses/ValidationError'
  */
 router.get(
-  '/',
-  optionalAuth,
-  validate(z.object({
-    body: z.object({}).strict(),
-    query: listScenariosSchema.shape.query,
-    params: z.object({}).strict()
-  })),
-  scenarioController.list
+	"/",
+	optionalAuth,
+	validate(
+		z.object({
+			body: z.object({}).strict(),
+			query: listScenariosSchema.shape.query,
+			params: z.object({}).strict(),
+		}),
+	),
+	scenarioController.list,
 );
 
 /**
  * POST /api/v1/scenarios
  * Create new scenario
- * 
+ *
  * Body:
  * {
  *   "code": "ROOKIE_ORBIT_101",
@@ -243,7 +248,7 @@ router.get(
  *   "isActive": true,
  *   "isCore": true
  * }
- * 
+ *
  * Response: 201 CREATED
  * {
  *   "status": "success",
@@ -469,27 +474,29 @@ router.get(
  *         $ref: '#/components/responses/ValidationError'
  */
 router.post(
-  '/',
-  authMiddleware,
-  validate(z.object({
-    body: createScenarioSchema.shape.body,
-    query: z.object({}).strict(),
-    params: z.object({}).strict()
-  })),
-  scenarioController.create
+	"/",
+	authMiddleware,
+	validate(
+		z.object({
+			body: createScenarioSchema.shape.body,
+			query: z.object({}).strict(),
+			params: z.object({}).strict(),
+		}),
+	),
+	scenarioController.create,
 );
 
 /**
  * GET /api/v1/scenarios/:id
  * Get single scenario by ID
  * Only owner or admin can view
- * 
+ *
  * Response: 200 OK
  * {
  *   "status": "success",
  *   "data": { "id": "scen_123", "title": "Orbit Orientation", ... }
  * }
- * 
+ *
  * Errors:
  * - 404 NOT_FOUND: Scenario doesn't exist
  * - 403 FORBIDDEN: User doesn't own scenario and is not admin
@@ -605,31 +612,35 @@ router.post(
  *         $ref: '#/components/responses/ValidationError'
  */
 router.get(
-  '/:id',
-  optionalAuth,
-  validate(z.object({
-    body: z.object({}).strict(),
-    query: z.object({}).strict(),
-    params: z.object({
-      id: z.string().min(1, 'Scenario ID is required')
-    }).strict()
-  })),
-  scenarioController.getOne
+	"/:id",
+	optionalAuth,
+	validate(
+		z.object({
+			body: z.object({}).strict(),
+			query: z.object({}).strict(),
+			params: z
+				.object({
+					id: z.string().min(1, "Scenario ID is required"),
+				})
+				.strict(),
+		}),
+	),
+	scenarioController.getOne,
 );
 
 /**
  * PUT /api/v1/scenarios/:id
  * Update scenario (full replacement)
  * Only owner or admin can update
- * 
+ *
  * Body: Same as POST (all fields required)
- * 
+ *
  * Response: 200 OK
  * {
  *   "status": "success",
  *   "data": { "id": "scen_123", ... }
  * }
- * 
+ *
  * Errors:
  * - 404 NOT_FOUND: Scenario doesn't exist
  * - 403 FORBIDDEN: User doesn't own scenario and is not admin
@@ -831,34 +842,36 @@ router.get(
  *         $ref: '#/components/responses/ValidationError'
  */
 router.put(
-  '/:id',
-  authMiddleware,
-  validate(z.object({
-    body: updateScenarioSchema.shape.body,
-    query: z.object({}).strict(),
-    params: updateScenarioSchema.shape.params
-  })),
-  scenarioController.update
+	"/:id",
+	authMiddleware,
+	validate(
+		z.object({
+			body: updateScenarioSchema.shape.body,
+			query: z.object({}).strict(),
+			params: updateScenarioSchema.shape.params,
+		}),
+	),
+	scenarioController.update,
 );
 
 /**
  * PATCH /api/v1/scenarios/:id
  * Partially update scenario
  * Only owner or admin can patch
- * 
+ *
  * Body: Partial scenario data (at least one field required)
  * Example:
  * {
  *   "status": "PUBLISHED",
  *   "isActive": true
  * }
- * 
+ *
  * Response: 200 OK
  * {
  *   "status": "success",
  *   "data": { "id": "scen_123", ... }
  * }
- * 
+ *
  * Errors:
  * - 404 NOT_FOUND: Scenario doesn't exist
  * - 403 FORBIDDEN: User doesn't own scenario and is not admin
@@ -1054,27 +1067,29 @@ router.put(
  *         $ref: '#/components/responses/ValidationError'
  */
 router.patch(
-  '/:id',
-  authMiddleware,
-  validate(z.object({
-    body: patchScenarioSchema.shape.body,
-    query: z.object({}).strict(),
-    params: patchScenarioSchema.shape.params
-  })),
-  scenarioController.patch
+	"/:id",
+	authMiddleware,
+	validate(
+		z.object({
+			body: patchScenarioSchema.shape.body,
+			query: z.object({}).strict(),
+			params: patchScenarioSchema.shape.params,
+		}),
+	),
+	scenarioController.patch,
 );
 
 /**
  * DELETE /api/v1/scenarios/:id
  * Delete scenario
  * Only owner or admin can delete
- * 
+ *
  * Response: 200 OK
  * {
  *   "status": "success",
  *   "message": "Scenario deleted successfully"
  * }
- * 
+ *
  * Errors:
  * - 404 NOT_FOUND: Scenario doesn't exist
  * - 403 FORBIDDEN: User doesn't own scenario and is not admin
@@ -1148,16 +1163,20 @@ router.patch(
  *         $ref: '#/components/responses/ValidationError'
  */
 router.delete(
-  '/:id',
-  authMiddleware,
-  validate(z.object({
-    body: z.object({}).strict(),
-    query: z.object({}).strict(),
-    params: z.object({
-      id: z.string().min(1, 'Scenario ID is required')
-    }).strict()
-  })),
-  scenarioController.remove
+	"/:id",
+	authMiddleware,
+	validate(
+		z.object({
+			body: z.object({}).strict(),
+			query: z.object({}).strict(),
+			params: z
+				.object({
+					id: z.string().min(1, "Scenario ID is required"),
+				})
+				.strict(),
+		}),
+	),
+	scenarioController.remove,
 );
 
 module.exports = router;

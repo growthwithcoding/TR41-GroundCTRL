@@ -53,7 +53,7 @@ export class APIError extends Error {
 }
 
 /**
- * Make an authenticated API request
+ * Make an authenticated API request with retry logic for rate limiting
  * @param {string} endpoint - API endpoint (e.g., '/users/123')
  * @param {object} options - Fetch options
  * @param {boolean} requiresAuth - Whether the request requires authentication (default: true)
@@ -61,66 +61,77 @@ export class APIError extends Error {
  */
 export async function apiRequest(endpoint, options = {}, requiresAuth = true) {
   const url = `${API_BASE_URL}${endpoint}`
+  const maxRetries = 3
   
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  }
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    }
 
-  // Add authentication token if required
-  if (requiresAuth) {
-    // Try to use backend JWT token first (preferred)
-    const backendToken = getBackendAccessToken()
-    
-    if (backendToken) {
-      console.log('Using backend JWT token:', backendToken.substring(0, 20) + '...')
-      headers['Authorization'] = `Bearer ${backendToken}`
-    } else {
-      // Fallback to Firebase token
-      const user = auth.currentUser
-      if (!user) {
-        throw new APIError('Not authenticated', 401, { brief: 'User not logged in' })
-      }
+    // Add authentication token if required
+    if (requiresAuth) {
+      // Try to use backend JWT token first (preferred)
+      const backendToken = getBackendAccessToken()
       
-      try {
-        const firebaseToken = await user.getIdToken(true) // Force refresh
-        console.log('Using Firebase token:', firebaseToken.substring(0, 20) + '...')
-        headers['Authorization'] = `Bearer ${firebaseToken}`
-      } catch (error) {
-        console.error('Failed to get token:', error)
-        throw new APIError('Failed to get auth token', 401, { brief: error.message })
+      if (backendToken) {
+        console.log('Using backend JWT token:', backendToken.substring(0, 20) + '...')
+        headers['Authorization'] = `Bearer ${backendToken}`
+      } else {
+        // Fallback to Firebase token
+        const user = auth.currentUser
+        if (!user) {
+          throw new APIError('Not authenticated', 401, { brief: 'User not logged in' })
+        }
+        
+        try {
+          const firebaseToken = await user.getIdToken(true) // Force refresh
+          console.log('Using Firebase token:', firebaseToken.substring(0, 20) + '...')
+          headers['Authorization'] = `Bearer ${firebaseToken}`
+        } catch (error) {
+          console.error('Failed to get token:', error)
+          throw new APIError('Failed to get auth token', 401, { brief: error.message })
+        }
       }
     }
-  }
 
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    })
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+      })
 
-    // Parse response
-    const data = await response.json().catch(() => ({}))
+      // If rate limited (429), retry with exponential backoff
+      if (response.status === 429 && attempt < maxRetries - 1) {
+        const delay = Math.pow(2, attempt) * 1000 // Exponential backoff: 1s, 2s, 4s
+        console.warn(`Rate limited (429), retrying in ${delay}ms... (attempt ${attempt + 1}/${maxRetries})`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+        continue
+      }
 
-    // Handle non-OK responses
-    if (!response.ok) {
-      const errorMessage = data.brief || data.message || `Request failed with status ${response.status}`
-      throw new APIError(errorMessage, response.status, data)
+      // Parse response
+      const data = await response.json().catch(() => ({}))
+
+      // Handle non-OK responses
+      if (!response.ok) {
+        const errorMessage = data.brief || data.message || `Request failed with status ${response.status}`
+        throw new APIError(errorMessage, response.status, data)
+      }
+
+      return data
+    } catch (error) {
+      // Re-throw APIError as-is
+      if (error instanceof APIError) {
+        throw error
+      }
+
+      // Network errors or other fetch errors - don't retry these
+      throw new APIError(
+        error.message || 'Network request failed',
+        0,
+        { brief: 'Failed to connect to backend API' }
+      )
     }
-
-    return data
-  } catch (error) {
-    // Re-throw APIError as-is
-    if (error instanceof APIError) {
-      throw error
-    }
-
-    // Network errors or other fetch errors
-    throw new APIError(
-      error.message || 'Network request failed',
-      0,
-      { brief: 'Failed to connect to backend API' }
-    )
   }
 }
 

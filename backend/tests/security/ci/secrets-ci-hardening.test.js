@@ -1,6 +1,6 @@
 /**
  * Secrets & CI Hardening Security Tests
- * Tests: Secret scan, npm audit, eslint-security
+ * Tests: Secret scan, npm audit, biome linting
  */
 
 const { execSync } = require('child_process');
@@ -29,12 +29,12 @@ describe('Secrets & CI Hardening Security Tests', () => {
     });
   });
 
-  describe('ESLint Security', () => {
-    it('should pass eslint security rules', () => {
+  describe('Biome Linting', () => {
+    it('should pass biome linting rules', () => {
       try {
-        execSync('npx eslint src --ext .js', { stdio: 'pipe' });
+        execSync('npx biome check src', { stdio: 'pipe' });
       } catch (error) {
-        throw new Error('ESLint failed: ' + error.stdout.toString());
+        throw new Error('Biome linting failed: ' + error.stdout.toString());
       }
     });
   });

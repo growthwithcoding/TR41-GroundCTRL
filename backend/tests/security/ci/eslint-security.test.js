@@ -1,6 +1,6 @@
 /**
- * ESLint Security Test
- * Tests: ESLint security rules are enabled and passing
+ * Biome Linting Security Test
+ * Tests: Biome linting rules are enabled and passing
  * Features: Code quality, security rule enforcement, linting
  */
 
@@ -8,48 +8,42 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-describe('CI - ESLint Security', () => {
-  it('should pass ESLint without security errors', async () => {
+describe('CI - Biome Linting Security', () => {
+  it('should pass linting without security warnings', async () => {
     try {
-      // Run eslint with security plugin if available
-      execSync('npx eslint src/ --format=json', {
+      // Run biome check
+      execSync('npx biome check src/', {
         encoding: 'utf8',
         stdio: 'pipe',
       });
 
       expect(true).toBe(true); // No errors
     } catch (error) {
-      // Parse output to check if only warnings
-      const output = error.stdout || error.stderr || '';
-
-      // If there are errors, log them
-      if (output.includes('"severity":"error"')) {
-        throw error;
-      }
+      // If biome check fails, it means there are linting errors
+      throw error;
     }
   }, 60000);
 
-  it('should have ESLint configured with security rules', () => {
-    // Check for eslint.config.js (new flat config) OR old .eslintrc files
-    const hasConfig = fs.existsSync('eslint.config.js') || 
-                     fs.existsSync('.eslintrc.js') || 
-                     fs.existsSync('.eslintrc.json');
+  it('should have Biome configured with security rules', () => {
+    // Check for biome.json config
+    const hasConfig = fs.existsSync('biome.json');
     expect(hasConfig).toBe(true);
 
-    if (fs.existsSync('eslint.config.js')) {
-      const config = fs.readFileSync('eslint.config.js', 'utf8');
+    if (fs.existsSync('biome.json')) {
+      const config = fs.readFileSync('biome.json', 'utf8');
 
-      // Should mention security
+      // Should be valid JSON and contain linting rules
       expect(config).toBeDefined();
+      const biomeConfig = JSON.parse(config);
+      expect(biomeConfig.linter).toBeDefined();
     }
   }, 60000);
 
   it('should flag insecure practices', () => {
-    // ESLint should catch common issues
-    // This is implicit if eslint-plugin-security is configured
+    // Linter should catch common issues
+    // This is implicit if biome is configured with security rules
 
-    expect(fs.existsSync('.eslintrc.js') || fs.existsSync('.eslintrc.json') || 
-            fs.existsSync('eslint.config.js')).toBe(true);
+    expect(fs.existsSync('biome.json') || fs.existsSync('biome.jsonc')).toBe(true);
   }, 60000);
 
   it('should enforce no-eval rule', () => {
@@ -230,7 +224,7 @@ describe('CI - ESLint Security', () => {
 
   it('should pass linting without security warnings', async () => {
     try {
-      execSync('npx eslint src/ --format=json', {
+      execSync('npx biome check src/', {
         encoding: 'utf8',
         stdio: 'pipe',
       });

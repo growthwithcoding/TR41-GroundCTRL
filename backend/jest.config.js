@@ -50,9 +50,13 @@ module.exports = {
   // Teardown after each test file to prevent open handles
   setupFilesAfterEnv: ['<rootDir>/tests/teardown.js'],
 
+  // Global teardown for final cleanup
+  globalTeardown: '<rootDir>/tests/global-teardown.js',
+
   testTimeout: 90000, // 90 seconds per test (increased for CI environments)
-  forceExit: true, // Force exit after all tests complete
-  detectOpenHandles: false, // Don't hang waiting for handles
+  forceExit: false, // Don't force exit - let cleanup complete naturally
+  detectOpenHandles: true, // Detect async operations that keep running
+  collectCoverage: false,
   collectCoverage: false,
   coveragePathIgnorePatterns: [
     '/node_modules/',

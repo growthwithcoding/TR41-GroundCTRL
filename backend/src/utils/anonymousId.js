@@ -3,7 +3,7 @@
  * Generates and validates anonymous user identifiers for unauthenticated NOVA usage
  */
 
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 /**
  * Generate anonymous user ID
@@ -11,8 +11,8 @@ const crypto = require('crypto');
  * @returns {string} Anonymous user ID
  */
 function generateAnonymousId() {
-  const uuid = crypto.randomUUID();
-  return `anon_${uuid}`;
+	const uuid = crypto.randomUUID();
+	return `anon_${uuid}`;
 }
 
 /**
@@ -21,8 +21,8 @@ function generateAnonymousId() {
  * @returns {string} Help session ID
  */
 function generateHelpSessionId() {
-  const uuid = crypto.randomUUID();
-  return `help_sess_${uuid}`;
+	const uuid = crypto.randomUUID();
+	return `help_sess_${uuid}`;
 }
 
 /**
@@ -31,7 +31,7 @@ function generateHelpSessionId() {
  * @returns {boolean} True if anonymous
  */
 function isAnonymousId(userId) {
-  return typeof userId === 'string' && userId.startsWith('anon_');
+	return typeof userId === "string" && userId.startsWith("anon_");
 }
 
 /**
@@ -40,12 +40,12 @@ function isAnonymousId(userId) {
  * @returns {boolean} True if help session
  */
 function isHelpSession(sessionId) {
-  return typeof sessionId === 'string' && sessionId.startsWith('help_sess_');
+	return typeof sessionId === "string" && sessionId.startsWith("help_sess_");
 }
 
 module.exports = {
-  generateAnonymousId,
-  generateHelpSessionId,
-  isAnonymousId,
-  isHelpSession
+	generateAnonymousId,
+	generateHelpSessionId,
+	isAnonymousId,
+	isHelpSession,
 };

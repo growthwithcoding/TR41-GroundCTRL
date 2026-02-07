@@ -41,6 +41,9 @@ build/
 .cache/
 .parcel-cache/
 
+# Lighthouse CI reports
+.lighthouseci/
+
 # Editor backup files
 *~
 *.bak
@@ -63,3 +66,7 @@ tests-backend/
 coverage/
 .nyc_output/
 backend/.env.test
+lighthouse-results.json
+production-lighthouse-results.json
+frontend/production-lighthouse-results-final.json
+frontend/production-lighthouse-results-optimized.json

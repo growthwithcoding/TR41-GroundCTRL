@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "groundctrl-c8860"
-  }
+  },
+  "targets": {
+    "groundctrl-c8860": {
+      "hosting": {
+        "missionctrl-org": [
+          "missionctrl-org"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

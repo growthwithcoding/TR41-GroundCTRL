@@ -64,7 +64,7 @@ export function MissionFilters({
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="bg-transparent">
+              <Button variant="outline" size="icon" className="bg-transparent" aria-label="Mission filters">
                 <SlidersHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>

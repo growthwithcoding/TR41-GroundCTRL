@@ -1,0 +1,109 @@
+name: Bundle Analysis & Performance
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/bundle-analysis.yml'
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  bundle-analysis:
+    name: Bundle Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build and analyze bundle
+        working-directory: ./frontend
+        run: npm run build:analyze
+
+      - name: Upload bundle analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-analysis-report
+          path: frontend/dist/bundle-analysis.html
+          retention-days: 7
+
+      - name: Check bundle sizes
+        working-directory: ./frontend
+        run: |
+          # Check if main bundle exceeds reasonable limits
+          MAIN_BUNDLE=$(find dist/assets -name "*.js" -type f | head -1)
+          if [ -f "$MAIN_BUNDLE" ]; then
+            SIZE=$(stat -c%s "$MAIN_BUNDLE" 2>/dev/null || stat -f%z "$MAIN_BUNDLE" 2>/dev/null || echo "0")
+            SIZE_KB=$((SIZE / 1024))
+            echo "Main bundle size: ${SIZE_KB}KB"
+
+            # Warn if bundle is over 2MB (reasonable limit for modern apps)
+            if [ $SIZE_KB -gt 2048 ]; then
+              echo "::warning::Main bundle size (${SIZE_KB}KB) exceeds 2MB limit"
+            fi
+          fi
+
+      - name: Comment on PR - Bundle Analysis
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const reportPath = path.join(process.cwd(), 'frontend', 'dist', 'bundle-analysis.html');
+            let bundleSize = 'Unknown';
+
+            try {
+              if (fs.existsSync(reportPath)) {
+                // Read the HTML file and extract some basic info
+                const html = fs.readFileSync(reportPath, 'utf8');
+                // Look for total size in the HTML (this is a simple extraction)
+                const sizeMatch = html.match(/Total size: ([^<]+)/);
+                if (sizeMatch) {
+                  bundleSize = sizeMatch[1].trim();
+                }
+              }
+            } catch (error) {
+              console.log('Could not read bundle report:', error.message);
+            }
+
+            const body = `📦 **Bundle Analysis Complete**
+
+            📊 **Bundle Size:** ${bundleSize}
+
+            🔍 **Details:**
+            - **Workflow:** [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            - **Report:** [Download bundle analysis](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)
+            - **Commit:** \`${context.sha.substring(0, 7)}\`
+
+            💡 **Tips:**
+            - Keep initial bundle under 2MB for better performance
+            - Use code splitting for large features
+            - Consider lazy loading for non-critical components
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

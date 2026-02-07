@@ -2,12 +2,35 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    visualizer({
+      filename: 'dist/bundle-analysis.html',
+      open: false,
+      gzipSize: true,
+      brotliSize: true,
+    }),
+    // Fix MIME type issues for CSS files
+    {
+      name: 'fix-css-mime-type',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url && req.url.endsWith('.css')) {
+            // Force the content type for CSS files
+            res.setHeader('Content-Type', 'text/css; charset=utf-8');
+            res.setHeader('X-Content-Type-Options', 'nosniff');
+          }
+          next();
+        });
+      }
+    }
+  ],
   root: __dirname,
   resolve: {
     alias: {
@@ -17,6 +40,19 @@ export default defineConfig({
   server: {
     port: 5173,
     open: true,
+    fs: {
+      // Allow serving files from one level up to the project root
+      allow: ['..']
+    },
+    // Fix MIME type issues for CSS files - ensure proper content type
+    mimeTypes: {
+      '.css': 'text/css',
+      'text/css': 'text/css'
+    },
+    headers: {
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Opener-Policy': 'same-origin'
+    }
   },
   build: {
     rollupOptions: {
@@ -51,12 +87,10 @@ export default defineConfig({
             '@radix-ui/react-slot'
           ],
           
-          // Tier 3: Firebase & heavy dependencies
-          'vendor-firebase': [
-            'firebase/app',
-            'firebase/auth',
-            'firebase/firestore'
-          ],
+          // Tier 3: Firebase (split for better caching)
+          'vendor-firebase-app': ['firebase/app'],
+          'vendor-firebase-auth': ['firebase/auth'],
+          'vendor-firebase-firestore': ['firebase/firestore'],
           
           // Tier 3b: Socket.io (large, separate)
           'vendor-socket': [
@@ -75,7 +109,15 @@ export default defineConfig({
     // Increase chunk size warning limit for vendor bundles
     chunkSizeWarningLimit: 1000,
     // Enable source maps for debugging in dev, disabled in production
-    sourcemap: false
+    sourcemap: false,
+    // Enable compression
+    minify: 'esbuild',
+    // Optimize CSS
+    cssCodeSplit: true,
+    // Preload modules
+    modulePreload: {
+      polyfill: false
+    }
   },
   optimizeDeps: {
     include: ['socket.io-client', 'firebase/app', 'firebase/auth', 'firebase/firestore'],

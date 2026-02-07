@@ -38,6 +38,7 @@ const mockDataStore = {
   users: new Map(),
   satellites: new Map(),
   scenarios: new Map(),
+  scenario_steps: new Map(),
   commands: new Map(),
   token_blacklist: new Map(),
   audit_logs: new Map()
@@ -158,6 +159,105 @@ mockFirestore.FieldValue = {
   arrayUnion: jest.fn((...elements) => elements),
   arrayRemove: jest.fn((...elements) => elements)
 };
+
+// Mock firebase config functions - removed to use firebase-admin mock instead
+// jest.mock('../src/config/firebase', () => ({
+//   initializeFirebase: jest.fn(() => {
+//     // Mock successful initialization
+//   }),
+//   getFirebaseAdmin: jest.fn(() => ({
+//     firestore: mockFirestore,
+//     auth: () => ({
+//       createUser: jest.fn().mockImplementation(async (params) => {
+//         const email = params?.email || 'test@example.com';
+        
+//         // Check for duplicate email
+//         if (global.mockAuthUsers.has(email)) {
+//           const error = new Error('The email address is already in use by another account.');
+//           error.code = 'auth/email-already-exists';
+//           throw error;
+//         }
+        
+//         const uid = 'test-uid-' + Date.now() + '-' + require('crypto').randomBytes(6).toString('hex');
+//         const user = {
+//           uid,
+//           email,
+//           password: params?.password // Store plain password for simple testing
+//         };
+        
+//         global.mockAuthUsers.set(email, user);
+//         return Promise.resolve({ uid, email });
+//       }),
+//       getUserByEmail: jest.fn().mockImplementation(async (email) => {
+//         const user = global.mockAuthUsers.get(email);
+//         if (!user) {
+//           const error = new Error('There is no user record corresponding to this identifier.');
+//           error.code = 'auth/user-not-found';
+//           throw error;
+//         }
+//         return Promise.resolve({
+//           uid: user.uid,
+//           email: user.email
+//         });
+//       }),
+//       deleteUser: jest.fn().mockImplementation(async (uid) => {
+//         // Find and remove user by uid
+//         for (const [email, user] of global.mockAuthUsers.entries()) {
+//           if (user.uid === uid) {
+//             global.mockAuthUsers.delete(email);
+//             break;
+//           }
+//         }
+//         return Promise.resolve();
+//       })
+//     })
+//   })),
+//   getFirestore: jest.fn(() => mockFirestore),
+//   getAuth: jest.fn(() => ({
+//     createUser: jest.fn().mockImplementation(async (params) => {
+//       const email = params?.email || 'test@example.com';
+      
+//       // Check for duplicate email
+//       if (global.mockAuthUsers.has(email)) {
+//         const error = new Error('The email address is already in use by another account.');
+//         error.code = 'auth/email-already-exists';
+//         throw error;
+//       }
+      
+//       const uid = 'test-uid-' + Date.now() + '-' + require('crypto').randomBytes(6).toString('hex');
+//       const user = {
+//         uid,
+//         email,
+//         password: params?.password // Store plain password for simple testing
+//       };
+      
+//       global.mockAuthUsers.set(email, user);
+//       return Promise.resolve({ uid, email });
+//     }),
+//     getUserByEmail: jest.fn().mockImplementation(async (email) => {
+//       const user = global.mockAuthUsers.get(email);
+//       if (!user) {
+//         const error = new Error('There is no user record corresponding to this identifier.');
+//         error.code = 'auth/user-not-found';
+//         throw error;
+//       }
+//       return Promise.resolve({
+//         uid: user.uid,
+//         email: user.email
+//       });
+//     }),
+//     deleteUser: jest.fn().mockImplementation(async (uid) => {
+//       // Find and remove user by uid
+//       for (const [email, user] of global.mockAuthUsers.entries()) {
+//         if (user.uid === uid) {
+//           global.mockAuthUsers.delete(email);
+//           break;
+//         }
+//         return Promise.resolve();
+//       }
+//     })
+//   }))
+// }));
 
 jest.mock('firebase-admin', () => ({
   initializeApp: jest.fn(),
