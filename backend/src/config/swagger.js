@@ -69,8 +69,8 @@ All timestamps use ISO 8601 format. Telemetry includes:
 			},
 			{
 				url: "https://api.missionctrl.org/api/v1",
-				description: "Production Server"
-			}
+				description: "Production Server",
+			},
 		],
 		tags: [
 			{
@@ -1462,7 +1462,8 @@ All timestamps use ISO 8601 format. Telemetry includes:
 						},
 						rankChange: {
 							type: "number",
-							description: "Change in rank since previous period (positive = improved)",
+							description:
+								"Change in rank since previous period (positive = improved)",
 							example: 3,
 						},
 						missionsCompleted: {

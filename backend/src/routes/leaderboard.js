@@ -1,25 +1,25 @@
 /**
  * Leaderboard Routes
- * 
+ *
  * API endpoints for leaderboard data
  */
 
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { authMiddleware } = require('../middleware/authMiddleware');
-const { createRateLimiter } = require('../middleware/rateLimiter');
-const leaderboardService = require('../services/leaderboardService');
-const responseFactory = require('../factories/responseFactory');
-const httpStatus = require('../constants/httpStatus');
-const logger = require('../utils/logger');
+const { authMiddleware } = require("../middleware/authMiddleware");
+const { createRateLimiter } = require("../middleware/rateLimiter");
+const leaderboardService = require("../services/leaderboardService");
+const responseFactory = require("../factories/responseFactory");
+const httpStatus = require("../constants/httpStatus");
+const logger = require("../utils/logger");
 
 // Rate limiter for leaderboard queries (more lenient than other endpoints)
 const leaderboardLimiter = createRateLimiter({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 30, // 30 requests per minute
-  message: 'Too many leaderboard requests. Please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
+	windowMs: 1 * 60 * 1000, // 1 minute
+	max: 30, // 30 requests per minute
+	message: "Too many leaderboard requests. Please try again later.",
+	standardHeaders: true,
+	legacyHeaders: false,
 });
 
 /**
@@ -83,107 +83,115 @@ const leaderboardLimiter = createRateLimiter({
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get(
-  '/global',
-  leaderboardLimiter,
-  authMiddleware,
-  async (req, res, next) => {
-    // Declare variables at function scope for catch block access
-    let period = 'all-time';
-    let limitNum = 100;
-    
-    try {
-      const { period: periodParam = 'all-time', limit = '100', includeUser = 'true' } = req.query;
-      period = periodParam;
-      const userId = req.user?.uid;
-      
-      // Log incoming request for debugging
-      logger.debug('Global leaderboard request', { period, limit, includeUser, userId });
-      
-      // Validate period
-      const validPeriods = ['today', 'week', 'month', 'all-time'];
-      if (!validPeriods.includes(period)) {
-        logger.warn('Invalid period provided', { period, validPeriods });
-        const response = responseFactory.createErrorResponse(
-          {
-            statusCode: httpStatus.BAD_REQUEST,
-            code: 'INVALID_PERIOD',
-            message: `Invalid period. Must be one of: ${validPeriods.join(', ')}`
-          },
-          {
-            callSign: req.callSign || 'SYSTEM',
-            requestId: req.id
-          }
-        );
-        return res.status(httpStatus.BAD_REQUEST).json(response);
-      }
-      
-      // Validate and cap limit - ensure it's a valid number
-      const parsedLimit = parseInt(limit);
-      if (isNaN(parsedLimit)) {
-        logger.warn('Invalid limit provided, using default', { limit });
-        limitNum = 100;
-      } else {
-        limitNum = Math.min(Math.max(parsedLimit, 1), 500);
-      }
-      
-      logger.debug('Validated parameters', { period, limitNum, includeUser });
-      
-      // Fetch leaderboard data
-      let leaderboard;
-      if (includeUser === 'true' && userId) {
-        leaderboard = await leaderboardService.getLeaderboardWithUserRank(userId, {
-          period,
-          limit: limitNum
-        });
-      } else {
-        leaderboard = await leaderboardService.getGlobalLeaderboard({
-          period,
-          limit: limitNum
-        });
-      }
-      
-      // Log audit event
-      logger.audit('Leaderboard accessed', {
-        userId: userId || 'anonymous',
-        period,
-        limit: limitNum,
-        ipAddress: req.ip
-      });
-      
-      const response = responseFactory.createSuccessResponse(
-        leaderboard,
-        {
-          callSign: req.callSign || 'SYSTEM',
-          requestId: req.id
-        }
-      );
-      
-      res.json(response);
-      
-    } catch (error) {
-      logger.error('Error fetching global leaderboard', {
-        error: error.message,
-        stack: error.stack,
-        userId: req.user?.uid,
-        period,
-        limit: limitNum
-      });
-      
-      // Return graceful error response instead of cascading
-      const response = responseFactory.createErrorResponse(
-        {
-          statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-          code: 'LEADERBOARD_ERROR',
-          message: 'Unable to fetch leaderboard data. Please try again later.'
-        },
-        {
-          callSign: req.callSign || 'SYSTEM',
-          requestId: req.id
-        }
-      );
-      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json(response);
-    }
-  }
+	"/global",
+	leaderboardLimiter,
+	authMiddleware,
+	async (req, res, next) => {
+		// Declare variables at function scope for catch block access
+		let period = "all-time";
+		let limitNum = 100;
+
+		try {
+			const {
+				period: periodParam = "all-time",
+				limit = "100",
+				includeUser = "true",
+			} = req.query;
+			period = periodParam;
+			const userId = req.user?.uid;
+
+			// Log incoming request for debugging
+			logger.debug("Global leaderboard request", {
+				period,
+				limit,
+				includeUser,
+				userId,
+			});
+
+			// Validate period
+			const validPeriods = ["today", "week", "month", "all-time"];
+			if (!validPeriods.includes(period)) {
+				logger.warn("Invalid period provided", { period, validPeriods });
+				const response = responseFactory.createErrorResponse(
+					{
+						statusCode: httpStatus.BAD_REQUEST,
+						code: "INVALID_PERIOD",
+						message: `Invalid period. Must be one of: ${validPeriods.join(", ")}`,
+					},
+					{
+						callSign: req.callSign || "SYSTEM",
+						requestId: req.id,
+					},
+				);
+				return res.status(httpStatus.BAD_REQUEST).json(response);
+			}
+
+			// Validate and cap limit - ensure it's a valid number
+			const parsedLimit = parseInt(limit);
+			if (isNaN(parsedLimit)) {
+				logger.warn("Invalid limit provided, using default", { limit });
+				limitNum = 100;
+			} else {
+				limitNum = Math.min(Math.max(parsedLimit, 1), 500);
+			}
+
+			logger.debug("Validated parameters", { period, limitNum, includeUser });
+
+			// Fetch leaderboard data
+			let leaderboard;
+			if (includeUser === "true" && userId) {
+				leaderboard = await leaderboardService.getLeaderboardWithUserRank(
+					userId,
+					{
+						period,
+						limit: limitNum,
+					},
+				);
+			} else {
+				leaderboard = await leaderboardService.getGlobalLeaderboard({
+					period,
+					limit: limitNum,
+				});
+			}
+
+			// Log audit event
+			logger.audit("Leaderboard accessed", {
+				userId: userId || "anonymous",
+				period,
+				limit: limitNum,
+				ipAddress: req.ip,
+			});
+
+			const response = responseFactory.createSuccessResponse(leaderboard, {
+				callSign: req.callSign || "SYSTEM",
+				requestId: req.id,
+			});
+
+			res.json(response);
+		} catch (error) {
+			logger.error("Error fetching global leaderboard", {
+				error: error.message,
+				stack: error.stack,
+				userId: req.user?.uid,
+				period,
+				limit: limitNum,
+			});
+
+			// Return graceful error response instead of cascading
+			const response = responseFactory.createErrorResponse(
+				{
+					statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+					code: "LEADERBOARD_ERROR",
+					message: "Unable to fetch leaderboard data. Please try again later.",
+				},
+				{
+					callSign: req.callSign || "SYSTEM",
+					requestId: req.id,
+				},
+			);
+			return res.status(httpStatus.INTERNAL_SERVER_ERROR).json(response);
+		}
+	},
 );
 
 /**
@@ -235,94 +243,94 @@ router.get(
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get(
-  '/scenario/:scenarioId',
-  leaderboardLimiter,
-  authMiddleware,
-  async (req, res, next) => {
-    // Declare variables at function scope for catch block access
-    let limitNum = 100;
-    
-    try {
-      const { scenarioId } = req.params;
-      const { limit = '100' } = req.query;
-      
-      // Log incoming request for debugging
-      logger.debug('Scenario leaderboard request', { scenarioId, limit });
-      
-      // Validate scenarioId
-      if (!scenarioId || typeof scenarioId !== 'string') {
-        logger.warn('Invalid scenarioId provided', { scenarioId });
-        const response = responseFactory.createErrorResponse(
-          {
-            statusCode: httpStatus.BAD_REQUEST,
-            code: 'INVALID_SCENARIO_ID',
-            message: 'Valid scenario ID required'
-          },
-          {
-            callSign: req.callSign || 'SYSTEM',
-            requestId: req.id
-          }
-        );
-        return res.status(httpStatus.BAD_REQUEST).json(response);
-      }
-      
-      // Validate and cap limit - ensure it's a valid number
-      const parsedLimit = parseInt(limit);
-      if (isNaN(parsedLimit)) {
-        logger.warn('Invalid limit provided, using default', { limit });
-        limitNum = 100;
-      } else {
-        limitNum = Math.min(Math.max(parsedLimit, 1), 500);
-      }
-      
-      logger.debug('Validated parameters', { scenarioId, limitNum });
-      
-      // Fetch scenario leaderboard
-      const leaderboard = await leaderboardService.getScenarioLeaderboard(scenarioId, {
-        limit: limitNum
-      });
-      
-      // Log audit event
-      logger.audit('Scenario leaderboard accessed', {
-        userId: req.user?.uid || 'anonymous',
-        scenarioId,
-        limit: limitNum,
-        ipAddress: req.ip
-      });
-      
-      const response = responseFactory.createSuccessResponse(
-        leaderboard,
-        {
-          callSign: req.callSign || 'SYSTEM',
-          requestId: req.id
-        }
-      );
-      
-      res.json(response);
-      
-    } catch (error) {
-      logger.error('Error fetching scenario leaderboard', {
-        error: error.message,
-        stack: error.stack,
-        scenarioId: req.params.scenarioId,
-        limit: limitNum
-      });
-      
-      // Return graceful error response
-      const response = responseFactory.createErrorResponse(
-        {
-          statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-          code: 'LEADERBOARD_ERROR',
-          message: 'Unable to fetch scenario leaderboard. Please try again later.'
-        },
-        {
-          callSign: req.callSign || 'SYSTEM',
-          requestId: req.id
-        }
-      );
-      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json(response);
-    }
-  }
+	"/scenario/:scenarioId",
+	leaderboardLimiter,
+	authMiddleware,
+	async (req, res, next) => {
+		// Declare variables at function scope for catch block access
+		let limitNum = 100;
+
+		try {
+			const { scenarioId } = req.params;
+			const { limit = "100" } = req.query;
+
+			// Log incoming request for debugging
+			logger.debug("Scenario leaderboard request", { scenarioId, limit });
+
+			// Validate scenarioId
+			if (!scenarioId || typeof scenarioId !== "string") {
+				logger.warn("Invalid scenarioId provided", { scenarioId });
+				const response = responseFactory.createErrorResponse(
+					{
+						statusCode: httpStatus.BAD_REQUEST,
+						code: "INVALID_SCENARIO_ID",
+						message: "Valid scenario ID required",
+					},
+					{
+						callSign: req.callSign || "SYSTEM",
+						requestId: req.id,
+					},
+				);
+				return res.status(httpStatus.BAD_REQUEST).json(response);
+			}
+
+			// Validate and cap limit - ensure it's a valid number
+			const parsedLimit = parseInt(limit);
+			if (isNaN(parsedLimit)) {
+				logger.warn("Invalid limit provided, using default", { limit });
+				limitNum = 100;
+			} else {
+				limitNum = Math.min(Math.max(parsedLimit, 1), 500);
+			}
+
+			logger.debug("Validated parameters", { scenarioId, limitNum });
+
+			// Fetch scenario leaderboard
+			const leaderboard = await leaderboardService.getScenarioLeaderboard(
+				scenarioId,
+				{
+					limit: limitNum,
+				},
+			);
+
+			// Log audit event
+			logger.audit("Scenario leaderboard accessed", {
+				userId: req.user?.uid || "anonymous",
+				scenarioId,
+				limit: limitNum,
+				ipAddress: req.ip,
+			});
+
+			const response = responseFactory.createSuccessResponse(leaderboard, {
+				callSign: req.callSign || "SYSTEM",
+				requestId: req.id,
+			});
+
+			res.json(response);
+		} catch (error) {
+			logger.error("Error fetching scenario leaderboard", {
+				error: error.message,
+				stack: error.stack,
+				scenarioId: req.params.scenarioId,
+				limit: limitNum,
+			});
+
+			// Return graceful error response
+			const response = responseFactory.createErrorResponse(
+				{
+					statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+					code: "LEADERBOARD_ERROR",
+					message:
+						"Unable to fetch scenario leaderboard. Please try again later.",
+				},
+				{
+					callSign: req.callSign || "SYSTEM",
+					requestId: req.id,
+				},
+			);
+			return res.status(httpStatus.INTERNAL_SERVER_ERROR).json(response);
+		}
+	},
 );
 
 /**
@@ -358,63 +366,59 @@ router.get(
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get(
-  '/user/rank',
-  leaderboardLimiter,
-  authMiddleware,
-  async (req, res, next) => {
-    try {
-      const userId = req.user?.uid;
-      
-      if (!userId) {
-        const response = responseFactory.createErrorResponse(
-          {
-            statusCode: httpStatus.UNAUTHORIZED,
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required'
-          },
-          {
-            callSign: req.callSign || 'SYSTEM',
-            requestId: req.id
-          }
-        );
-        return res.status(httpStatus.UNAUTHORIZED).json(response);
-      }
-      
-      // Fetch user rank summary
-      const rankSummary = await leaderboardService.getUserRankSummary(userId);
-      
-      const response = responseFactory.createSuccessResponse(
-        rankSummary,
-        {
-          callSign: req.callSign || 'SYSTEM',
-          requestId: req.id
-        }
-      );
-      
-      res.json(response);
-      
-    } catch (error) {
-      logger.error('Error fetching user rank', {
-        error: error.message,
-        stack: error.stack,
-        userId: req.user?.uid
-      });
-      
-      // Return graceful error response
-      const response = responseFactory.createErrorResponse(
-        {
-          statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-          code: 'LEADERBOARD_ERROR',
-          message: 'Unable to fetch user rank. Please try again later.'
-        },
-        {
-          callSign: req.callSign || 'SYSTEM',
-          requestId: req.id
-        }
-      );
-      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json(response);
-    }
-  }
+	"/user/rank",
+	leaderboardLimiter,
+	authMiddleware,
+	async (req, res, next) => {
+		try {
+			const userId = req.user?.uid;
+
+			if (!userId) {
+				const response = responseFactory.createErrorResponse(
+					{
+						statusCode: httpStatus.UNAUTHORIZED,
+						code: "UNAUTHORIZED",
+						message: "Authentication required",
+					},
+					{
+						callSign: req.callSign || "SYSTEM",
+						requestId: req.id,
+					},
+				);
+				return res.status(httpStatus.UNAUTHORIZED).json(response);
+			}
+
+			// Fetch user rank summary
+			const rankSummary = await leaderboardService.getUserRankSummary(userId);
+
+			const response = responseFactory.createSuccessResponse(rankSummary, {
+				callSign: req.callSign || "SYSTEM",
+				requestId: req.id,
+			});
+
+			res.json(response);
+		} catch (error) {
+			logger.error("Error fetching user rank", {
+				error: error.message,
+				stack: error.stack,
+				userId: req.user?.uid,
+			});
+
+			// Return graceful error response
+			const response = responseFactory.createErrorResponse(
+				{
+					statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+					code: "LEADERBOARD_ERROR",
+					message: "Unable to fetch user rank. Please try again later.",
+				},
+				{
+					callSign: req.callSign || "SYSTEM",
+					requestId: req.id,
+				},
+			);
+			return res.status(httpStatus.INTERNAL_SERVER_ERROR).json(response);
+		}
+	},
 );
 
 /**
@@ -453,67 +457,62 @@ router.get(
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post(
-  '/cache/clear',
-  authMiddleware,
-  async (req, res, next) => {
-    try {
-      // Check if user is admin
-      if (!req.user?.isAdmin) {
-        const response = responseFactory.createErrorResponse(
-          {
-            statusCode: httpStatus.FORBIDDEN,
-            code: 'FORBIDDEN',
-            message: 'Admin access required'
-          },
-          {
-            callSign: req.callSign || 'SYSTEM',
-            requestId: req.id
-          }
-        );
-        return res.status(httpStatus.FORBIDDEN).json(response);
-      }
-      
-      // Clear cache
-      leaderboardService.clearCache();
-      
-      logger.audit('Leaderboard cache cleared', {
-        userId: req.user.uid,
-        ipAddress: req.ip
-      });
-      
-      const response = responseFactory.createSuccessResponse(
-        { message: 'Cache cleared successfully' },
-        {
-          callSign: req.callSign || 'SYSTEM',
-          requestId: req.id
-        }
-      );
-      
-      res.json(response);
-      
-    } catch (error) {
-      logger.error('Error clearing leaderboard cache', {
-        error: error.message,
-        stack: error.stack,
-        userId: req.user?.uid
-      });
-      
-      // Return graceful error response
-      const response = responseFactory.createErrorResponse(
-        {
-          statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-          code: 'CACHE_CLEAR_ERROR',
-          message: 'Unable to clear cache. Please try again later.'
-        },
-        {
-          callSign: req.callSign || 'SYSTEM',
-          requestId: req.id
-        }
-      );
-      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json(response);
-    }
-  }
-);
+router.post("/cache/clear", authMiddleware, async (req, res, next) => {
+	try {
+		// Check if user is admin
+		if (!req.user?.isAdmin) {
+			const response = responseFactory.createErrorResponse(
+				{
+					statusCode: httpStatus.FORBIDDEN,
+					code: "FORBIDDEN",
+					message: "Admin access required",
+				},
+				{
+					callSign: req.callSign || "SYSTEM",
+					requestId: req.id,
+				},
+			);
+			return res.status(httpStatus.FORBIDDEN).json(response);
+		}
+
+		// Clear cache
+		leaderboardService.clearCache();
+
+		logger.audit("Leaderboard cache cleared", {
+			userId: req.user.uid,
+			ipAddress: req.ip,
+		});
+
+		const response = responseFactory.createSuccessResponse(
+			{ message: "Cache cleared successfully" },
+			{
+				callSign: req.callSign || "SYSTEM",
+				requestId: req.id,
+			},
+		);
+
+		res.json(response);
+	} catch (error) {
+		logger.error("Error clearing leaderboard cache", {
+			error: error.message,
+			stack: error.stack,
+			userId: req.user?.uid,
+		});
+
+		// Return graceful error response
+		const response = responseFactory.createErrorResponse(
+			{
+				statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+				code: "CACHE_CLEAR_ERROR",
+				message: "Unable to clear cache. Please try again later.",
+			},
+			{
+				callSign: req.callSign || "SYSTEM",
+				requestId: req.id,
+			},
+		);
+		return res.status(httpStatus.INTERNAL_SERVER_ERROR).json(response);
+	}
+});
 
 module.exports = router;
