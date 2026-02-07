@@ -2,12 +2,21 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    visualizer({
+      filename: 'dist/bundle-analysis.html',
+      open: false,
+      gzipSize: true,
+      brotliSize: true,
+    })
+  ],
   root: __dirname,
   resolve: {
     alias: {
@@ -75,7 +84,15 @@ export default defineConfig({
     // Increase chunk size warning limit for vendor bundles
     chunkSizeWarningLimit: 1000,
     // Enable source maps for debugging in dev, disabled in production
-    sourcemap: false
+    sourcemap: false,
+    // Enable compression
+    minify: 'esbuild',
+    // Optimize CSS
+    cssCodeSplit: true,
+    // Preload modules
+    modulePreload: {
+      polyfill: false
+    }
   },
   optimizeDeps: {
     include: ['socket.io-client', 'firebase/app', 'firebase/auth', 'firebase/firestore'],

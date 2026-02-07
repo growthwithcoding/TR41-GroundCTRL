@@ -5,13 +5,27 @@
  * 3D globe view with shared orbital parameters.
  */
 
-import { useState } from "react"
+import { useState, lazy, Suspense } from "react"
 import { GroundTrack2D } from "./ground-track-2d"
-import { EarthGlobe3D } from "./earth-globe-3d"
+
+// Lazy load the heavy 3D component to reduce initial bundle size
+const EarthGlobe3D = lazy(() => import("./earth-globe-3d").then(module => ({ default: module.EarthGlobe3D })))
 
 // ============================================================================
 // Sub-Components
 // ============================================================================
+
+/** Loading component for lazy-loaded views */
+function ViewLoader() {
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-background">
+      <div className="text-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+        <span className="text-sm text-muted-foreground">Loading visualization...</span>
+      </div>
+    </div>
+  )
+}
 
 /** View mode toggle button */
 function ViewToggle({ 
@@ -106,16 +120,18 @@ export function VisualizationSwitcher({
           className="w-full h-full"
         />
       ) : (
-        <EarthGlobe3D
-          altitude={altitude}
-          inclination={inclination}
-          eccentricity={eccentricity}
-          raan={raan}
-          showOrbit={true}
-          showAtmosphere={true}
-          showStars={true}
-          className="w-full h-full"
-        />
+        <Suspense fallback={<ViewLoader />}>
+          <EarthGlobe3D
+            altitude={altitude}
+            inclination={inclination}
+            eccentricity={eccentricity}
+            raan={raan}
+            showOrbit={true}
+            showAtmosphere={true}
+            showStars={true}
+            className="w-full h-full"
+          />
+        </Suspense>
       )}
       
       {showToggle && (
