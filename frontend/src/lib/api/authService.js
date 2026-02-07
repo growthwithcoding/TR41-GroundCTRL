@@ -60,19 +60,32 @@ export async function registerUser(userData) {
  */
 export async function syncGoogleProfile(profileData, idToken) {
   try {
-    // Use dedicated OAuth profile sync endpoint with Firebase ID token for authentication
-    const response = await api.post('/auth/sync-oauth-profile', profileData, {
+    // Use fetch directly (not api.post) since we don't have backend JWT tokens yet
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/auth/sync-oauth-profile`, {
+      method: 'POST',
       headers: {
-        'Authorization': `Bearer ${idToken}`
-      }
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}` // Firebase ID token
+      },
+      body: JSON.stringify(profileData)
     })
     
-    // Extract response data
-    const data = response.payload?.data || response
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.brief || errorData.message || `Failed to sync profile: ${response.status}`)
+    }
+    
+    const responseData = await response.json()
+    
+    // Extract response data from Mission Control envelope
+    const data = responseData.payload?.data || responseData
     
     // Store backend JWT tokens for subsequent requests
     if (data.accessToken && data.refreshToken) {
       setBackendTokens(data.accessToken, data.refreshToken)
+      console.log('✅ Backend JWT tokens stored after OAuth sync')
+    } else if (data.tokens?.accessToken && data.tokens?.refreshToken) {
+      setBackendTokens(data.tokens.accessToken, data.tokens.refreshToken)
       console.log('✅ Backend JWT tokens stored after OAuth sync')
     } else {
       console.warn('⚠️ No JWT tokens received from sync endpoint')

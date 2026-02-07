@@ -3,7 +3,7 @@
  * Training satellites with TLE data for SGP4 orbital mechanics
  */
 
-const CREATED_BY_UID = '5usOQ3eOm7OjXmDOFjEmKSQovs42';
+const CREATED_BY_UID = '4fm3EEGxIsPG6qQkdB7cMSZKiKF2';
 
 const satellites = [
   {
@@ -23,6 +23,10 @@ const satellites = [
         inclination_degrees: 51.6,
         eccentricity: 0.0001,
         period_minutes: 92.8,
+        raan_degrees: 120,              // Right Ascension of Ascending Node
+        argumentOfPerigee_degrees: 0,   // Argument of Perigee (circular orbit)
+        trueAnomaly_degrees: 0,         // True Anomaly (starting position)
+        epoch: Date.now()                // Epoch time for simulation
       },
       
       power: {
@@ -90,6 +94,10 @@ const satellites = [
         inclination_degrees: 97.8,
         eccentricity: 0.0001,
         period_minutes: 96.2,
+        raan_degrees: 90,               // Right Ascension (sun-synchronous)
+        argumentOfPerigee_degrees: 0,   // Argument of Perigee
+        trueAnomaly_degrees: 180,       // True Anomaly (descending node)
+        epoch: Date.now()                // Epoch time
       },
       
       power: {
@@ -157,6 +165,10 @@ const satellites = [
         inclination_degrees: 0.05,
         eccentricity: 0.0001,
         period_minutes: 1436.0, // ~24 hours
+        raan_degrees: 0,                // Right Ascension (equatorial)
+        argumentOfPerigee_degrees: 0,   // Argument of Perigee
+        trueAnomaly_degrees: 90,        // True Anomaly (quarter orbit)
+        epoch: Date.now()                // Epoch time
       },
       
       power: {

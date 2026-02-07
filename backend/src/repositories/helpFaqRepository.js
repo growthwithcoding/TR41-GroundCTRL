@@ -34,28 +34,21 @@ async function getAll(options = {}) {
   
   // Extract pagination from options
   const page = options.page || 1;
-  const limit = options.limit || 20;
+  const limit = options.limit || 100; // Increased default to get all FAQs
   
-  // Default to published and active FAQs unless explicitly overridden
-  const status = options.status !== undefined ? options.status : 'PUBLISHED';
+  // Default to active FAQs unless explicitly overridden
   const isActive = options.isActive !== undefined ? options.isActive : true;
   
-  // Apply default filters
-  if (status) {
-    query = query.where('status', '==', status);
-  }
-  
+  // Apply default filter for active FAQs
   if (isActive !== undefined) {
     query = query.where('isActive', '==', isActive);
   }
   
-  // Apply filters
+  // Apply filters - support both category_id and categoryCode
   if (options.category_id) {
     query = query.where('category_id', '==', options.category_id);
-  }
-  
-  if (options.isFeatured !== undefined) {
-    query = query.where('isFeatured', '==', options.isFeatured);
+  } else if (options.categoryCode) {
+    query = query.where('categoryCode', '==', options.categoryCode);
   }
   
   // Ordering
@@ -90,13 +83,14 @@ async function search(searchTerm, filters = {}, limit = 10) {
   const db = getFirestore();
   let query = db.collection(COLLECTION);
   
-  // Apply status filter for published FAQs
-  query = query.where('status', '==', 'PUBLISHED');
+  // Apply filter for active FAQs only
   query = query.where('isActive', '==', true);
   
-  // Category filter if provided
+  // Category filter if provided - support both field names
   if (filters.category_id) {
     query = query.where('category_id', '==', filters.category_id);
+  } else if (filters.categoryCode) {
+    query = query.where('categoryCode', '==', filters.categoryCode);
   }
   
   query = query.limit(limit);

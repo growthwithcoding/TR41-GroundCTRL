@@ -5,9 +5,7 @@ import { Bot, Sparkles, Lightbulb, HelpCircle, Send, Loader2 } from "lucide-reac
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useSimulatorState } from "@/contexts/SimulatorStateContext"
-
-// API endpoint for NOVA chat
-const NOVA_API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/nova/chat`
+import { api } from "@/lib/api/httpClient"
 
 // Fallback responses when API is unavailable
 const fallbackResponses = [
@@ -44,33 +42,9 @@ export function NovaAssistant({ sessionId, stepId }) {
     saveProgress
   } = useSimulatorState()
   
-  // Ping Nova API endpoint to check status
+  // Set NOVA as online (backend doesn't have separate health endpoint)
   useEffect(() => {
-    const checkNovaStatus = async () => {
-      try {
-        const response = await fetch(`${NOVA_API_URL}/health`, {
-          method: 'GET',
-          signal: AbortSignal.timeout(3000) // 3 second timeout
-        })
-        
-        if (response.ok) {
-          setNovaStatus('online')
-        } else {
-          setNovaStatus('offline')
-        }
-      } catch (error) {
-        // Fallback mode - API not available but we can still provide basic help
-        setNovaStatus('fallback')
-      }
-    }
-    
-    // Check immediately
-    checkNovaStatus()
-    
-    // Check every 30 seconds
-    const interval = setInterval(checkNovaStatus, 30000)
-    
-    return () => clearInterval(interval)
+    setNovaStatus('online')
   }, [])
   
   // Add guidance message when step changes
@@ -114,24 +88,12 @@ export function NovaAssistant({ sessionId, stepId }) {
     setIsLoading(true)
     
     try {
-      // POST to NOVA chat API at https://api.missionctrl.org/api/v1/nova/chat
-      const response = await fetch(NOVA_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          sessionId,
-          stepId,
-          message: messageToSend,
-        }),
+      // POST to NOVA chat API with authentication
+      const data = await api.post('/ai/chat', {
+        content: messageToSend,
+        session_id: sessionId,
+        step_id: stepId,
       })
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
-      }
-
-      const data = await response.json()
       
       // Extract message content from response payload
       const messageData = data.payload?.data?.message || data.message || {}
@@ -272,7 +234,7 @@ export function NovaAssistant({ sessionId, stepId }) {
         
         {/* Suggestions from API or quick actions */}
         {suggestions.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2 overflow-x-auto">
             {suggestions.map((suggestion) => (
               <Button 
                 key={suggestion.id}
@@ -283,7 +245,7 @@ export function NovaAssistant({ sessionId, stepId }) {
                   handleSend(suggestion.action)
                   setSuggestions([]) // Clear suggestions after clicking
                 }}
-                className="shrink-0 rounded-lg text-xs bg-transparent"
+                className="shrink-0 rounded-lg text-xs bg-transparent whitespace-nowrap"
               >
                 {suggestion.label}
               </Button>
@@ -298,7 +260,7 @@ export function NovaAssistant({ sessionId, stepId }) {
                 size="sm" 
                 disabled={isLoading}
                 onClick={() => handleSend(action.prompt)}
-                className="flex-1 rounded-lg text-xs bg-transparent gap-1.5"
+                className="flex-1 rounded-lg text-xs bg-transparent gap-1.5 whitespace-nowrap"
               >
                 <action.icon className="h-3 w-3" />
                 {action.label}

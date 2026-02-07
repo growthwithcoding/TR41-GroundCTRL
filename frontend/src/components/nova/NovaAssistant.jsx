@@ -133,8 +133,27 @@ export function NovaAssistant({
         try {
           const currentUser = auth.currentUser
           if (currentUser) {
-            const token = await currentUser.getIdToken()
-            headers.Authorization = `Bearer ${token}`
+            const firebaseToken = await currentUser.getIdToken()
+            
+            // Exchange Firebase token for backend JWT
+            const exchangeResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/auth/exchange-token`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ firebaseToken })
+            })
+            
+            if (exchangeResponse.ok) {
+              const exchangeData = await exchangeResponse.json()
+              const backendToken = exchangeData.payload?.data?.accessToken
+              
+              if (backendToken) {
+                headers.Authorization = `Bearer ${backendToken}`
+              }
+            } else {
+              console.warn('Token exchange failed:', exchangeResponse.status)
+            }
           }
         } catch (error) {
           console.warn('Failed to get auth token:', error)
@@ -155,10 +174,14 @@ export function NovaAssistant({
 
       const data = await response.json()
       
+      // DEBUG: Console log to see response structure
+      console.log('🚀 NOVA Response:', JSON.stringify(data, null, 2))
+      
       // Extract response from Mission Control envelope
       const messageData = data?.payload?.data?.message
       const messageContent = messageData?.content
       const paragraphs = messageData?.paragraphs || []
+      const clarification = messageData?.clarification || null // Get structured clarification
       const responseContext = data?.payload?.data?.context
       const newConversationId = data?.payload?.data?.conversation_id
       
@@ -228,7 +251,8 @@ export function NovaAssistant({
               type: "assistant",
               content: para,
               timestamp: idx === contentToUse.length - 1 ? timestamp : '', // Only show timestamp on last bubble
-              context: idx === contentToUse.length - 1 ? responseContext : null // Only attach context to last bubble
+              context: idx === contentToUse.length - 1 ? responseContext : null, // Only attach context to last bubble
+              clarification: idx === contentToUse.length - 1 ? clarification : null // Attach clarification to last bubble
             }
             
             return [...filtered, bubble]
@@ -288,14 +312,7 @@ export function NovaAssistant({
 
   // Get mode-specific title
   const getModeTitle = () => {
-    switch (mode) {
-      case 'TRAINING':
-        return 'Mission Guide'
-      case 'AUTH_HELP':
-        return 'Personal Assistant'
-      default:
-        return 'Help Assistant'
-    }
+    return 'Navigational Orbital Vector Assistant'
   }
 
   // Get capabilities from context
@@ -401,6 +418,24 @@ export function NovaAssistant({
                 }`}>
                   {message.content}
                 </div>
+                
+                {/* Clarification Buttons */}
+                {message.clarification && message.clarification.options && message.clarification.options.length > 0 && (
+                  <div className="flex flex-col gap-2 mt-2 max-w-[85%]">
+                    {message.clarification.options.map((option) => (
+                      <Button
+                        key={option.id}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSend(option.text)}
+                        className="w-full justify-start text-left bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-medium"
+                      >
+                        {option.text}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+                
                 {message.timestamp && (
                   <span className="text-[10px] text-muted-foreground px-1">
                     {new Date(message.timestamp).toLocaleTimeString('en-US', { 

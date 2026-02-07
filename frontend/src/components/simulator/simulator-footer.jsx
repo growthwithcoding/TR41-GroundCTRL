@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Clock, Lightbulb, Orbit, Radio, HelpCircle, Activity, Terminal } from "lucide-react"
 import { useSimulatorState } from "@/contexts/SimulatorStateContext"
+import { api, getBackendAccessToken } from "@/lib/api/httpClient"
 
 export function SimulatorFooter({ 
   missionStarted,
@@ -26,22 +27,33 @@ export function SimulatorFooter({
     const fetchHints = async () => {
       if (!sessionId) return
       
+      // Wait for authentication token before making request
+      const token = getBackendAccessToken()
+      if (!token) {
+        console.log('Waiting for authentication before fetching hint stats...')
+        return
+      }
+      
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/ai/stats/${sessionId}`)
-        if (response.ok) {
-          const data = await response.json()
-          setHintsUsed(data.data?.hint_count || 0)
-        }
+        const data = await api.get(`/ai/stats/${sessionId}`)
+        setHintsUsed(data.payload?.data?.hint_count || 0)
       } catch (error) {
-        console.error('Error fetching hint stats:', error)
+        // Silently fail - not critical if hints counter doesn't update
+        console.debug('Error fetching hint stats:', error.message)
       }
     }
     
     if (missionStarted && sessionId) {
-      fetchHints()
+      // Wait a bit for auth to complete before first fetch
+      const initialTimeout = setTimeout(fetchHints, 1000)
+      
       // Refresh every 10 seconds
       const interval = setInterval(fetchHints, 10000)
-      return () => clearInterval(interval)
+      
+      return () => {
+        clearTimeout(initialTimeout)
+        clearInterval(interval)
+      }
     }
   }, [sessionId, missionStarted])
   

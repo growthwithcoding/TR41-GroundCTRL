@@ -5,6 +5,7 @@ import { Link } from "react-router-dom"
 import { useLocation, useNavigate } from "react-router-dom"
 import { Satellite, User, Bell, LogOut, Settings, UserCircle } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { TutorialToggle } from "@/components/tutorial/TutorialToggle"
 import { useAuth } from "@/hooks/use-auth"
 import {
   DropdownMenu,
@@ -78,6 +79,9 @@ export default function AppHeader({ onAuthViewChange }) {
 
       {/* Right section */}
       <div className="flex items-center gap-3">
+        {/* Tutorial Toggle */}
+        <TutorialToggle compact />
+        
         {/* Theme Toggle */}
         <ThemeToggle />
 

@@ -1,9 +1,7 @@
-"use client"
-
 /**
  * Equirectangular (Plate Carrée) World Map
  * 
- * Uses NASA Blue Marble: Next Generation imagery 
+ * Uses NASA Blue Marble: Next Generation imagery as background
  * https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-map/
  * 
  * Based on Wikipedia's equirectangular projection formulas:

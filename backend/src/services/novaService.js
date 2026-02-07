@@ -530,12 +530,36 @@ async function getSessionHistory(sessionId, options = {}) {
  * @returns {string} Formatted prompt
  */
 function buildHelpAwarePrompt(context, userMessage) {
-  const { helpArticles, faqs, conversationHistory } = context;
+  const { helpArticles, faqs, conversationHistory, currentArticle } = context;
 
   let contextSection = '<context>\n';
 
-  // Help articles context
-  if (helpArticles && helpArticles.length > 0) {
+  // If this is for a specific article (TL;DR request), include full article content
+  if (currentArticle) {
+    contextSection += '<current_article>\n';
+    contextSection += `Title: ${currentArticle.title}\n`;
+    if (currentArticle.excerpt) {
+      contextSection += `Excerpt: ${currentArticle.excerpt}\n`;
+    }
+    // Include full content for TL;DR generation
+    if (currentArticle.plainTextContent) {
+      contextSection += `Content:\n${currentArticle.plainTextContent}\n`;
+    } else if (currentArticle.content) {
+      // If content is an array of blocks, extract text
+      if (Array.isArray(currentArticle.content)) {
+        const textContent = currentArticle.content
+          .map(block => block.content || '')
+          .join('\n\n');
+        contextSection += `Content:\n${textContent}\n`;
+      } else if (typeof currentArticle.content === 'string') {
+        contextSection += `Content:\n${currentArticle.content}\n`;
+      }
+    }
+    contextSection += '</current_article>\n';
+  }
+
+  // Help articles context (related articles, not when showing current article)
+  if (helpArticles && helpArticles.length > 0 && !currentArticle) {
     contextSection += '<relevant_help_articles>\n';
     helpArticles.forEach((article, i) => {
       contextSection += `${i + 1}. ${article.title}\n`;
@@ -719,14 +743,16 @@ async function fetchHelpContext(userMessage, articleSlug = null, conversationId 
     helpArticles: [],
     faqs: [],
     conversationHistory: [],
-    userHistory: userHistory // Attach user history if provided
+    userHistory: userHistory, // Attach user history if provided
+    currentArticle: null // For TL;DR generation
   };
 
   try {
-    // If specific article slug provided, fetch it
+    // If specific article slug provided, fetch it for TL;DR context
     if (articleSlug) {
       const article = await helpArticleRepository.getBySlug(articleSlug);
       if (article) {
+        context.currentArticle = article; // Store for TL;DR
         context.helpArticles.push(article);
       }
     }
@@ -783,7 +809,8 @@ async function generateHelpResponse(userMessage, options = {}) {
     userId: providedUserId, 
     context: articleSlug, 
     conversationId: providedConversationId,
-    callSign
+    callSign,
+    userProfile
   } = options;
 
   // Generate anonymous ID if no user ID provided
@@ -838,7 +865,7 @@ async function generateHelpResponse(userMessage, options = {}) {
 
   // Build prompt - use authenticated prompt if logged in, otherwise public help prompt
   const fullPrompt = isAuthenticated
-    ? buildAuthenticatedHelpPrompt(helpContext, userMessage, callSign || 'OPERATOR')
+    ? buildAuthenticatedHelpPrompt(helpContext, userMessage, callSign || 'OPERATOR', userProfile)
     : buildHelpAwarePrompt(helpContext, userMessage);
 
   // Try to get response with retries - wrapped in queue for rate limiting
@@ -1103,13 +1130,29 @@ async function generateUnifiedNovaResponse(content, options = {}) {
  * @param {object} context - Context with help data and user history
  * @param {string} userMessage - User's question
  * @param {string} callSign - User's call sign
+ * @param {object} userProfile - Full user profile object
  * @returns {string} Formatted prompt
  */
-function buildAuthenticatedHelpPrompt(context, userMessage, callSign) {
+function buildAuthenticatedHelpPrompt(context, userMessage, callSign, userProfile = null) {
   const { helpArticles, faqs, conversationHistory, userHistory } = context;
 
   let contextSection = '<context>\n';
-  contextSection += `<user>\nCall Sign: ${callSign}\nAuthenticated: Yes\n</user>\n`;
+  
+  // Include detailed user profile information
+  contextSection += '<user_profile>\n';
+  contextSection += `Call Sign: ${callSign}\n`;
+  contextSection += 'Authenticated: Yes\n';
+  
+  if (userProfile) {
+    if (userProfile.displayName) contextSection += `Display Name: ${userProfile.displayName}\n`;
+    if (userProfile.email) contextSection += `Email: ${userProfile.email}\n`;
+    if (userProfile.role) contextSection += `Role: ${userProfile.role}\n`;
+    if (userProfile.createdAt) {
+      const joinDate = new Date(userProfile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      contextSection += `Member Since: ${joinDate}\n`;
+    }
+  }
+  contextSection += '</user_profile>\n';
 
   // User history if available
   if (userHistory && userHistory.completedScenarios > 0) {
@@ -1381,21 +1424,106 @@ function generateSuggestions(context, content) {
 }
 
 /**
- * Format NOVA response with paragraphs and suggestions
+ * Detect if NOVA response contains clarifying questions
+ * Looks for common patterns that indicate NOVA needs clarification
+ * Returns structured clarification object if found
+ * 
+ * @param {string} content - NOVA's response content
+ * @returns {object|null} Clarification object or null
+ */
+function detectClarification(content) {
+  if (!content || typeof content !== 'string') return null;
+  
+  const contentLower = content.toLowerCase();
+  
+  // Indicators that NOVA is asking for clarification
+  const clarificationIndicators = [
+    'could you please clarify',
+    'can you clarify',
+    'which one do you mean',
+    'do you mean',
+    'are you asking about',
+    'would you like to know about',
+    'are you referring to',
+    'for example, are you asking',
+  ];
+  
+  const hasClarification = clarificationIndicators.some(indicator => 
+    contentLower.includes(indicator)
+  );
+  
+  if (!hasClarification) return null;
+  
+  // Look for bullet points or numbered lists (common for options)
+  const bulletPattern = /[*\-•]\s*(.+?)(?=[\n\r]|$)/g;
+  const bulletMatches = [...content.matchAll(bulletPattern)];
+  
+  if (bulletMatches.length >= 2 && bulletMatches.length <= 5) {
+    // Extract options from bullet points
+    const options = bulletMatches.map((match, idx) => {
+      let text = match[1].trim();
+      // Clean up the text
+      text = text.replace(/\?+$/, ''); // Remove trailing ?
+      text = text.replace(/\*\*(.+?)\*\*/g, '$1'); // Remove bold markers
+      text = text.replace(/\*/g, ''); // Remove asterisks
+      
+      return {
+        id: `clarify-${idx + 1}`,
+        text: text
+      };
+    });
+    
+    // Find the question (usually before the bullets)
+    const questionMatch = content.match(/(.+?)(?=[*\-•])/s);
+    const question = questionMatch ? questionMatch[1].trim() : 'Please select an option:';
+    
+    return {
+      question,
+      options
+    };
+  }
+  
+  // Look for "X or Y?" pattern as fallback
+  const orPattern = /(.+?)\s+or\s+(.+?)\?/i;
+  const orMatch = content.match(orPattern);
+  
+  if (orMatch) {
+    const option1 = orMatch[1].trim();
+    const option2 = orMatch[2].trim();
+    
+    // Only create clarification if both options are reasonably short
+    if (option1.length < 100 && option2.length < 100) {
+      return {
+        question: 'Please clarify:',
+        options: [
+          { id: 'clarify-1', text: option1 },
+          { id: 'clarify-2', text: option2 }
+        ]
+      };
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Format NOVA response with paragraphs, suggestions, and clarifications
  * 
  * @param {string} content - Raw NOVA response from Gemini API
  * @param {string} context - 'help' or 'simulator'
- * @returns {object} Formatted response object with paragraphs and suggestions
+ * @returns {object} Formatted response object with paragraphs, suggestions, and clarification
  */
 function formatNovaResponse(content, context = 'help') {
   const paragraphs = splitIntoParagraphs(content);
   const suggestions = generateSuggestions(context, content);
+  const clarification = detectClarification(content);
 
   return {
     role: 'assistant',
     content: content, // Full text for backwards compatibility
     paragraphs: paragraphs, // Array of paragraph strings for frontend
     suggestion_ids: suggestions.map(s => s.id), // IDs only (suggestions sent separately)
+    clarification: clarification, // Structured clarification object or null
     hint_type: null // Can be set if this is a hint response
   };
 }

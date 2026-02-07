@@ -8,6 +8,9 @@ import { Loader2 } from 'lucide-react'
 // Admin components
 import { AdminRoute } from '@/components/admin/AdminRoute.jsx'
 
+// Tutorial System
+import TutorialOverlay from '@/components/tutorial/TutorialOverlay'
+
 // Pages
 const HomePage = lazy(() => import('@/pages/Index.jsx'))
 const DashboardPage = lazy(() => import('@/pages/Dashboard.jsx'))
@@ -77,6 +80,9 @@ function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
+      
+      {/* Tutorial System UI */}
+      <TutorialOverlay />
     </Providers>
   )
 }

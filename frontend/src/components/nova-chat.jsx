@@ -47,6 +47,14 @@ const splitMessageIntoParagraphs = (content) => {
 }
 
 /**
+ * No longer needed - clarification now comes structured from backend
+ * Keeping as placeholder for backwards compatibility
+ */
+const extractClarifyingQuestions = () => {
+  return []
+}
+
+/**
  * Suggestion Buttons Component
  * Renders context-aware action buttons below NOVA's last message
  */
@@ -75,10 +83,37 @@ function NovaSuggestions({ suggestions, onSelect, isVisible }) {
 }
 
 /**
+ * Clarifying Questions Component
+ * Displays questions from NOVA as clickable buttons for quick responses
+ */
+function ClarifyingQuestions({ questions, onSelect }) {
+  if (!questions || questions.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2 mt-3">
+      {questions.map((question) => (
+        <button
+          key={question.id}
+          onClick={() => onSelect(question.action)}
+          className="rounded-lg bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20 
+                     px-4 py-2 text-sm text-blue-600 dark:text-blue-400 transition-colors duration-200 
+                     hover:border-blue-500/50 active:bg-blue-500/30 font-medium"
+        >
+          {question.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/**
  * Individual Message Bubble
  * Renders single paragraph with staggered animation
+ * Includes clarifying questions if detected
  */
-function MessageBubble({ content, type, timestamp, index }) {
+function MessageBubble({ content, type, timestamp, index, clarifyingQuestions, onClarify }) {
   return (
     <div
       className={`flex flex-col gap-1 ${type === "user" ? "items-end" : "items-start"} 
@@ -97,6 +132,11 @@ function MessageBubble({ content, type, timestamp, index }) {
       >
         {content}
       </div>
+      {clarifyingQuestions && clarifyingQuestions.length > 0 && (
+        <div className="max-w-[85%]">
+          <ClarifyingQuestions questions={clarifyingQuestions} onSelect={onClarify} />
+        </div>
+      )}
       <span className="text-xs text-muted-foreground px-1">
         {timestamp}
       </span>
@@ -110,12 +150,14 @@ function MessageBubble({ content, type, timestamp, index }) {
  *   - sessionId: string - Current session ID for backend tracking
  *   - stepId: string - Current step ID (for simulator context)
  *   - context: 'help' | 'simulator' - Determines which suggestions are shown
+ *   - articleSlug: string - Article slug for auto-generating TL;DR
  *   - className: string - Additional CSS classes
  */
 export function NovaChat({ 
   sessionId, 
   stepId, 
-  context = "help", 
+  context = "help",
+  articleSlug,
   className = "" 
 }) {
   const [messages, setMessages] = useState([])
@@ -131,38 +173,126 @@ export function NovaChat({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  // Initialize with welcome message
+  // Initialize with welcome message or auto-generate TL;DR for article
   useEffect(() => {
-    const welcomeMessage = context === "simulator"
-      ? "Welcome! I'm NOVA, your mission guide. I'm here to help you complete this training scenario. Ask me anything about the current objective or commands."
-      : "Hi! I'm NOVA, your GroundCTRL assistant. I can help you navigate the Help Center, explain satellite concepts, or answer questions about missions. How can I assist you today?"
-    
-    const welcomeParagraphs = splitMessageIntoParagraphs(welcomeMessage)
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })
     
-    const initialMessages = welcomeParagraphs.map((para, idx) => ({
-      id: `welcome-${idx}`,
-      type: "assistant",
-      content: para,
-      timestamp: timestamp
-    }))
-    
-    setMessages(initialMessages)
-    
-    // Set initial suggestions
-    const initialSuggestions = context === "simulator" 
-      ? [
-          { id: 'hint', label: 'Get a hint', action: 'Can you give me a hint for this objective?' },
-          { id: 'explain', label: 'Explain objective', action: 'Explain what I need to do in this step' }
-        ]
-      : [
-          { id: 'modules', label: 'Show training modules', action: 'List all available training modules for me' },
-          { id: 'search', label: 'Search articles', action: 'How do I search the help articles?' }
-        ]
-    
-    setSuggestions(initialSuggestions)
-    setShowSuggestions(true)
-  }, [context])
+    // If articleSlug is provided, auto-request TL;DR
+    if (articleSlug) {
+      const loadingMessage = {
+        id: 'loading-tldr',
+        type: 'assistant',
+        content: 'Let me generate a quick summary of this article for you...',
+        timestamp: timestamp
+      }
+      setMessages([loadingMessage])
+      setIsLoading(true)
+      
+      // Auto-request TL;DR
+      const requestTLDR = async () => {
+        try {
+          const response = await fetch(NOVA_API_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              content: "Please provide a brief TL;DR summary of this help article in 2-3 sentences, highlighting the key points.",
+              context: 'help',
+              articleSlug: articleSlug,
+            }),
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            const messageData = data.payload?.data?.message
+            const suggestionsData = data.payload?.data?.suggestions || []
+            const newConversationId = data.payload?.data?.conversationId
+            
+            if (newConversationId) {
+              setConversationId(newConversationId)
+            }
+            
+            const paragraphs = messageData?.paragraphs || splitMessageIntoParagraphs(messageData?.content || "")
+            const newTimestamp = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })
+            
+            const tldrMessages = paragraphs.map((para, idx) => ({
+              id: `tldr-${idx}`,
+              type: "assistant",
+              content: para,
+              timestamp: idx === paragraphs.length - 1 ? newTimestamp : ''
+            }))
+            
+            setMessages(tldrMessages)
+            
+            if (suggestionsData.length > 0) {
+              setSuggestions(suggestionsData)
+              setShowSuggestions(true)
+            } else {
+              // Default article suggestions
+              setSuggestions([
+                { id: 'explain', label: 'Explain more', action: 'Can you explain this in more detail?' },
+                { id: 'related', label: 'Related topics', action: 'What other related topics should I know?' }
+              ])
+              setShowSuggestions(true)
+            }
+          } else {
+            throw new Error('Failed to generate TL;DR')
+          }
+        } catch (error) {
+          console.error('TL;DR generation failed:', error)
+          // Fallback to generic welcome
+          const welcomeMessage = "Hi! I'm NOVA. I can help explain this article, answer questions, or point you to related topics. What would you like to know?"
+          const welcomeParagraphs = splitMessageIntoParagraphs(welcomeMessage)
+          const fallbackMessages = welcomeParagraphs.map((para, idx) => ({
+            id: `welcome-${idx}`,
+            type: "assistant",
+            content: para,
+            timestamp: idx === welcomeParagraphs.length - 1 ? timestamp : ''
+          }))
+          setMessages(fallbackMessages)
+          setSuggestions([
+            { id: 'explain', label: 'Explain more', action: 'Can you explain this in more detail?' },
+            { id: 'search', label: 'Search articles', action: 'How do I search the help articles?' }
+          ])
+          setShowSuggestions(true)
+        } finally {
+          setIsLoading(false)
+        }
+      }
+      
+      requestTLDR()
+    } else {
+      // Regular welcome message
+      const welcomeMessage = context === "simulator"
+        ? "Welcome! I'm NOVA, your mission guide. I'm here to help you complete this training scenario. Ask me anything about the current objective or commands."
+        : "Hi! I'm NOVA, your GroundCTRL assistant. I can help you navigate the Help Center, explain satellite concepts, or answer questions about missions. How can I assist you today?"
+      
+      const welcomeParagraphs = splitMessageIntoParagraphs(welcomeMessage)
+      const initialMessages = welcomeParagraphs.map((para, idx) => ({
+        id: `welcome-${idx}`,
+        type: "assistant",
+        content: para,
+        timestamp: idx === 0 ? timestamp : ''
+      }))
+      
+      setMessages(initialMessages)
+      
+      // Set initial suggestions
+      const initialSuggestions = context === "simulator" 
+        ? [
+            { id: 'hint', label: 'Get a hint', action: 'Can you give me a hint for this objective?' },
+            { id: 'explain', label: 'Explain objective', action: 'Explain what I need to do in this step' }
+          ]
+        : [
+            { id: 'modules', label: 'Show training modules', action: 'List all available training modules for me' },
+            { id: 'search', label: 'Search articles', action: 'How do I search the help articles?' }
+          ]
+      
+      setSuggestions(initialSuggestions)
+      setShowSuggestions(true)
+    }
+  }, [context, articleSlug])
 
   const handleSend = useCallback(async () => {
     if (!inputValue.trim() || isLoading) return
@@ -204,10 +334,13 @@ export function NovaChat({
 
       const data = await response.json()
       
+      // DEBUG: Log the full response to see structure
+      console.log('NOVA Response:', JSON.stringify(data, null, 2))
+      
       // Extract response from envelope structure
       const messageData = data.payload?.data?.message
       const suggestionsData = data.payload?.data?.suggestions || []
-      const newConversationId = data.payload?.data?.conversationId
+      const newConversationId = data.payload?.data?.conversation_id
       
       if (newConversationId && !conversationId) {
         setConversationId(newConversationId)
@@ -216,15 +349,34 @@ export function NovaChat({
       // Use paragraphs if available, otherwise split content
       const paragraphs = messageData?.paragraphs || splitMessageIntoParagraphs(messageData?.content || "I'm sorry, I couldn't process that request.")
       
+      // Get structured clarification from backend (if any)
+      const clarification = messageData?.clarification || null
+      
       const newTimestamp = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })
       
       // Create multiple message bubbles from paragraphs
-      const assistantMessages = paragraphs.map((para, idx) => ({
-        id: `assistant-${Date.now()}-${idx}`,
-        type: "assistant",
-        content: para,
-        timestamp: idx === paragraphs.length - 1 ? newTimestamp : ''
-      }))
+      // Only attach clarification to the LAST bubble
+      const assistantMessages = paragraphs.map((para, idx) => {
+        const isLastBubble = idx === paragraphs.length - 1
+        
+        // Convert backend clarification format to frontend format
+        let clarifyingQuestions = null
+        if (isLastBubble && clarification && clarification.options) {
+          clarifyingQuestions = clarification.options.map(opt => ({
+            id: opt.id,
+            label: opt.text,
+            action: opt.text
+          }))
+        }
+        
+        return {
+          id: `assistant-${Date.now()}-${idx}`,
+          type: "assistant",
+          content: para,
+          timestamp: isLastBubble ? newTimestamp : '',
+          clarifyingQuestions: clarifyingQuestions
+        }
+      })
       
       setMessages(prev => [...prev, ...assistantMessages])
       
@@ -272,6 +424,18 @@ export function NovaChat({
     }, 0)
   }
 
+  const handleClarifyClick = (answer) => {
+    // Auto-send clarifying answers immediately
+    setInputValue(answer)
+    setTimeout(() => {
+      // Trigger send
+      const sendButton = document.querySelector('button[type="submit"]')
+      if (sendButton && !sendButton.disabled) {
+        sendButton.click()
+      }
+    }, 100)
+  }
+
   return (
     <aside className={`w-80 border-r border-border flex flex-col bg-card ${className}`}>
       {/* Header */}
@@ -286,7 +450,7 @@ export function NovaChat({
               <Sparkles className="w-3 h-3 text-primary" />
             </div>
             <span className="text-xs text-muted-foreground">
-              {context === "help" ? "Help Center Assistant" : "Mission Guide"}
+              Navigational Orbital Vector Assistant
             </span>
           </div>
         </div>
@@ -301,6 +465,8 @@ export function NovaChat({
             type={message.type}
             timestamp={message.timestamp}
             index={index}
+            clarifyingQuestions={message.clarifyingQuestions}
+            onClarify={handleClarifyClick}
           />
         ))}
         

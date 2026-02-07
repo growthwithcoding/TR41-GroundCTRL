@@ -2,8 +2,10 @@ import { useState, useEffect, useMemo, useId } from "react"
 import { Link } from "react-router-dom"
 import AppHeader from "@/components/app-header"
 import { Footer } from "@/components/footer"
-import { NovaAssistant } from "@/components/nova/NovaAssistant"
+import { FloatingNovaChat } from "@/components/nova/FloatingNovaChat"
+import { HelpSidebar } from "@/components/support/HelpSidebar"
 import { useAuth } from "@/hooks/use-auth"
+import { useHelpCenter } from "@/contexts/HelpCenterContext"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -60,82 +62,31 @@ function getIcon(iconName) {
 export default function HelpPage() {
   const { user } = useAuth()
   const sessionId = useId()
+  
+  // Use cached help center data from context
+  const {
+    categories,
+    faqs,
+    popularArticles,
+    loading,
+    getCategoryArticles,
+    getArticleCount
+  } = useHelpCenter()
+  
   const [searchQuery, setSearchQuery] = useState("")
   const [expandedFaq, setExpandedFaq] = useState(null)
   const [expandedCategory, setExpandedCategory] = useState(null)
-
-  // State for fetched data
-  const [categories, setCategories] = useState([])
-  const [faqs, setFaqs] = useState([])
-  const [displayedFaqs, setDisplayedFaqs] = useState([]) // Randomly selected FAQs to display
-  const [popularArticles, setPopularArticles] = useState([])
-  const [categoryArticles, setCategoryArticles] = useState({})
-  const [articleCounts, setArticleCounts] = useState({}) // Track counts per category
-  const [loading, setLoading] = useState(true)
   const [searchResults, setSearchResults] = useState([])
   const [searchLoading, setSearchLoading] = useState(false)
 
-  // Fetch initial data on mount
-  useEffect(() => {
-    async function fetchInitialData() {
-      setLoading(true)
-      try {
-        const [categoriesData, faqsData, popularData] = await Promise.all([
-          getCategories(),
-          getFaqs(),
-          getPopularArticles(4)
-        ])
-        
-        setCategories(categoriesData)
-        setFaqs(faqsData)
-        
-        // Randomly select 5 FAQs to display
-        if (faqsData.length > 0) {
-          const shuffled = [...faqsData].sort(() => 0.5 - Math.random())
-          setDisplayedFaqs(shuffled.slice(0, 5))
-        }
-        
-        setPopularArticles(popularData)
-        
-        // Fetch article counts for all categories
-        const counts = {}
-        await Promise.all(
-          categoriesData.map(async (category) => {
-            const articles = await getArticlesByCategory(category.id)
-            counts[category.id] = articles.length
-          })
-        )
-        setArticleCounts(counts)
-        
-        // Don't auto-expand any category on load
-      } catch (error) {
-        console.error('Failed to fetch help data:', error)
-      } finally {
-        setLoading(false)
-      }
+  // Randomly select 5 FAQs to display (only when FAQs change)
+  const displayedFaqs = useMemo(() => {
+    if (faqs.length > 0) {
+      const shuffled = [...faqs].sort(() => 0.5 - Math.random())
+      return shuffled.slice(0, 5)
     }
-    
-    fetchInitialData()
-  }, [])
-
-  // Fetch articles for a category when expanded
-  useEffect(() => {
-    async function fetchCategoryArticles() {
-      if (!expandedCategory || categoryArticles[expandedCategory]) return
-      
-      try {
-        const articles = await getArticlesByCategory(expandedCategory)
-        setCategoryArticles(prev => ({
-          ...prev,
-          [expandedCategory]: articles
-        }))
-      } catch (error) {
-        console.error('Failed to fetch category articles:', error)
-      }
-    }
-    
-    fetchCategoryArticles()
-  }, [expandedCategory, categoryArticles])
+    return []
+  }, [faqs])
 
   // Search functionality with debounce
   useEffect(() => {
@@ -167,15 +118,16 @@ export default function HelpPage() {
       <AppHeader />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Nova Assistant Sidebar - Unified component with auth detection */}
-        <NovaAssistant 
-          context="help" 
-          showAuthPrompt={!user}
-          className="hidden lg:flex" 
-        />
-
-        <div className="flex-1 flex flex-col min-h-0">
-          <main className="flex-1 overflow-y-auto">
+        {/* Help Sidebar - New left navigation */}
+        {!loading && (
+          <HelpSidebar 
+            categories={categories} 
+            recentArticles={popularArticles}
+            className="hidden lg:block border-r border-border p-6"
+          />
+        )}
+        
+        <main className="flex-1 overflow-y-auto">
           {/* Loading State */}
           {loading && (
             <div className="flex flex-col items-center justify-center py-24">
@@ -187,14 +139,14 @@ export default function HelpPage() {
 
           {/* Hero Section - Compact Single Row - Sticky */}
           {!loading && (
-            <section className="sticky top-0 z-10 bg-card border-b border-border py-4 px-6 shadow-sm">
-            <div className="max-w-6xl mx-auto flex items-center gap-6">
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <HelpCircle className="w-5 h-5 text-primary" />
+            <section className="sticky top-0 z-10 bg-linear-to-r from-primary/5 via-primary/3 to-background border-b-2 border-primary/20 py-6 px-6 shadow-md backdrop-blur-sm">
+            <div className="max-w-7xl mx-auto flex items-center gap-6">
+              <div className="flex items-center gap-4 shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shadow-sm">
+                  <HelpCircle className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-foreground">Help Center</h1>
+                  <h1 className="text-2xl font-bold text-foreground">Help Center</h1>
                   <p className="text-sm text-muted-foreground hidden sm:block">
                     Find answers and learn satellite operations
                   </p>
@@ -256,7 +208,7 @@ export default function HelpPage() {
           {/* Popular Articles */}
           {!loading && !isSearching && (
             <section className="py-8 px-6 border-b border-border">
-              <div className="max-w-6xl mx-auto">
+              <div className="max-w-7xl mx-auto">
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
                   Popular Articles
                 </h2>
@@ -307,7 +259,8 @@ export default function HelpPage() {
                     <div className="space-y-4">
                       {categories.map((category) => {
                       const Icon = getIcon(category.icon)
-                      const articles = categoryArticles[category.id] || []
+                      const articles = getCategoryArticles(category.id)
+                      const articleCount = getArticleCount(category.id)
 
                       return (
                         <div
@@ -332,7 +285,7 @@ export default function HelpPage() {
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-muted-foreground">
-                                {articleCounts[category.id] || 0} articles
+                                {articleCount} articles
                               </span>
                               <ChevronDown
                                 className={`w-5 h-5 text-muted-foreground transition-transform ${
@@ -431,9 +384,18 @@ export default function HelpPage() {
 
                         {expandedFaq === index && (
                           <div className="px-4 pb-4 pl-11">
-                            <p className="text-sm text-muted-foreground leading-relaxed">
+                            <p className="text-sm text-muted-foreground leading-relaxed mb-3">
                               {faq.answer}
                             </p>
+                            {faq.categoryCode && (
+                              <Link
+                                to={`/help/category/${faq.categoryCode}`}
+                                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                              >
+                                <span>View all articles in this category</span>
+                                <ChevronRight className="w-3 h-3" />
+                              </Link>
+                            )}
                           </div>
                         )}
                       </div>
@@ -513,11 +475,16 @@ export default function HelpPage() {
               </div>
             </div>
           )}
-          </main>
-          
-          <Footer />
-        </div>
+        </main>
       </div>
+
+      <Footer />
+      
+      {/* Floating NOVA Chat */}
+      <FloatingNovaChat 
+        context="help"
+        position="left"
+      />
     </div>
   )
 }

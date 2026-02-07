@@ -303,6 +303,17 @@ async function askHelpQuestion(req, res, _next) {
   try {
     const { content, context, conversationId } = req.body;
     const userId = req.user?.uid; // Optional - will be null for anonymous users
+    
+    // Fetch full user profile if authenticated
+    let userProfile = null;
+    if (userId) {
+      try {
+        const userRepository = require('../repositories/userRepository');
+        userProfile = await userRepository.getById(userId);
+      } catch (error) {
+        logger.warn('Failed to fetch user profile for NOVA context', { userId, error: error.message });
+      }
+    }
 
     // Defensive: Ensure we have content
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
@@ -330,6 +341,9 @@ async function askHelpQuestion(req, res, _next) {
       userId,
       context,
       conversationId,
+      callSign: userProfile?.callSign,
+      displayName: userProfile?.displayName,
+      userProfile: userProfile, // Pass full profile for NOVA to access
     });
 
     let novaResponse;
@@ -364,7 +378,7 @@ async function askHelpQuestion(req, res, _next) {
       return res.status(httpStatus.CREATED).json(response);
     }
 
-    // Format response with paragraphs and generate suggestions
+    // Format response with paragraphs, suggestions, and clarification
     const formatted = novaService.formatNovaResponse(novaResponse.content, context || 'help');
     const suggestions = novaService.generateSuggestions(context || 'help', novaResponse.content);
 
@@ -374,12 +388,13 @@ async function askHelpQuestion(req, res, _next) {
           role: 'assistant',
           content: novaResponse.content,
           paragraphs: formatted.paragraphs,
+          clarification: formatted.clarification, // Structured clarification object or null
           is_fallback: novaResponse.is_fallback,
           hint_type: null,
         },
         suggestions: suggestions,
-        conversationId: novaResponse.conversationId,
-        userId: novaResponse.userId,
+        conversation_id: novaResponse.conversationId,
+        user_id: novaResponse.userId,
       },
       {
         callSign: req.callSign || 'GUEST',

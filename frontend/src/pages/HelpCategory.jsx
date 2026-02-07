@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import AppHeader from "@/components/app-header"
 import { Footer } from "@/components/footer"
-import { NovaAssistant } from "@/components/nova/NovaAssistant"
+import { FloatingNovaChat } from "@/components/nova/FloatingNovaChat"
 import { useAuth } from "@/hooks/use-auth"
 import {
   ChevronRight,
@@ -127,13 +127,6 @@ export default function HelpCategoryPage() {
       <AppHeader />
 
       <div className="flex-1 flex">
-        {/* Nova Assistant Sidebar */}
-        <NovaAssistant 
-          context="help" 
-          showAuthPrompt={!user}
-          className="hidden lg:flex h-[calc(100vh-4rem)] sticky top-16" 
-        />
-
         <main className="flex-1">
           {/* Breadcrumb */}
           <div className="bg-card border-b border-border py-3 px-6">
@@ -233,6 +226,12 @@ export default function HelpCategoryPage() {
       </div>
 
       <Footer />
+      
+      {/* Floating NOVA Chat */}
+      <FloatingNovaChat 
+        context="help"
+        position="left"
+      />
     </div>
   )
 }

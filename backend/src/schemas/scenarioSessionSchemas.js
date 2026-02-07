@@ -78,11 +78,29 @@ const createScenarioSessionSchema = z.object({
     // started_at, completed_at, last_activity_at managed by controller
     
     // Runtime state - JSON blob for simulation state
-    state: z.object({})
-      .passthrough()
+    state: z.object({
+      // Rendering state (for 2D/3D view persistence)
+      rendering: z.object({
+        currentViewMode: z.enum(['2d-advanced', '3d-globe']).optional(),
+        cameraPosition: z.object({
+          x: z.number(),
+          y: z.number(),
+          z: z.number(),
+        }).optional(),
+        selectedGroundStation: z.string().optional(),
+      }).optional(),
+      
+      // Tutorial state (for active tutorial tracking)
+      tutorial: z.object({
+        activeFlowId: z.string().nullable().default(null),
+        activeStepIndex: z.number().int().min(0).default(0),
+        completedStepsInSession: z.array(z.string()).default([]),
+      }).optional(),
+    })
+      .passthrough() // Allow additional fields for other simulation state
       .optional()
       .default({})
-      .describe('Runtime simulation state (JSON)'),
+      .describe('Runtime simulation state including rendering and tutorial progress'),
     
     // Ground station configuration (future: scenario-specific)
     enabledGroundStations: z.array(z.string())

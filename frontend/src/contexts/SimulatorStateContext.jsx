@@ -564,9 +564,28 @@ export function SimulatorStateProvider({ children }) {
     };
   }, []);
   
+  // Computed properties for CommandConsoleEnhanced
+  const satelliteData = {
+    propellantMass_kg: state.telemetry?.subsystems?.propulsion?.fuelRemaining || 0,
+    deltaVRemaining_ms: state.telemetry?.orbit?.deltaVRemaining_ms || 0,
+    power_percent: state.telemetry?.subsystems?.power?.batterySoc || 0,
+    status: state.telemetry?.subsystems?.power?.status || 'NOMINAL',
+    orbitalElements: state.telemetry?.orbit || {}
+  };
+
+  const currentSessionState = {
+    currentStep: state.steps[state.currentStepIndex] || null,
+    missionProgress: state.missionProgress,
+    completedSteps: state.completedSteps
+  };
+
   const value = {
     // State
     ...state,
+    
+    // Computed properties for enhanced components
+    satellite: satelliteData,
+    sessionState: currentSessionState,
     
     // Session management
     initializeSession,

@@ -6,7 +6,7 @@ const statusEnum = z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED', 'TRAINING']);
 
 // ---------- Core nested objects ----------
 
-// Orbital state (MVP: altitude + inclination only)
+// Orbital state with full Keplerian elements
 const orbitSchema = z.object({
   altitude_km: z
     .number({
@@ -25,6 +25,83 @@ const orbitSchema = z.object({
     .min(0, 'Inclination must be between 0 and 180 degrees')
     .max(180, 'Inclination must be between 0 and 180 degrees')
     .describe('Orbital plane inclination in degrees'),
+  
+  // Full Keplerian elements (optional for backward compatibility)
+  eccentricity: z
+    .number({
+      invalid_type_error: 'Eccentricity must be a number',
+    })
+    .min(0, 'Eccentricity must be between 0 and 0.99')
+    .max(0.99, 'Eccentricity must be between 0 and 0.99 (parabolic/hyperbolic orbits not supported)')
+    .default(0.0001)
+    .describe('Orbital eccentricity (0 = circular, 0.99 = highly elliptical)'),
+  
+  raan_degrees: z
+    .number({
+      invalid_type_error: 'RAAN must be a number',
+    })
+    .min(0, 'RAAN must be between 0 and 360 degrees')
+    .max(360, 'RAAN must be between 0 and 360 degrees')
+    .default(0)
+    .describe('Right Ascension of Ascending Node (Ω) in degrees'),
+  
+  argumentOfPerigee_degrees: z
+    .number({
+      invalid_type_error: 'Argument of Perigee must be a number',
+    })
+    .min(0, 'Argument of Perigee must be between 0 and 360 degrees')
+    .max(360, 'Argument of Perigee must be between 0 and 360 degrees')
+    .default(0)
+    .describe('Argument of Perigee (ω) in degrees'),
+  
+  trueAnomaly_degrees: z
+    .number({
+      invalid_type_error: 'True Anomaly must be a number',
+    })
+    .min(0, 'True Anomaly must be between 0 and 360 degrees')
+    .max(360, 'True Anomaly must be between 0 and 360 degrees')
+    .default(0)
+    .describe('True Anomaly (ν) - current position in orbit in degrees'),
+  
+  epoch: z
+    .number({
+      invalid_type_error: 'Epoch must be a number',
+    })
+    .optional()
+    .describe('Orbital epoch as Unix timestamp in milliseconds'),
+  
+  // Computed fields (optional - can be calculated from other parameters)
+  perigee_km: z
+    .number({
+      invalid_type_error: 'Perigee must be a number',
+    })
+    .positive('Perigee must be positive')
+    .optional()
+    .describe('Lowest altitude in orbit (km)'),
+  
+  apogee_km: z
+    .number({
+      invalid_type_error: 'Apogee must be a number',
+    })
+    .positive('Apogee must be positive')
+    .optional()
+    .describe('Highest altitude in orbit (km)'),
+  
+  period_minutes: z
+    .number({
+      invalid_type_error: 'Period must be a number',
+    })
+    .positive('Period must be positive')
+    .optional()
+    .describe('Orbital period in minutes'),
+  
+  semiMajorAxis_km: z
+    .number({
+      invalid_type_error: 'Semi-major axis must be a number',
+    })
+    .positive('Semi-major axis must be positive')
+    .optional()
+    .describe('Semi-major axis (a) in kilometers'),
 }).strict();
 
 // Power subsystem (simplified)

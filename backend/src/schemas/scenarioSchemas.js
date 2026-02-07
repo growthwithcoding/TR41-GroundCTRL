@@ -20,6 +20,19 @@ const initialStateSchema = z.object({
   orbit: z.object({
     altitude_km: z.number().positive().min(160).max(35786),
     inclination_degrees: z.number().min(0).max(180),
+    
+    // Full Keplerian elements (optional for backward compatibility)
+    eccentricity: z.number().min(0).max(0.99).default(0.0001).optional(),
+    raan_degrees: z.number().min(0).max(360).default(0).optional(),
+    argumentOfPerigee_degrees: z.number().min(0).max(360).default(0).optional(),
+    trueAnomaly_degrees: z.number().min(0).max(360).default(0).optional(),
+    epoch: z.number().optional(),
+    
+    // Computed fields
+    perigee_km: z.number().positive().optional(),
+    apogee_km: z.number().positive().optional(),
+    period_minutes: z.number().positive().optional(),
+    semiMajorAxis_km: z.number().positive().optional(),
   }).optional(),
   power: z.object({
     currentCharge_percent: z.number().min(0).max(100),

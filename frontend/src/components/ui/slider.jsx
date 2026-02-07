@@ -31,7 +31,7 @@ function Slider({
       min={min}
       max={max}
       className={cn(
-        'relative flex w-full touch-none items-center select-none data-[disabled],
+        'relative flex w-full touch-none items-center select-none data-disabled:pointer-events-none data-disabled:opacity-50',
         className,
       )}
       {...props}
@@ -49,11 +49,13 @@ function Slider({
           }
         />
       </SliderPrimitive.Track>
-      {Array.from({ length, (_, index) => (
+      {Array.from({ length: _values.length }, (_, index) => (
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
-          className="border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover))}
+          className="border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50"
+        />
+      ))}
     </SliderPrimitive.Root>
   )
 }

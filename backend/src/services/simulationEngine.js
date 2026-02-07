@@ -9,16 +9,18 @@ const logger = require('../utils/logger');
 const CommandQueue = require('./commandQueue');
 const StepValidator = require('./stepValidator');
 const VisibilityCalculator = require('./visibilityCalculator');
+const AnomalyInjector = require('./anomalyInjector');
 const { GROUND_STATIONS } = require('../constants/groundStations');
 
 class SimulationEngine {
   constructor(sessionManager) {
     this.sessionManager = sessionManager;
-    this.activeSimulations = new Map(); // sessionId -> { interval, satellite, startTime, commands, state, commandQueue, beaconInterval }
+    this.activeSimulations = new Map(); // sessionId -> { interval, satellite, startTime, commands, state, commandQueue, beaconInterval, anomalyEffects }
     
     // Mission Control Enhancement services
     this.stepValidator = new StepValidator();
     this.visibilityCalculator = new VisibilityCalculator();
+    this.anomalyInjector = new AnomalyInjector();
     this.groundStations = GROUND_STATIONS;
   }
 
@@ -27,8 +29,9 @@ class SimulationEngine {
    * @param {string} sessionId - Scenario session ID
    * @param {object} satellite - Satellite configuration
    * @param {object} initialState - Initial simulation state
+   * @param {string} scenarioDifficulty - Scenario difficulty level (BEGINNER, INTERMEDIATE, ADVANCED)
    */
-  startSimulation(sessionId, satellite, initialState = {}) {
+  startSimulation(sessionId, satellite, initialState = {}, scenarioDifficulty = 'BEGINNER') {
     if (this.activeSimulations.has(sessionId)) {
       logger.warn('Simulation already running for session', { sessionId });
       return;
@@ -40,7 +43,8 @@ class SimulationEngine {
       startTime,
       currentState: initialState,
       commands: [], // Track all commands executed
-      commandEffects: {} // Track ongoing effects from commands
+      commandEffects: {}, // Track ongoing effects from commands
+      anomalyEffects: {} // Track ongoing anomaly effects
     };
 
     // Update every 2 seconds
@@ -92,12 +96,17 @@ class SimulationEngine {
     // Start beacon transmitter (first beacon after 45 minutes, then every 2 minutes)
     this.startBeaconTransmitter(sessionId, 120000, 2700000);
 
+    // Start anomaly injection based on scenario difficulty
+    this.startAnomalyInjection(sessionId, scenarioDifficulty);
+
     logger.info('Simulation started', {
       sessionId,
       satelliteName: satellite.name || 'Unknown',
       updateInterval: '2s',
       commandQueueEnabled: true,
-      beaconEnabled: true
+      beaconEnabled: true,
+      anomalySystemEnabled: scenarioDifficulty !== 'BEGINNER',
+      difficulty: scenarioDifficulty
     });
   }
 
@@ -119,6 +128,9 @@ class SimulationEngine {
       
       // Stop beacon transmitter
       this.stopBeaconTransmitter(sessionId);
+      
+      // Stop anomaly injection
+      this.stopAnomalyInjection(sessionId);
       
       this.activeSimulations.delete(sessionId);
       
@@ -768,6 +780,110 @@ class SimulationEngine {
     }
     
     return simulation.commandQueue.getStats();
+  }
+
+  /**
+   * Apply anomaly effects to simulation state
+   * Anomaly System Enhancement
+   * @param {string} sessionId - Session ID
+   * @param {object} anomalyDef - Anomaly definition
+   */
+  applyAnomalyEffects(sessionId, anomalyDef) {
+    const simulation = this.activeSimulations.get(sessionId);
+    if (!simulation) return;
+
+    const effects = simulation.state.anomalyEffects;
+    effects[anomalyDef.id] = anomalyDef.effects;
+
+    logger.info('Anomaly effects applied to simulation', {
+      sessionId,
+      anomalyId: anomalyDef.id,
+      effects: anomalyDef.effects
+    });
+  }
+
+  /**
+   * Remove anomaly effects from simulation state
+   * Anomaly System Enhancement
+   * @param {string} sessionId - Session ID
+   * @param {object} anomalyDef - Anomaly definition
+   */
+  removeAnomalyEffects(sessionId, anomalyDef) {
+    const simulation = this.activeSimulations.get(sessionId);
+    if (!simulation) return;
+
+    const effects = simulation.state.anomalyEffects;
+    delete effects[anomalyDef.id];
+
+    logger.info('Anomaly effects removed from simulation', {
+      sessionId,
+      anomalyId: anomalyDef.id
+    });
+  }
+
+  /**
+   * Start anomaly injection for a session
+   * Anomaly System Enhancement
+   * @param {string} sessionId - Session ID
+   * @param {string} difficulty - Scenario difficulty
+   */
+  startAnomalyInjection(sessionId, difficulty) {
+    this.anomalyInjector.startInjection(sessionId, difficulty, this);
+    
+    logger.info('Anomaly injection started for session', {
+      sessionId,
+      difficulty
+    });
+  }
+
+  /**
+   * Stop anomaly injection for a session
+   * Anomaly System Enhancement
+   * @param {string} sessionId - Session ID
+   */
+  stopAnomalyInjection(sessionId) {
+    this.anomalyInjector.stopInjection(sessionId);
+    
+    logger.info('Anomaly injection stopped for session', {
+      sessionId
+    });
+  }
+
+  /**
+   * Check if command resolves any active anomalies
+   * Anomaly System Enhancement
+   * @param {string} sessionId - Session ID
+   * @param {string} commandName - Command name
+   */
+  checkAnomalyResolution(sessionId, commandName) {
+    const resolved = this.anomalyInjector.resolveAnomaly(sessionId, commandName, this);
+    
+    if (resolved) {
+      logger.info('Command resolved anomaly', {
+        sessionId,
+        commandName
+      });
+    }
+  }
+
+  /**
+   * Get active anomalies for a session
+   * Anomaly System Enhancement
+   * @param {string} sessionId - Session ID
+   * @returns {Array} Active anomalies
+   */
+  getActiveAnomalies(sessionId) {
+    return this.anomalyInjector.getActiveAnomalies(sessionId);
+  }
+
+  /**
+   * Get anomaly statistics for a session
+   * Anomaly System Enhancement
+   * @param {string} sessionId - Session ID
+   * @returns {object} Anomaly statistics
+   */
+  getAnomalyStats(sessionId) {
+    return this.anomalyInjector.getStats(sessionId);
   }
 }
 

@@ -19,6 +19,7 @@
     "test:emulator": "firebase emulators:exec --only auth,firestore \"npm test\"",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
+    "seed": "node seeders/seed.js",
     "cleanup": "node src/scripts/FB_cleanup.js",
     "test:verify-migration": "node tests/scripts/verify-migration.js",
     "test:migrate": "bash tests/scripts/migrate-from-tests-backend.sh"

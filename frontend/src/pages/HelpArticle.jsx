@@ -2,6 +2,8 @@ import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import AppHeader from "@/components/app-header"
 import { Footer } from "@/components/footer"
+import { FloatingNovaChat } from "@/components/nova/FloatingNovaChat"
+import { ArticleTableOfContents } from "@/components/support/ArticleTableOfContents"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { 
@@ -160,11 +162,22 @@ export default function HelpArticlePage() {
   }
   
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col bg-background">
       <StarField />
       <AppHeader />
       
-      <main className="flex-1 py-8 px-6 relative">
+      <main className="flex-1 flex relative overflow-hidden">
+        {/* Table of Contents Sidebar */}
+        {article && !loading && (
+          <ArticleTableOfContents 
+            article={article}
+            headings={[]}
+            className="hidden lg:block border-r border-border p-6"
+          />
+        )}
+        
+        <div className="flex-1 overflow-y-auto">
+        <div className="py-8 px-6">
         <div className="max-w-5xl mx-auto">
           <Link to="/help">
             <Button variant="ghost" className="mb-6 group">
@@ -389,9 +402,17 @@ export default function HelpArticlePage() {
             </div>
           )}
         </div>
+        </div>
+        </div>
       </main>
       
       <Footer />
+      
+      {/* Floating NOVA Chat */}
+      <FloatingNovaChat 
+        context="help"
+        position="left"
+      />
     </div>
   )
 }

@@ -2,9 +2,9 @@ import { useMemo, useEffect, useState } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
 import { Helmet } from "react-helmet-async"
 import AppHeader from "@/components/app-header"
-import { NovaAssistant } from "@/components/simulator/nova-assistant"
-import { MissionPanel } from "@/components/simulator/mission-panel"
-import { CommandConsole } from "@/components/simulator/command-console"
+import { FloatingNovaChat } from "@/components/nova/FloatingNovaChat"
+import { CommandConsoleHUD } from "@/components/simulator/command-console-hud"
+import { MissionStepsPanel } from "@/components/simulator/mission-steps-panel"
 import { SimulatorFooter } from "@/components/simulator/simulator-footer"
 import { MissionStartModal } from "@/components/simulator/mission-start-modal"
 import { AlertPanel } from "@/components/simulator/alert-panel"
@@ -13,6 +13,7 @@ import { GroundStationIndicator } from "@/components/simulator/ground-station-in
 import { TimeControlDisplay } from "@/components/simulator/time-control-display"
 import { OperatorPrompt } from "@/components/simulator/operator-prompt"
 import { PerformanceMetrics } from "@/components/simulator/performance-metrics"
+import { VisualizationSwitcher } from "@/components/simulator/views"
 import { useAuth } from "@/hooks/use-auth"
 import { useSimulatorState } from "@/contexts/SimulatorStateContext"
 import { useWebSocket } from "@/contexts/WebSocketContext"
@@ -305,6 +306,9 @@ export default function Simulator() {
       <div className="h-screen min-h-150 flex flex-col bg-background overflow-hidden">
         <AppHeader />
         
+        {/* Mission Steps Panel - Shows current objectives */}
+        {missionStarted && <MissionStepsPanel />}
+        
         {/* Mission Control Enhancement - Ground Station Indicator + Controls */}
         {missionStarted && (
           <div className="px-4 py-2 border-b border-border bg-muted/30">
@@ -319,9 +323,20 @@ export default function Simulator() {
         )}
         
         <div className="flex-1 flex overflow-hidden min-h-0 relative">
-          <NovaAssistant sessionId={contextSessionId || sessionIdParam} stepId={sessionData?.scenario_id} missionStarted={missionStarted} />
-          <MissionPanel missionStarted={missionStarted} />
-          <CommandConsole missionStarted={missionStarted} />
+          {/* Advanced Satellite Visualization with 2D/3D Projection Switching - Now Full Width */}
+          <div className="flex-1 flex flex-col min-w-0">
+            <VisualizationSwitcher
+              altitude={sessionData?.satellite?.orbit?.altitude_km || 415}
+              inclination={sessionData?.satellite?.orbit?.inclination_degrees || 51.6}
+              eccentricity={sessionData?.satellite?.orbit?.eccentricity || 0.0001}
+              raan={sessionData?.satellite?.orbit?.raan_degrees || 0}
+              defaultView="2d"
+              showToggle={true}
+              className="h-full w-full"
+            />
+          </div>
+          
+          <CommandConsoleHUD />
           
           {/* Mission Control Enhancement - Command Queue Status Overlay */}
           {missionStarted && (
@@ -351,6 +366,16 @@ export default function Simulator() {
           <MissionStartModal 
             missionId={sessionData.scenario_id} 
             onStart={handleStartMission}
+          />
+        )}
+        
+        {/* Floating NOVA Chat - Only show when mission started */}
+        {missionStarted && (
+          <FloatingNovaChat 
+            sessionId={contextSessionId || sessionIdParam} 
+            stepId={sessionData?.scenario_id}
+            context="simulator"
+            position="left"
           />
         )}
       </div>
