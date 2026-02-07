@@ -23,13 +23,64 @@ const leaderboardLimiter = createRateLimiter({
 });
 
 /**
- * GET /api/leaderboard/global
- * Get global leaderboard
- * 
- * Query params:
- * - period: 'today' | 'week' | 'month' | 'all-time' (default: 'all-time')
- * - limit: number (default: 100, max: 500)
- * - includeUser: boolean (default: true) - include authenticated user's rank
+ * @swagger
+ * /leaderboard/global:
+ *   get:
+ *     summary: Get global leaderboard rankings
+ *     description: Retrieve operator rankings with optional time period filtering and user rank inclusion
+ *     tags: [Leaderboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [today, week, month, all-time]
+ *           default: all-time
+ *         description: Time period for rankings
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 500
+ *           default: 100
+ *         description: Maximum number of operators to return
+ *       - in: query
+ *         name: includeUser
+ *         schema:
+ *           type: boolean
+ *           default: true
+ *         description: Include authenticated user's rank and nearby operators
+ *     responses:
+ *       200:
+ *         description: GO - Leaderboard data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/MissionControlResponse'
+ *                 - type: object
+ *                   properties:
+ *                     payload:
+ *                       $ref: '#/components/schemas/LeaderboardResponse'
+ *       400:
+ *         description: NO-GO - Invalid period parameter
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       429:
+ *         $ref: '#/components/responses/RateLimitError'
+ *       500:
+ *         description: ABORT - Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get(
   '/global',
@@ -119,11 +170,52 @@ router.get(
 );
 
 /**
- * GET /api/leaderboard/scenario/:scenarioId
- * Get leaderboard for specific scenario
- * 
- * Query params:
- * - limit: number (default: 100, max: 500)
+ * @swagger
+ * /leaderboard/scenario/{scenarioId}:
+ *   get:
+ *     summary: Get scenario-specific leaderboard
+ *     description: Retrieve operator rankings for a specific mission scenario
+ *     tags: [Leaderboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: scenarioId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Scenario identifier
+ *         example: scen_123
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 500
+ *           default: 100
+ *         description: Maximum number of operators to return
+ *     responses:
+ *       200:
+ *         description: GO - Scenario leaderboard retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/MissionControlResponse'
+ *                 - type: object
+ *                   properties:
+ *                     payload:
+ *                       $ref: '#/components/schemas/ScenarioLeaderboard'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       429:
+ *         $ref: '#/components/responses/RateLimitError'
+ *       500:
+ *         description: ABORT - Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get(
   '/scenario/:scenarioId',
@@ -186,8 +278,36 @@ router.get(
 );
 
 /**
- * GET /api/leaderboard/user/rank
- * Get authenticated user's rank across all periods
+ * @swagger
+ * /leaderboard/user/rank:
+ *   get:
+ *     summary: Get user rank summary
+ *     description: Retrieve authenticated user's ranking across all time periods (today, week, month, all-time)
+ *     tags: [Leaderboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: GO - User rank summary retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/MissionControlResponse'
+ *                 - type: object
+ *                   properties:
+ *                     payload:
+ *                       $ref: '#/components/schemas/UserRankSummary'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       429:
+ *         $ref: '#/components/responses/RateLimitError'
+ *       500:
+ *         description: ABORT - Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get(
   '/user/rank',
@@ -250,8 +370,40 @@ router.get(
 );
 
 /**
- * POST /api/leaderboard/cache/clear
- * Clear leaderboard cache (admin only)
+ * @swagger
+ * /leaderboard/cache/clear:
+ *   post:
+ *     summary: Clear leaderboard cache (Admin only)
+ *     description: Manually clear the in-memory leaderboard cache. Requires admin privileges.
+ *     tags: [Leaderboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: GO - Cache cleared successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/MissionControlResponse'
+ *                 - type: object
+ *                   properties:
+ *                     payload:
+ *                       type: object
+ *                       properties:
+ *                         message:
+ *                           type: string
+ *                           example: Cache cleared successfully
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       500:
+ *         description: ABORT - Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post(
   '/cache/clear',

@@ -59,7 +59,7 @@ All timestamps use ISO 8601 format. Telemetry includes:
 		servers: [
 			{
 				url: "http://localhost:{port}/api/v1",
-				description: "Development Server",
+				description: "Development Server (Local)",
 				variables: {
 					port: {
 						default: "8080",
@@ -67,11 +67,10 @@ All timestamps use ISO 8601 format. Telemetry includes:
 					},
 				},
 			},
-			// Production Server (Coming Soon)
-			// {
-			//   url: 'https://missionctrl.org/api/v1',
-			//   description: 'Production Server'
-			// }
+			{
+				url: "https://api.missionctrl.org/api/v1",
+				description: "Production Server"
+			}
 		],
 		tags: [
 			{
@@ -120,6 +119,11 @@ All timestamps use ISO 8601 format. Telemetry includes:
 				name: "Help Articles",
 				description:
 					"Help documentation and knowledge base (articles, FAQs, categories)",
+			},
+			{
+				name: "Leaderboard",
+				description:
+					"Operator rankings and leaderboards (global, scenario-specific, time periods)",
 			},
 		],
 		components: {
@@ -1334,6 +1338,221 @@ All timestamps use ISO 8601 format. Telemetry includes:
 							format: "date-time",
 							description: "Last update timestamp",
 							example: "2025-01-01T00:00:00.000Z",
+						},
+					},
+				},
+				LeaderboardOperator: {
+					type: "object",
+					properties: {
+						id: {
+							type: "string",
+							description: "Operator user ID",
+							example: "abc123xyz456",
+						},
+						callSign: {
+							type: "string",
+							description: "Operator call sign",
+							example: "APOLLO-11",
+						},
+						rank: {
+							type: "number",
+							description: "Current ranking position",
+							example: 1,
+						},
+						score: {
+							type: "number",
+							description: "Average performance score (0-100)",
+							example: 95,
+						},
+						missionsCompleted: {
+							type: "number",
+							description: "Total missions completed",
+							example: 25,
+						},
+						bestScore: {
+							type: "number",
+							description: "Best mission score achieved",
+							example: 98,
+						},
+						worstScore: {
+							type: "number",
+							description: "Worst mission score achieved",
+							example: 85,
+						},
+					},
+				},
+				LeaderboardResponse: {
+					type: "object",
+					properties: {
+						operators: {
+							type: "array",
+							items: {
+								$ref: "#/components/schemas/LeaderboardOperator",
+							},
+							description: "Array of ranked operators",
+						},
+						topThree: {
+							type: "array",
+							items: {
+								$ref: "#/components/schemas/LeaderboardOperator",
+							},
+							description: "Top 3 operators for podium display",
+						},
+						period: {
+							type: "string",
+							enum: ["today", "week", "month", "all-time"],
+							description: "Time period filter applied",
+							example: "all-time",
+						},
+						lastUpdated: {
+							type: "string",
+							format: "date-time",
+							description: "Last update timestamp",
+							example: "2025-01-01T00:00:00.000Z",
+						},
+						totalOperators: {
+							type: "number",
+							description: "Total number of operators in leaderboard",
+							example: 150,
+						},
+						userRank: {
+							$ref: "#/components/schemas/UserRank",
+						},
+						nearbyOperators: {
+							type: "array",
+							items: {
+								$ref: "#/components/schemas/LeaderboardOperator",
+							},
+							description: "Operators ranked near the authenticated user",
+						},
+					},
+				},
+				UserRank: {
+					type: "object",
+					properties: {
+						id: {
+							type: "string",
+							description: "User ID",
+							example: "abc123xyz456",
+						},
+						callSign: {
+							type: "string",
+							description: "User call sign",
+							example: "APOLLO-11",
+						},
+						rank: {
+							type: "number",
+							description: "Current ranking position",
+							example: 15,
+						},
+						score: {
+							type: "number",
+							description: "Average performance score",
+							example: 88,
+						},
+						percentile: {
+							type: "number",
+							description: "Percentile ranking (0-100)",
+							example: 90,
+						},
+						totalOperators: {
+							type: "number",
+							description: "Total operators in leaderboard",
+							example: 150,
+						},
+						rankChange: {
+							type: "number",
+							description: "Change in rank since previous period (positive = improved)",
+							example: 3,
+						},
+						missionsCompleted: {
+							type: "number",
+							description: "Missions completed",
+							example: 18,
+						},
+					},
+				},
+				ScenarioLeaderboard: {
+					type: "object",
+					properties: {
+						scenarioId: {
+							type: "string",
+							description: "Scenario identifier",
+							example: "scen_123",
+						},
+						operators: {
+							type: "array",
+							items: {
+								type: "object",
+								properties: {
+									userId: {
+										type: "string",
+										description: "Operator user ID",
+										example: "abc123xyz456",
+									},
+									callSign: {
+										type: "string",
+										description: "Operator call sign",
+										example: "APOLLO-11",
+									},
+									rank: {
+										type: "number",
+										description: "Ranking position",
+										example: 1,
+									},
+									score: {
+										type: "number",
+										description: "Best score for this scenario",
+										example: 95,
+									},
+									completionTime: {
+										type: "string",
+										format: "date-time",
+										description: "When the best score was achieved",
+										example: "2025-01-01T00:00:00.000Z",
+									},
+									duration: {
+										type: "string",
+										description: "Mission duration",
+										example: "15m 30s",
+									},
+								},
+							},
+						},
+						topThree: {
+							type: "array",
+							items: {
+								type: "object",
+							},
+							description: "Top 3 operators for this scenario",
+						},
+						lastUpdated: {
+							type: "string",
+							format: "date-time",
+							description: "Last update timestamp",
+							example: "2025-01-01T00:00:00.000Z",
+						},
+						totalOperators: {
+							type: "number",
+							description: "Total operators who completed this scenario",
+							example: 75,
+						},
+					},
+				},
+				UserRankSummary: {
+					type: "object",
+					properties: {
+						allTime: {
+							$ref: "#/components/schemas/UserRank",
+						},
+						month: {
+							$ref: "#/components/schemas/UserRank",
+						},
+						week: {
+							$ref: "#/components/schemas/UserRank",
+						},
+						today: {
+							$ref: "#/components/schemas/UserRank",
 						},
 					},
 				},
