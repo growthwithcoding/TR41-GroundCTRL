@@ -19,8 +19,8 @@
     "test:silent": "jest --runInBand --silent",
     "test:debug": "node check-files.js && jest --runInBand --detectOpenHandles",
     "test:emulator": "firebase emulators:exec --only auth,firestore \"npm test\"",
-    "lint": "eslint src/**/*.js",
-    "lint:fix": "eslint src/**/*.js --fix",
+    "lint": "biome check src",
+    "lint:fix": "biome check --write src",
     "seed": "node seeders/seed.js",
     "cleanup": "node src/scripts/FB_cleanup.js",
     "test:verify-migration": "node tests/scripts/verify-migration.js",
@@ -53,6 +53,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.3.14",
     "@eslint/js": "^9.39.2",
     "@types/jest": "^30.0.0",
     "eslint": "^9.39.2",
