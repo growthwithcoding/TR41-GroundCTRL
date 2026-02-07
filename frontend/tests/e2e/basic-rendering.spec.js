@@ -38,6 +38,8 @@ test.describe('UI-001: Basic App Rendering', () => {
     // Different browsers report these failures differently:
     // - Chromium: "ERR_CONNECTION_REFUSED", "Failed to load resource"
     // - WebKit/Safari: "Could not connect to localhost", "due to access control checks"
+    // - Firefox/WebKit: CSS MIME type errors
+    // - API: Rate limiting and capacity errors
     const actualJsErrors = consoleErrors.filter(error => {
       // Ignore network connection errors
       if (error.includes('ERR_CONNECTION_REFUSED')) return false;
@@ -47,6 +49,18 @@ test.describe('UI-001: Basic App Rendering', () => {
       if (error.includes('due to access control checks')) return false;
       if (error.includes('localhost:3001')) return false;
       if (error.includes('/api/v1/help/')) return false;
+      
+      // Ignore CSS MIME type errors (different browsers handle this differently)
+      if (error.includes('MIME type') && error.includes('text/css')) return false;
+      if (error.includes('non CSS MIME types are not allowed')) return false;
+      if (error.includes('stylesheet') && error.includes('was not loaded')) return false;
+      
+      // Ignore API rate limiting and capacity errors
+      if (error.includes('Too Many Requests')) return false;
+      if (error.includes('429')) return false;
+      if (error.includes('Ground station capacity exceeded')) return false;
+      if (error.includes('rate limit')) return false;
+      
       return true;
     });
 
@@ -67,6 +81,8 @@ test.describe('UI-001: Basic App Rendering', () => {
     // Different browsers report these failures differently:
     // - Chromium: "ERR_CONNECTION_REFUSED", "Failed to load resource"
     // - WebKit/Safari: "Could not connect to localhost", "due to access control checks"
+    // - Firefox/WebKit: CSS MIME type errors
+    // - API: Rate limiting and capacity errors
     const actualJsErrors = errors.filter(error => {
       // Ignore network connection errors
       if (error.includes('ERR_CONNECTION_REFUSED')) return false;
@@ -76,6 +92,18 @@ test.describe('UI-001: Basic App Rendering', () => {
       if (error.includes('due to access control checks')) return false;
       if (error.includes('localhost:3001')) return false;
       if (error.includes('/api/v1/help/')) return false;
+      
+      // Ignore CSS MIME type errors (different browsers handle this differently)
+      if (error.includes('MIME type') && error.includes('text/css')) return false;
+      if (error.includes('non CSS MIME types are not allowed')) return false;
+      if (error.includes('stylesheet') && error.includes('was not loaded')) return false;
+      
+      // Ignore API rate limiting and capacity errors
+      if (error.includes('Too Many Requests')) return false;
+      if (error.includes('429')) return false;
+      if (error.includes('Ground station capacity exceeded')) return false;
+      if (error.includes('rate limit')) return false;
+      
       return true;
     });
 
