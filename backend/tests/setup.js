@@ -38,6 +38,7 @@ const mockDataStore = {
   users: new Map(),
   satellites: new Map(),
   scenarios: new Map(),
+  scenario_steps: new Map(),
   commands: new Map(),
   token_blacklist: new Map(),
   audit_logs: new Map()
