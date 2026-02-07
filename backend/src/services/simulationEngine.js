@@ -1,890 +1,950 @@
-
 /**
  * Simulation Engine Service
  * Runs orbital mechanics and subsystem simulations
  * Enhanced with Mission Control features (Phase 1-2)
  */
 
-const logger = require('../utils/logger');
-const CommandQueue = require('./commandQueue');
-const StepValidator = require('./stepValidator');
-const VisibilityCalculator = require('./visibilityCalculator');
-const AnomalyInjector = require('./anomalyInjector');
-const { GROUND_STATIONS } = require('../constants/groundStations');
+const logger = require("../utils/logger");
+const CommandQueue = require("./commandQueue");
+const StepValidator = require("./stepValidator");
+const VisibilityCalculator = require("./visibilityCalculator");
+const AnomalyInjector = require("./anomalyInjector");
+const { GROUND_STATIONS } = require("../constants/groundStations");
 
 class SimulationEngine {
-  constructor(sessionManager) {
-    this.sessionManager = sessionManager;
-    this.activeSimulations = new Map(); // sessionId -> { interval, satellite, startTime, commands, state, commandQueue, beaconInterval, anomalyEffects }
-    
-    // Mission Control Enhancement services
-    this.stepValidator = new StepValidator();
-    this.visibilityCalculator = new VisibilityCalculator();
-    this.anomalyInjector = new AnomalyInjector();
-    this.groundStations = GROUND_STATIONS;
-  }
+	constructor(sessionManager) {
+		this.sessionManager = sessionManager;
+		this.activeSimulations = new Map(); // sessionId -> { interval, satellite, startTime, commands, state, commandQueue, beaconInterval, anomalyEffects }
 
-  /**
-   * Start simulation for a session
-   * @param {string} sessionId - Scenario session ID
-   * @param {object} satellite - Satellite configuration
-   * @param {object} initialState - Initial simulation state
-   * @param {string} scenarioDifficulty - Scenario difficulty level (BEGINNER, INTERMEDIATE, ADVANCED)
-   */
-  startSimulation(sessionId, satellite, initialState = {}, scenarioDifficulty = 'BEGINNER') {
-    if (this.activeSimulations.has(sessionId)) {
-      logger.warn('Simulation already running for session', { sessionId });
-      return;
-    }
+		// Mission Control Enhancement services
+		this.stepValidator = new StepValidator();
+		this.visibilityCalculator = new VisibilityCalculator();
+		this.anomalyInjector = new AnomalyInjector();
+		this.groundStations = GROUND_STATIONS;
+	}
 
-    const startTime = Date.now();
-    const simState = {
-      satellite,
-      startTime,
-      currentState: initialState,
-      commands: [], // Track all commands executed
-      commandEffects: {}, // Track ongoing effects from commands
-      anomalyEffects: {} // Track ongoing anomaly effects
-    };
+	/**
+	 * Start simulation for a session
+	 * @param {string} sessionId - Scenario session ID
+	 * @param {object} satellite - Satellite configuration
+	 * @param {object} initialState - Initial simulation state
+	 * @param {string} scenarioDifficulty - Scenario difficulty level (BEGINNER, INTERMEDIATE, ADVANCED)
+	 */
+	startSimulation(
+		sessionId,
+		satellite,
+		initialState = {},
+		scenarioDifficulty = "BEGINNER",
+	) {
+		if (this.activeSimulations.has(sessionId)) {
+			logger.warn("Simulation already running for session", { sessionId });
+			return;
+		}
 
-    // Update every 2 seconds
-    const interval = setInterval(() => {
-      try {
-        const elapsedSeconds = (Date.now() - startTime) / 1000;
-        const simulation = this.activeSimulations.get(sessionId);
-        
-        if (!simulation) return;
-        
-        const newState = this.computeNextState(
-          satellite, 
-          simulation.state.currentState, 
-          elapsedSeconds,
-          simulation.state.commandEffects
-        );
-        
-        simulation.state.currentState = newState;
-        
-        // Broadcast update via session manager
-        this.sessionManager.updateSessionState(sessionId, {
-          telemetry: newState,
-          timestamp: Date.now(),
-          elapsedTime: elapsedSeconds,
-          commandsExecuted: simulation.state.commands.length
-        });
-      } catch (error) {
-        logger.error('Simulation update failed', {
-          sessionId,
-          error: error.message
-        });
-      }
-    }, 2000);
+		const startTime = Date.now();
+		const simState = {
+			satellite,
+			startTime,
+			currentState: initialState,
+			commands: [], // Track all commands executed
+			commandEffects: {}, // Track ongoing effects from commands
+			anomalyEffects: {}, // Track ongoing anomaly effects
+		};
 
-    // Initialize command queue for this session
-    const commandQueue = new CommandQueue(sessionId, this);
-    commandQueue.start();
+		// Update every 2 seconds
+		const interval = setInterval(() => {
+			try {
+				const elapsedSeconds = (Date.now() - startTime) / 1000;
+				const simulation = this.activeSimulations.get(sessionId);
 
-    this.activeSimulations.set(sessionId, {
-      interval,
-      satellite,
-      startTime,
-      state: simState,
-      commandQueue,
-      beaconInterval: null,
-      deploymentTimeout: null
-    });
+				if (!simulation) return;
 
-    // Start beacon transmitter (first beacon after 45 minutes, then every 2 minutes)
-    this.startBeaconTransmitter(sessionId, 120000, 2700000);
+				const newState = this.computeNextState(
+					satellite,
+					simulation.state.currentState,
+					elapsedSeconds,
+					simulation.state.commandEffects,
+				);
 
-    // Start anomaly injection based on scenario difficulty
-    this.startAnomalyInjection(sessionId, scenarioDifficulty);
+				simulation.state.currentState = newState;
 
-    logger.info('Simulation started', {
-      sessionId,
-      satelliteName: satellite.name || 'Unknown',
-      updateInterval: '2s',
-      commandQueueEnabled: true,
-      beaconEnabled: true,
-      anomalySystemEnabled: scenarioDifficulty !== 'BEGINNER',
-      difficulty: scenarioDifficulty
-    });
-  }
+				// Broadcast update via session manager
+				this.sessionManager.updateSessionState(sessionId, {
+					telemetry: newState,
+					timestamp: Date.now(),
+					elapsedTime: elapsedSeconds,
+					commandsExecuted: simulation.state.commands.length,
+				});
+			} catch (error) {
+				logger.error("Simulation update failed", {
+					sessionId,
+					error: error.message,
+				});
+			}
+		}, 2000);
 
-  /**
-   * Stop simulation for a session
-   * @param {string} sessionId - Scenario session ID
-   */
-  stopSimulation(sessionId) {
-    const simulation = this.activeSimulations.get(sessionId);
-    
-    if (simulation) {
-      // Stop simulation interval
-      clearInterval(simulation.interval);
-      
-      // Stop command queue
-      if (simulation.commandQueue) {
-        simulation.commandQueue.stop();
-      }
-      
-      // Stop beacon transmitter
-      this.stopBeaconTransmitter(sessionId);
-      
-      // Stop anomaly injection
-      this.stopAnomalyInjection(sessionId);
-      
-      this.activeSimulations.delete(sessionId);
-      
-      logger.info('Simulation stopped', { sessionId });
-    }
-  }
+		// Initialize command queue for this session
+		const commandQueue = new CommandQueue(sessionId, this);
+		commandQueue.start();
 
-  /**
-   * Apply a command effect to the simulation
-   * @param {string} sessionId - Scenario session ID
-   * @param {object} command - Command to apply
-   */
-  applyCommand(sessionId, command) {
-    const simulation = this.activeSimulations.get(sessionId);
-    
-    if (!simulation) {
-      logger.warn('Cannot apply command to inactive simulation', { sessionId });
-      return;
-    }
-    
-    // Add command to history
-    simulation.state.commands.push({
-      ...command,
-      appliedAt: Date.now()
-    });
-    
-    // Apply command effects based on command type
-    switch (command.type) {
-    case 'orbital-maneuver':
-      this.applyOrbitalManeuver(simulation, command);
-      break;
-    case 'attitude-control':
-      this.applyAttitudeControl(simulation, command);
-      break;
-    case 'power-management':
-      this.applyPowerManagement(simulation, command);
-      break;
-    case 'communications':
-      this.applyCommunications(simulation, command);
-      break;
-    default:
-      logger.warn('Unknown command type', { type: command.type });
-    }
-    
-    logger.info('Command applied to simulation', {
-      sessionId,
-      commandType: command.type,
-      commandId: command.id
-    });
-  }
-  
-  /**
-   * Apply orbital maneuver command
-   */
-  applyOrbitalManeuver(simulation, command) {
-    const effects = simulation.state.commandEffects;
-    
-    // Set effect that will modify orbit over time
-    effects.orbitalManeuver = {
-      startTime: Date.now(),
-      duration: 30000, // 30 seconds
-      targetAltitude: command.parameters?.targetAltitude || 400,
-      fuelConsumption: 0.5 // % per maneuver
-    };
-  }
-  
-  /**
-   * Apply attitude control command
-   */
-  applyAttitudeControl(simulation, command) {
-    const effects = simulation.state.commandEffects;
-    
-    effects.attitudeChange = {
-      startTime: Date.now(),
-      duration: 15000, // 15 seconds
-      targetMode: command.parameters?.mode || 'nadir',
-      powerDraw: 10 // Additional watts
-    };
-  }
-  
-  /**
-   * Apply power management command
-   */
-  applyPowerManagement(simulation, command) {
-    const effects = simulation.state.commandEffects;
-    
-    effects.powerMode = {
-      mode: command.parameters?.mode || 'normal',
-      appliedAt: Date.now()
-    };
-  }
-  
-  /**
-   * Apply communications command
-   */
-  applyCommunications(simulation, command) {
-    const effects = simulation.state.commandEffects;
-    
-    effects.commLink = {
-      startTime: Date.now(),
-      duration: 600000, // 10 minutes
-      station: command.parameters?.station || 'Goldstone',
-      dataRate: command.parameters?.dataRate || 2.4
-    };
-  }
-  
-  /**
-   * Compute next simulation state
-   * @param {object} satellite - Satellite configuration
-   * @param {object} currentState - Current simulation state
-   * @param {number} elapsedSeconds - Elapsed time since simulation start
-   * @param {object} commandEffects - Active command effects
-   * @returns {object} Updated simulation state
-   */
-  computeNextState(satellite, currentState, elapsedSeconds, commandEffects = {}) {
-    // Initialize state if empty
-    if (!currentState.orbit) {
-      currentState = this.initializeState(satellite);
-    }
+		this.activeSimulations.set(sessionId, {
+			interval,
+			satellite,
+			startTime,
+			state: simState,
+			commandQueue,
+			beaconInterval: null,
+			deploymentTimeout: null,
+		});
 
-    // Simulate orbital mechanics (simplified model)
-    const orbit = this.simulateOrbit(
-      satellite, 
-      currentState.orbit, 
-      elapsedSeconds, 
-      commandEffects.orbitalManeuver
-    );
-    
-    // Simulate power subsystem
-    const power = this.simulatePower(
-      satellite, 
-      currentState.power, 
-      elapsedSeconds,
-      commandEffects.powerMode,
-      commandEffects.attitudeChange
-    );
-    
-    // Simulate attitude control
-    const attitude = this.simulateAttitude(
-      satellite, 
-      currentState.attitude, 
-      elapsedSeconds,
-      commandEffects.attitudeChange
-    );
-    
-    // Simulate thermal
-    const thermal = this.simulateThermal(satellite, currentState.thermal, elapsedSeconds);
-    
-    // Simulate propulsion
-    const propulsion = this.simulatePropulsion(
-      satellite, 
-      currentState.propulsion, 
-      elapsedSeconds,
-      commandEffects.orbitalManeuver
-    );
-    
-    // Simulate payload
-    const payload = this.simulatePayload(satellite, currentState.payload, elapsedSeconds);
+		// Start beacon transmitter (first beacon after 45 minutes, then every 2 minutes)
+		this.startBeaconTransmitter(sessionId, 120000, 2700000);
 
-    return {
-      orbit,
-      power,
-      attitude,
-      thermal,
-      propulsion,
-      payload,
-      timestamp: Date.now()
-    };
-  }
+		// Start anomaly injection based on scenario difficulty
+		this.startAnomalyInjection(sessionId, scenarioDifficulty);
 
-  /**
-   * Initialize simulation state from satellite configuration
-   * @param {object} satellite - Satellite configuration
-   * @returns {object} Initial state
-   */
-  initializeState(satellite) {
-    return {
-      orbit: {
-        altitude_km: satellite.orbit?.altitude_km || 415,
-        inclination_degrees: satellite.orbit?.inclination_degrees || 53,
-        eccentricity: satellite.orbit?.eccentricity || 0.0,
-        longitude: 0,
-        latitude: 0,
-        velocity_mps: 7660
-      },
-      power: {
-        currentCharge_percent: satellite.power?.currentCharge_percent || 95,
-        solarPower_watts: satellite.power?.solarPower_watts || 100,
-        consumption_watts: satellite.power?.consumption_watts || 45,
-        status: 'nominal'
-      },
-      attitude: {
-        roll_degrees: 0,
-        pitch_degrees: 0,
-        yaw_degrees: 0,
-        status: 'nominal'
-      },
-      thermal: {
-        temperature_celsius: satellite.thermal?.temperature_celsius || 20,
-        status: 'nominal'
-      },
-      propulsion: {
-        fuel_percent: satellite.propulsion?.fuel_percent || 100,
-        status: 'nominal'
-      },
-      payload: {
-        status: satellite.payload?.status || 'nominal',
-        dataCollected_mb: 0
-      }
-    };
-  }
+		logger.info("Simulation started", {
+			sessionId,
+			satelliteName: satellite.name || "Unknown",
+			updateInterval: "2s",
+			commandQueueEnabled: true,
+			beaconEnabled: true,
+			anomalySystemEnabled: scenarioDifficulty !== "BEGINNER",
+			difficulty: scenarioDifficulty,
+		});
+	}
 
-  /**
-   * Simulate orbital motion
-   */
-  simulateOrbit(satellite, currentOrbit, _elapsedSeconds, maneuverEffect) {
-    const orbitalPeriod = 5580; // ~93 minutes in seconds for LEO
-    const angle = (_elapsedSeconds / orbitalPeriod) * 360; // degrees
-    
-    let altitudeChange = (Math.random() - 0.5) * 0.1;
-    
-    // Apply maneuver effect if active
-    if (maneuverEffect) {
-      const elapsed = Date.now() - maneuverEffect.startTime;
-      if (elapsed < maneuverEffect.duration) {
-        const targetDelta = maneuverEffect.targetAltitude - currentOrbit.altitude_km;
-        altitudeChange += targetDelta * 0.05; // Gradual altitude change
-      }
-    }
-    
-    return {
-      ...currentOrbit,
-      altitude_km: currentOrbit.altitude_km + altitudeChange,
-      longitude: (angle * 4) % 360, // 4 orbits per day approximation
-      latitude: currentOrbit.inclination_degrees * Math.sin(angle * Math.PI / 180)
-    };
-  }
+	/**
+	 * Stop simulation for a session
+	 * @param {string} sessionId - Scenario session ID
+	 */
+	stopSimulation(sessionId) {
+		const simulation = this.activeSimulations.get(sessionId);
 
-  /**
-   * Simulate power subsystem
-   */
-  simulatePower(satellite, currentPower, _elapsedSeconds, powerMode, attitudeEffect) {
-    let solarPower = currentPower.solarPower_watts;
-    let consumption = currentPower.consumption_watts;
-    
-    // Apply power mode effects
-    if (powerMode?.mode === 'low-power') {
-      consumption *= 0.7; // Reduce consumption by 30%
-    } else if (powerMode?.mode === 'high-performance') {
-      consumption *= 1.3; // Increase consumption by 30%
-    }
-    
-    // Apply attitude change power draw
-    if (attitudeEffect) {
-      const elapsed = Date.now() - attitudeEffect.startTime;
-      if (elapsed < attitudeEffect.duration) {
-        consumption += attitudeEffect.powerDraw;
-      }
-    }
-    
-    const netPower = solarPower - consumption;
-    
-    // Simple battery model
-    const chargeRate = netPower / 1000; // per second
-    const newCharge = Math.max(0, Math.min(100, 
-      currentPower.currentCharge_percent + chargeRate * 2
-    ));
+		if (simulation) {
+			// Stop simulation interval
+			clearInterval(simulation.interval);
 
-    return {
-      ...currentPower,
-      solarPower_watts: solarPower,
-      consumption_watts: consumption,
-      currentCharge_percent: newCharge,
-      status: newCharge > 20 ? 'nominal' : (newCharge > 10 ? 'warning' : 'critical')
-    };
-  }
+			// Stop command queue
+			if (simulation.commandQueue) {
+				simulation.commandQueue.stop();
+			}
 
-  /**
-   * Simulate attitude control subsystem
-   */
-  simulateAttitude(satellite, currentAttitude, _elapsedSeconds, attitudeEffect) {
-    let roll = currentAttitude.roll_degrees + (Math.random() - 0.5) * 0.5;
-    let pitch = currentAttitude.pitch_degrees + (Math.random() - 0.5) * 0.5;
-    let yaw = currentAttitude.yaw_degrees + (Math.random() - 0.5) * 0.5;
-    let mode = currentAttitude.mode || 'nominal';
-    
-    // Apply attitude change effect
-    if (attitudeEffect) {
-      const elapsed = Date.now() - attitudeEffect.startTime;
-      if (elapsed < attitudeEffect.duration) {
-        mode = `changing-to-${attitudeEffect.targetMode}`;
-        // Gradually adjust to target orientation
-        roll *= 0.9; // Converge to target
-        pitch *= 0.9;
-        yaw *= 0.9;
-      } else {
-        mode = attitudeEffect.targetMode;
-      }
-    }
-    
-    return {
-      roll_degrees: roll,
-      pitch_degrees: pitch,
-      yaw_degrees: yaw,
-      mode,
-      status: 'nominal'
-    };
-  }
+			// Stop beacon transmitter
+			this.stopBeaconTransmitter(sessionId);
 
-  /**
-   * Simulate thermal subsystem
-   */
-  simulateThermal(satellite, currentThermal, _elapsedSeconds) {
-    // Temperature varies slightly
-    const temp = currentThermal.temperature_celsius + (Math.random() - 0.5) * 2;
-    
-    return {
-      temperature_celsius: temp,
-      status: (temp > -20 && temp < 50) ? 'nominal' : 'warning'
-    };
-  }
+			// Stop anomaly injection
+			this.stopAnomalyInjection(sessionId);
 
-  /**
-   * Simulate propulsion subsystem
-   */
-  simulatePropulsion(satellite, currentPropulsion, _elapsedSeconds, maneuverEffect) {
-    let fuelDepletion = 0.001; // Base depletion
-    
-    // Apply maneuver fuel consumption
-    if (maneuverEffect) {
-      const elapsed = Date.now() - maneuverEffect.startTime;
-      if (elapsed < maneuverEffect.duration) {
-        fuelDepletion += maneuverEffect.fuelConsumption / (maneuverEffect.duration / 1000);
-      }
-    }
-    
-    const newFuelPercent = Math.max(0, currentPropulsion.fuel_percent - fuelDepletion);
-    
-    return {
-      fuel_percent: newFuelPercent,
-      status: newFuelPercent > 10 ? 'nominal' : 'warning'
-    };
-  }
+			this.activeSimulations.delete(sessionId);
 
-  /**
-   * Simulate payload subsystem
-   */
-  simulatePayload(satellite, currentPayload, _elapsedSeconds) {
-    // Data collection over time
-    return {
-      status: currentPayload.status || 'nominal',
-      dataCollected_mb: (currentPayload.dataCollected_mb || 0) + (Math.random() * 0.5)
-    };
-  }
+			logger.info("Simulation stopped", { sessionId });
+		}
+	}
 
-  /**
-   * Get all active simulation IDs
-   * @returns {Array<string>} Array of active session IDs
-   */
-  getActiveSimulations() {
-    return Array.from(this.activeSimulations.keys());
-  }
+	/**
+	 * Apply a command effect to the simulation
+	 * @param {string} sessionId - Scenario session ID
+	 * @param {object} command - Command to apply
+	 */
+	applyCommand(sessionId, command) {
+		const simulation = this.activeSimulations.get(sessionId);
 
-  /**
-   * Get simulation state for a session
-   * @param {string} sessionId - Scenario session ID
-   * @returns {object|null} Simulation state
-   */
-  getSimulationState(sessionId) {
-    const simulation = this.activeSimulations.get(sessionId);
-    return simulation ? simulation.state : null;
-  }
-  
-  /**
-   * Get command history for a session
-   * @param {string} sessionId - Scenario session ID
-   * @returns {Array} Command history
-   */
-  getCommandHistory(sessionId) {
-    const simulation = this.activeSimulations.get(sessionId);
-    return simulation ? simulation.state.commands : [];
-  }
-  
-  /**
-   * Check if simulation is running
-   * @param {string} sessionId - Scenario session ID
-   * @returns {boolean} True if simulation is active
-   */
-  isRunning(sessionId) {
-    return this.activeSimulations.has(sessionId);
-  }
+		if (!simulation) {
+			logger.warn("Cannot apply command to inactive simulation", { sessionId });
+			return;
+		}
 
-  /**
-   * Stop all simulations (for graceful shutdown)
-   */
-  stopAll() {
-    const sessions = Array.from(this.activeSimulations.keys());
-    sessions.forEach(sessionId => this.stopSimulation(sessionId));
-    logger.info('All simulations stopped', { count: sessions.length });
-  }
+		// Add command to history
+		simulation.state.commands.push({
+			...command,
+			appliedAt: Date.now(),
+		});
 
-  /**
-   * Start beacon transmitter for session
-   * Mission Control Enhancement - Phase 2
-   * @param {string} sessionId - Session ID
-   * @param {number} beaconInterval - Interval between beacons (ms), default 2 minutes
-   * @param {number} deploymentDelay - Initial delay before first beacon (ms), default 45 minutes
-   */
-  startBeaconTransmitter(sessionId, beaconInterval = 120000, deploymentDelay = 2700000) {
-    const simulation = this.activeSimulations.get(sessionId);
-    if (!simulation) {
-      logger.warn('Cannot start beacon for inactive simulation', { sessionId });
-      return;
-    }
-    
-    // Initial beacon after deployment delay (simulates satellite coming online after launch)
-    simulation.deploymentTimeout = setTimeout(() => {
-      this.transmitBeacon(sessionId, 'initial');
-      
-      // Then regular beacons every interval
-      simulation.beaconInterval = setInterval(() => {
-        this.transmitBeacon(sessionId, 'periodic');
-      }, beaconInterval);
-      
-      logger.info('Beacon transmitter started', {
-        sessionId,
-        beaconInterval: beaconInterval / 1000
-      });
-      
-    }, deploymentDelay);
-  }
+		// Apply command effects based on command type
+		switch (command.type) {
+			case "orbital-maneuver":
+				this.applyOrbitalManeuver(simulation, command);
+				break;
+			case "attitude-control":
+				this.applyAttitudeControl(simulation, command);
+				break;
+			case "power-management":
+				this.applyPowerManagement(simulation, command);
+				break;
+			case "communications":
+				this.applyCommunications(simulation, command);
+				break;
+			default:
+				logger.warn("Unknown command type", { type: command.type });
+		}
 
-  /**
-   * Transmit beacon from satellite
-   * Mission Control Enhancement - Phase 2
-   * @param {string} sessionId - Session ID
-   * @param {string} beaconType - 'initial' or 'periodic'
-   */
-  transmitBeacon(sessionId, beaconType) {
-    const simulation = this.activeSimulations.get(sessionId);
-    if (!simulation) return;
-    
-    const currentState = simulation.state.currentState;
-    
-    // Create beacon data packet
-    const beaconData = {
-      type: beaconType,
-      timestamp: Date.now(),
-      satelliteId: simulation.satellite.id,
-      satelliteName: simulation.satellite.name,
-      basicTelemetry: {
-        power: {
-          batteryCharge: currentState.power?.currentCharge_percent || 0,
-          solarPower: currentState.power?.solarPower_watts || 0,
-          status: currentState.power?.status || 'unknown'
-        },
-        attitude: {
-          status: currentState.attitude?.status || 'unknown',
-          mode: currentState.attitude?.mode || 'nominal'
-        },
-        thermal: {
-          temperature: currentState.thermal?.temperature_celsius || 0,
-          status: currentState.thermal?.status || 'unknown'
-        },
-        communications: {
-          status: 'nominal',
-          signalStrength: 85
-        }
-      }
-    };
-    
-    // Check ground station visibility
-    const visibility = this.checkGroundStationVisibility(sessionId);
-    
-    if (visibility.isVisible) {
-      // Beacon received by ground station
-      logger.info('Beacon transmitted and received', {
-        sessionId,
-        beaconType,
-        groundStation: visibility.station.displayName
-      });
-      
-      // Emit beacon to frontend via WebSocket
-      if (this.sessionManager?.io) {
-        this.sessionManager.io.to(sessionId).emit('beacon:received', {
-          beacon: beaconData,
-          signalStrength: visibility.signalStrength,
-          groundStation: {
-            id: visibility.station.stationId,
-            name: visibility.station.displayName,
-            location: visibility.station.location
-          },
-          visibility: {
-            elevation: visibility.elevation,
-            azimuth: visibility.azimuth,
-            range: visibility.range
-          }
-        });
-      }
-      
-      // Update session state (for step validation)
-      simulation.state.lastBeaconReceived = Date.now();
-      simulation.state.beaconType = beaconType;
-      simulation.state.beaconsReceived = (simulation.state.beaconsReceived || 0) + 1;
-      
-    } else {
-      // Beacon transmitted but not received (no ground station in view)
-      logger.debug('Beacon transmitted but not received (no ground station visible)', {
-        sessionId,
-        beaconType
-      });
-      
-      // Still emit event so frontend can show "beacon transmitted" indicator
-      if (this.sessionManager?.io) {
-        this.sessionManager.io.to(sessionId).emit('beacon:transmitted', {
-          beacon: beaconData,
-          received: false,
-          reason: 'No ground station in view',
-          nextPass: visibility.nextPassTime
-        });
-      }
-    }
-  }
+		logger.info("Command applied to simulation", {
+			sessionId,
+			commandType: command.type,
+			commandId: command.id,
+		});
+	}
 
-  /**
-   * Stop beacon transmitter
-   * Mission Control Enhancement - Phase 2
-   * @param {string} sessionId - Session ID
-   */
-  stopBeaconTransmitter(sessionId) {
-    const simulation = this.activeSimulations.get(sessionId);
-    if (!simulation) return;
-    
-    if (simulation.deploymentTimeout) {
-      clearTimeout(simulation.deploymentTimeout);
-      simulation.deploymentTimeout = null;
-    }
-    
-    if (simulation.beaconInterval) {
-      clearInterval(simulation.beaconInterval);
-      simulation.beaconInterval = null;
-    }
-    
-    logger.info('Beacon transmitter stopped', { sessionId });
-  }
+	/**
+	 * Apply orbital maneuver command
+	 */
+	applyOrbitalManeuver(simulation, command) {
+		const effects = simulation.state.commandEffects;
 
-  /**
-   * Check ground station visibility for session
-   * Mission Control Enhancement - Phase 2
-   * @param {string} sessionId - Session ID
-   * @returns {object} Visibility information
-   */
-  checkGroundStationVisibility(sessionId) {
-    const simulation = this.activeSimulations.get(sessionId);
-    if (!simulation) {
-      return { isVisible: false, reason: 'Simulation not found' };
-    }
-    
-    const orbit = simulation.state.currentState.orbit;
-    const currentTime = Date.now();
-    
-    // Use visibility calculator to find best ground station
-    const bestStation = this.visibilityCalculator.getBestStation(
-      orbit, 
-      this.groundStations, 
-      currentTime
-    );
-    
-    if (bestStation) {
-      return {
-        isVisible: true,
-        station: bestStation.station,
-        elevation: bestStation.visibility.elevation,
-        azimuth: bestStation.visibility.azimuth,
-        range: bestStation.visibility.range,
-        signalStrength: bestStation.visibility.signalStrength,
-        passDuration: bestStation.visibility.passDuration
-      };
-    }
-    
-    // No visible station - calculate next pass
-    const firstStation = this.groundStations[0];
-    const nextPass = this.visibilityCalculator.calculateNextPass(orbit, firstStation, currentTime);
-    
-    return {
-      isVisible: false,
-      reason: 'No ground station in view',
-      nextPassTime: nextPass
-    };
-  }
+		// Set effect that will modify orbit over time
+		effects.orbitalManeuver = {
+			startTime: Date.now(),
+			duration: 30000, // 30 seconds
+			targetAltitude: command.parameters?.targetAltitude || 400,
+			fuelConsumption: 0.5, // % per maneuver
+		};
+	}
 
-  /**
-   * Check step completion for a session
-   * Mission Control Enhancement - Phase 1
-   * @param {string} sessionId - Session ID
-   * @param {object} step - Scenario step object
-   * @returns {object} Validation result
-   */
-  checkStepCompletion(sessionId, step) {
-    const simulation = this.activeSimulations.get(sessionId);
-    if (!simulation) {
-      return { isComplete: false, reason: 'Simulation not found' };
-    }
-    
-    const sessionState = {
-      telemetry: simulation.state.currentState,
-      startedAt: simulation.startTime,
-      lastBeaconReceived: simulation.state.lastBeaconReceived,
-      beaconType: simulation.state.beaconType,
-      beaconsReceived: simulation.state.beaconsReceived,
-      manualConfirmations: simulation.state.manualConfirmations || []
-    };
-    
-    const commandHistory = simulation.state.commands;
-    
-    return this.stepValidator.validateStepCompletion(step, sessionState, commandHistory);
-  }
+	/**
+	 * Apply attitude control command
+	 */
+	applyAttitudeControl(simulation, command) {
+		const effects = simulation.state.commandEffects;
 
-  /**
-   * Enqueue command with latency
-   * Mission Control Enhancement - Phase 1
-   * @param {string} sessionId - Session ID
-   * @param {object} command - Command to enqueue
-   * @param {number} latencySeconds - Optional custom latency
-   * @returns {string} Command ID
-   */
-  enqueueCommand(sessionId, command, latencySeconds = null) {
-    const simulation = this.activeSimulations.get(sessionId);
-    if (!simulation || !simulation.commandQueue) {
-      logger.warn('Cannot enqueue command - no command queue', { sessionId });
-      return null;
-    }
-    
-    return simulation.commandQueue.enqueueCommand(command, latencySeconds);
-  }
+		effects.attitudeChange = {
+			startTime: Date.now(),
+			duration: 15000, // 15 seconds
+			targetMode: command.parameters?.mode || "nadir",
+			powerDraw: 10, // Additional watts
+		};
+	}
 
-  /**
-   * Get command queue status
-   * Mission Control Enhancement - Phase 1
-   * @param {string} sessionId - Session ID
-   * @returns {object} Queue statistics
-   */
-  getCommandQueueStatus(sessionId) {
-    const simulation = this.activeSimulations.get(sessionId);
-    if (!simulation || !simulation.commandQueue) {
-      return null;
-    }
-    
-    return simulation.commandQueue.getStats();
-  }
+	/**
+	 * Apply power management command
+	 */
+	applyPowerManagement(simulation, command) {
+		const effects = simulation.state.commandEffects;
 
-  /**
-   * Apply anomaly effects to simulation state
-   * Anomaly System Enhancement
-   * @param {string} sessionId - Session ID
-   * @param {object} anomalyDef - Anomaly definition
-   */
-  applyAnomalyEffects(sessionId, anomalyDef) {
-    const simulation = this.activeSimulations.get(sessionId);
-    if (!simulation) return;
+		effects.powerMode = {
+			mode: command.parameters?.mode || "normal",
+			appliedAt: Date.now(),
+		};
+	}
 
-    const effects = simulation.state.anomalyEffects;
-    effects[anomalyDef.id] = anomalyDef.effects;
+	/**
+	 * Apply communications command
+	 */
+	applyCommunications(simulation, command) {
+		const effects = simulation.state.commandEffects;
 
-    logger.info('Anomaly effects applied to simulation', {
-      sessionId,
-      anomalyId: anomalyDef.id,
-      effects: anomalyDef.effects
-    });
-  }
+		effects.commLink = {
+			startTime: Date.now(),
+			duration: 600000, // 10 minutes
+			station: command.parameters?.station || "Goldstone",
+			dataRate: command.parameters?.dataRate || 2.4,
+		};
+	}
 
-  /**
-   * Remove anomaly effects from simulation state
-   * Anomaly System Enhancement
-   * @param {string} sessionId - Session ID
-   * @param {object} anomalyDef - Anomaly definition
-   */
-  removeAnomalyEffects(sessionId, anomalyDef) {
-    const simulation = this.activeSimulations.get(sessionId);
-    if (!simulation) return;
+	/**
+	 * Compute next simulation state
+	 * @param {object} satellite - Satellite configuration
+	 * @param {object} currentState - Current simulation state
+	 * @param {number} elapsedSeconds - Elapsed time since simulation start
+	 * @param {object} commandEffects - Active command effects
+	 * @returns {object} Updated simulation state
+	 */
+	computeNextState(
+		satellite,
+		currentState,
+		elapsedSeconds,
+		commandEffects = {},
+	) {
+		// Initialize state if empty
+		if (!currentState.orbit) {
+			currentState = this.initializeState(satellite);
+		}
 
-    const effects = simulation.state.anomalyEffects;
-    delete effects[anomalyDef.id];
+		// Simulate orbital mechanics (simplified model)
+		const orbit = this.simulateOrbit(
+			satellite,
+			currentState.orbit,
+			elapsedSeconds,
+			commandEffects.orbitalManeuver,
+		);
 
-    logger.info('Anomaly effects removed from simulation', {
-      sessionId,
-      anomalyId: anomalyDef.id
-    });
-  }
+		// Simulate power subsystem
+		const power = this.simulatePower(
+			satellite,
+			currentState.power,
+			elapsedSeconds,
+			commandEffects.powerMode,
+			commandEffects.attitudeChange,
+		);
 
-  /**
-   * Start anomaly injection for a session
-   * Anomaly System Enhancement
-   * @param {string} sessionId - Session ID
-   * @param {string} difficulty - Scenario difficulty
-   */
-  startAnomalyInjection(sessionId, difficulty) {
-    this.anomalyInjector.startInjection(sessionId, difficulty, this);
-    
-    logger.info('Anomaly injection started for session', {
-      sessionId,
-      difficulty
-    });
-  }
+		// Simulate attitude control
+		const attitude = this.simulateAttitude(
+			satellite,
+			currentState.attitude,
+			elapsedSeconds,
+			commandEffects.attitudeChange,
+		);
 
-  /**
-   * Stop anomaly injection for a session
-   * Anomaly System Enhancement
-   * @param {string} sessionId - Session ID
-   */
-  stopAnomalyInjection(sessionId) {
-    this.anomalyInjector.stopInjection(sessionId);
-    
-    logger.info('Anomaly injection stopped for session', {
-      sessionId
-    });
-  }
+		// Simulate thermal
+		const thermal = this.simulateThermal(
+			satellite,
+			currentState.thermal,
+			elapsedSeconds,
+		);
 
-  /**
-   * Check if command resolves any active anomalies
-   * Anomaly System Enhancement
-   * @param {string} sessionId - Session ID
-   * @param {string} commandName - Command name
-   */
-  checkAnomalyResolution(sessionId, commandName) {
-    const resolved = this.anomalyInjector.resolveAnomaly(sessionId, commandName, this);
-    
-    if (resolved) {
-      logger.info('Command resolved anomaly', {
-        sessionId,
-        commandName
-      });
-    }
-  }
+		// Simulate propulsion
+		const propulsion = this.simulatePropulsion(
+			satellite,
+			currentState.propulsion,
+			elapsedSeconds,
+			commandEffects.orbitalManeuver,
+		);
 
-  /**
-   * Get active anomalies for a session
-   * Anomaly System Enhancement
-   * @param {string} sessionId - Session ID
-   * @returns {Array} Active anomalies
-   */
-  getActiveAnomalies(sessionId) {
-    return this.anomalyInjector.getActiveAnomalies(sessionId);
-  }
+		// Simulate payload
+		const payload = this.simulatePayload(
+			satellite,
+			currentState.payload,
+			elapsedSeconds,
+		);
 
-  /**
-   * Get anomaly statistics for a session
-   * Anomaly System Enhancement
-   * @param {string} sessionId - Session ID
-   * @returns {object} Anomaly statistics
-   */
-  getAnomalyStats(sessionId) {
-    return this.anomalyInjector.getStats(sessionId);
-  }
+		return {
+			orbit,
+			power,
+			attitude,
+			thermal,
+			propulsion,
+			payload,
+			timestamp: Date.now(),
+		};
+	}
+
+	/**
+	 * Initialize simulation state from satellite configuration
+	 * @param {object} satellite - Satellite configuration
+	 * @returns {object} Initial state
+	 */
+	initializeState(satellite) {
+		return {
+			orbit: {
+				altitude_km: satellite.orbit?.altitude_km || 415,
+				inclination_degrees: satellite.orbit?.inclination_degrees || 53,
+				eccentricity: satellite.orbit?.eccentricity || 0.0,
+				longitude: 0,
+				latitude: 0,
+				velocity_mps: 7660,
+			},
+			power: {
+				currentCharge_percent: satellite.power?.currentCharge_percent || 95,
+				solarPower_watts: satellite.power?.solarPower_watts || 100,
+				consumption_watts: satellite.power?.consumption_watts || 45,
+				status: "nominal",
+			},
+			attitude: {
+				roll_degrees: 0,
+				pitch_degrees: 0,
+				yaw_degrees: 0,
+				status: "nominal",
+			},
+			thermal: {
+				temperature_celsius: satellite.thermal?.temperature_celsius || 20,
+				status: "nominal",
+			},
+			propulsion: {
+				fuel_percent: satellite.propulsion?.fuel_percent || 100,
+				status: "nominal",
+			},
+			payload: {
+				status: satellite.payload?.status || "nominal",
+				dataCollected_mb: 0,
+			},
+		};
+	}
+
+	/**
+	 * Simulate orbital motion
+	 */
+	simulateOrbit(satellite, currentOrbit, _elapsedSeconds, maneuverEffect) {
+		const orbitalPeriod = 5580; // ~93 minutes in seconds for LEO
+		const angle = (_elapsedSeconds / orbitalPeriod) * 360; // degrees
+
+		let altitudeChange = (Math.random() - 0.5) * 0.1;
+
+		// Apply maneuver effect if active
+		if (maneuverEffect) {
+			const elapsed = Date.now() - maneuverEffect.startTime;
+			if (elapsed < maneuverEffect.duration) {
+				const targetDelta =
+					maneuverEffect.targetAltitude - currentOrbit.altitude_km;
+				altitudeChange += targetDelta * 0.05; // Gradual altitude change
+			}
+		}
+
+		return {
+			...currentOrbit,
+			altitude_km: currentOrbit.altitude_km + altitudeChange,
+			longitude: (angle * 4) % 360, // 4 orbits per day approximation
+			latitude:
+				currentOrbit.inclination_degrees * Math.sin((angle * Math.PI) / 180),
+		};
+	}
+
+	/**
+	 * Simulate power subsystem
+	 */
+	simulatePower(
+		satellite,
+		currentPower,
+		_elapsedSeconds,
+		powerMode,
+		attitudeEffect,
+	) {
+		let solarPower = currentPower.solarPower_watts;
+		let consumption = currentPower.consumption_watts;
+
+		// Apply power mode effects
+		if (powerMode?.mode === "low-power") {
+			consumption *= 0.7; // Reduce consumption by 30%
+		} else if (powerMode?.mode === "high-performance") {
+			consumption *= 1.3; // Increase consumption by 30%
+		}
+
+		// Apply attitude change power draw
+		if (attitudeEffect) {
+			const elapsed = Date.now() - attitudeEffect.startTime;
+			if (elapsed < attitudeEffect.duration) {
+				consumption += attitudeEffect.powerDraw;
+			}
+		}
+
+		const netPower = solarPower - consumption;
+
+		// Simple battery model
+		const chargeRate = netPower / 1000; // per second
+		const newCharge = Math.max(
+			0,
+			Math.min(100, currentPower.currentCharge_percent + chargeRate * 2),
+		);
+
+		return {
+			...currentPower,
+			solarPower_watts: solarPower,
+			consumption_watts: consumption,
+			currentCharge_percent: newCharge,
+			status:
+				newCharge > 20 ? "nominal" : newCharge > 10 ? "warning" : "critical",
+		};
+	}
+
+	/**
+	 * Simulate attitude control subsystem
+	 */
+	simulateAttitude(
+		satellite,
+		currentAttitude,
+		_elapsedSeconds,
+		attitudeEffect,
+	) {
+		let roll = currentAttitude.roll_degrees + (Math.random() - 0.5) * 0.5;
+		let pitch = currentAttitude.pitch_degrees + (Math.random() - 0.5) * 0.5;
+		let yaw = currentAttitude.yaw_degrees + (Math.random() - 0.5) * 0.5;
+		let mode = currentAttitude.mode || "nominal";
+
+		// Apply attitude change effect
+		if (attitudeEffect) {
+			const elapsed = Date.now() - attitudeEffect.startTime;
+			if (elapsed < attitudeEffect.duration) {
+				mode = `changing-to-${attitudeEffect.targetMode}`;
+				// Gradually adjust to target orientation
+				roll *= 0.9; // Converge to target
+				pitch *= 0.9;
+				yaw *= 0.9;
+			} else {
+				mode = attitudeEffect.targetMode;
+			}
+		}
+
+		return {
+			roll_degrees: roll,
+			pitch_degrees: pitch,
+			yaw_degrees: yaw,
+			mode,
+			status: "nominal",
+		};
+	}
+
+	/**
+	 * Simulate thermal subsystem
+	 */
+	simulateThermal(satellite, currentThermal, _elapsedSeconds) {
+		// Temperature varies slightly
+		const temp = currentThermal.temperature_celsius + (Math.random() - 0.5) * 2;
+
+		return {
+			temperature_celsius: temp,
+			status: temp > -20 && temp < 50 ? "nominal" : "warning",
+		};
+	}
+
+	/**
+	 * Simulate propulsion subsystem
+	 */
+	simulatePropulsion(
+		satellite,
+		currentPropulsion,
+		_elapsedSeconds,
+		maneuverEffect,
+	) {
+		let fuelDepletion = 0.001; // Base depletion
+
+		// Apply maneuver fuel consumption
+		if (maneuverEffect) {
+			const elapsed = Date.now() - maneuverEffect.startTime;
+			if (elapsed < maneuverEffect.duration) {
+				fuelDepletion +=
+					maneuverEffect.fuelConsumption / (maneuverEffect.duration / 1000);
+			}
+		}
+
+		const newFuelPercent = Math.max(
+			0,
+			currentPropulsion.fuel_percent - fuelDepletion,
+		);
+
+		return {
+			fuel_percent: newFuelPercent,
+			status: newFuelPercent > 10 ? "nominal" : "warning",
+		};
+	}
+
+	/**
+	 * Simulate payload subsystem
+	 */
+	simulatePayload(satellite, currentPayload, _elapsedSeconds) {
+		// Data collection over time
+		return {
+			status: currentPayload.status || "nominal",
+			dataCollected_mb:
+				(currentPayload.dataCollected_mb || 0) + Math.random() * 0.5,
+		};
+	}
+
+	/**
+	 * Get all active simulation IDs
+	 * @returns {Array<string>} Array of active session IDs
+	 */
+	getActiveSimulations() {
+		return Array.from(this.activeSimulations.keys());
+	}
+
+	/**
+	 * Get simulation state for a session
+	 * @param {string} sessionId - Scenario session ID
+	 * @returns {object|null} Simulation state
+	 */
+	getSimulationState(sessionId) {
+		const simulation = this.activeSimulations.get(sessionId);
+		return simulation ? simulation.state : null;
+	}
+
+	/**
+	 * Get command history for a session
+	 * @param {string} sessionId - Scenario session ID
+	 * @returns {Array} Command history
+	 */
+	getCommandHistory(sessionId) {
+		const simulation = this.activeSimulations.get(sessionId);
+		return simulation ? simulation.state.commands : [];
+	}
+
+	/**
+	 * Check if simulation is running
+	 * @param {string} sessionId - Scenario session ID
+	 * @returns {boolean} True if simulation is active
+	 */
+	isRunning(sessionId) {
+		return this.activeSimulations.has(sessionId);
+	}
+
+	/**
+	 * Stop all simulations (for graceful shutdown)
+	 */
+	stopAll() {
+		const sessions = Array.from(this.activeSimulations.keys());
+		sessions.forEach((sessionId) => this.stopSimulation(sessionId));
+		logger.info("All simulations stopped", { count: sessions.length });
+	}
+
+	/**
+	 * Start beacon transmitter for session
+	 * Mission Control Enhancement - Phase 2
+	 * @param {string} sessionId - Session ID
+	 * @param {number} beaconInterval - Interval between beacons (ms), default 2 minutes
+	 * @param {number} deploymentDelay - Initial delay before first beacon (ms), default 45 minutes
+	 */
+	startBeaconTransmitter(
+		sessionId,
+		beaconInterval = 120000,
+		deploymentDelay = 2700000,
+	) {
+		const simulation = this.activeSimulations.get(sessionId);
+		if (!simulation) {
+			logger.warn("Cannot start beacon for inactive simulation", { sessionId });
+			return;
+		}
+
+		// Initial beacon after deployment delay (simulates satellite coming online after launch)
+		simulation.deploymentTimeout = setTimeout(() => {
+			this.transmitBeacon(sessionId, "initial");
+
+			// Then regular beacons every interval
+			simulation.beaconInterval = setInterval(() => {
+				this.transmitBeacon(sessionId, "periodic");
+			}, beaconInterval);
+
+			logger.info("Beacon transmitter started", {
+				sessionId,
+				beaconInterval: beaconInterval / 1000,
+			});
+		}, deploymentDelay);
+	}
+
+	/**
+	 * Transmit beacon from satellite
+	 * Mission Control Enhancement - Phase 2
+	 * @param {string} sessionId - Session ID
+	 * @param {string} beaconType - 'initial' or 'periodic'
+	 */
+	transmitBeacon(sessionId, beaconType) {
+		const simulation = this.activeSimulations.get(sessionId);
+		if (!simulation) return;
+
+		const currentState = simulation.state.currentState;
+
+		// Create beacon data packet
+		const beaconData = {
+			type: beaconType,
+			timestamp: Date.now(),
+			satelliteId: simulation.satellite.id,
+			satelliteName: simulation.satellite.name,
+			basicTelemetry: {
+				power: {
+					batteryCharge: currentState.power?.currentCharge_percent || 0,
+					solarPower: currentState.power?.solarPower_watts || 0,
+					status: currentState.power?.status || "unknown",
+				},
+				attitude: {
+					status: currentState.attitude?.status || "unknown",
+					mode: currentState.attitude?.mode || "nominal",
+				},
+				thermal: {
+					temperature: currentState.thermal?.temperature_celsius || 0,
+					status: currentState.thermal?.status || "unknown",
+				},
+				communications: {
+					status: "nominal",
+					signalStrength: 85,
+				},
+			},
+		};
+
+		// Check ground station visibility
+		const visibility = this.checkGroundStationVisibility(sessionId);
+
+		if (visibility.isVisible) {
+			// Beacon received by ground station
+			logger.info("Beacon transmitted and received", {
+				sessionId,
+				beaconType,
+				groundStation: visibility.station.displayName,
+			});
+
+			// Emit beacon to frontend via WebSocket
+			if (this.sessionManager?.io) {
+				this.sessionManager.io.to(sessionId).emit("beacon:received", {
+					beacon: beaconData,
+					signalStrength: visibility.signalStrength,
+					groundStation: {
+						id: visibility.station.stationId,
+						name: visibility.station.displayName,
+						location: visibility.station.location,
+					},
+					visibility: {
+						elevation: visibility.elevation,
+						azimuth: visibility.azimuth,
+						range: visibility.range,
+					},
+				});
+			}
+
+			// Update session state (for step validation)
+			simulation.state.lastBeaconReceived = Date.now();
+			simulation.state.beaconType = beaconType;
+			simulation.state.beaconsReceived =
+				(simulation.state.beaconsReceived || 0) + 1;
+		} else {
+			// Beacon transmitted but not received (no ground station in view)
+			logger.debug(
+				"Beacon transmitted but not received (no ground station visible)",
+				{
+					sessionId,
+					beaconType,
+				},
+			);
+
+			// Still emit event so frontend can show "beacon transmitted" indicator
+			if (this.sessionManager?.io) {
+				this.sessionManager.io.to(sessionId).emit("beacon:transmitted", {
+					beacon: beaconData,
+					received: false,
+					reason: "No ground station in view",
+					nextPass: visibility.nextPassTime,
+				});
+			}
+		}
+	}
+
+	/**
+	 * Stop beacon transmitter
+	 * Mission Control Enhancement - Phase 2
+	 * @param {string} sessionId - Session ID
+	 */
+	stopBeaconTransmitter(sessionId) {
+		const simulation = this.activeSimulations.get(sessionId);
+		if (!simulation) return;
+
+		if (simulation.deploymentTimeout) {
+			clearTimeout(simulation.deploymentTimeout);
+			simulation.deploymentTimeout = null;
+		}
+
+		if (simulation.beaconInterval) {
+			clearInterval(simulation.beaconInterval);
+			simulation.beaconInterval = null;
+		}
+
+		logger.info("Beacon transmitter stopped", { sessionId });
+	}
+
+	/**
+	 * Check ground station visibility for session
+	 * Mission Control Enhancement - Phase 2
+	 * @param {string} sessionId - Session ID
+	 * @returns {object} Visibility information
+	 */
+	checkGroundStationVisibility(sessionId) {
+		const simulation = this.activeSimulations.get(sessionId);
+		if (!simulation) {
+			return { isVisible: false, reason: "Simulation not found" };
+		}
+
+		const orbit = simulation.state.currentState.orbit;
+		const currentTime = Date.now();
+
+		// Use visibility calculator to find best ground station
+		const bestStation = this.visibilityCalculator.getBestStation(
+			orbit,
+			this.groundStations,
+			currentTime,
+		);
+
+		if (bestStation) {
+			return {
+				isVisible: true,
+				station: bestStation.station,
+				elevation: bestStation.visibility.elevation,
+				azimuth: bestStation.visibility.azimuth,
+				range: bestStation.visibility.range,
+				signalStrength: bestStation.visibility.signalStrength,
+				passDuration: bestStation.visibility.passDuration,
+			};
+		}
+
+		// No visible station - calculate next pass
+		const firstStation = this.groundStations[0];
+		const nextPass = this.visibilityCalculator.calculateNextPass(
+			orbit,
+			firstStation,
+			currentTime,
+		);
+
+		return {
+			isVisible: false,
+			reason: "No ground station in view",
+			nextPassTime: nextPass,
+		};
+	}
+
+	/**
+	 * Check step completion for a session
+	 * Mission Control Enhancement - Phase 1
+	 * @param {string} sessionId - Session ID
+	 * @param {object} step - Scenario step object
+	 * @returns {object} Validation result
+	 */
+	checkStepCompletion(sessionId, step) {
+		const simulation = this.activeSimulations.get(sessionId);
+		if (!simulation) {
+			return { isComplete: false, reason: "Simulation not found" };
+		}
+
+		const sessionState = {
+			telemetry: simulation.state.currentState,
+			startedAt: simulation.startTime,
+			lastBeaconReceived: simulation.state.lastBeaconReceived,
+			beaconType: simulation.state.beaconType,
+			beaconsReceived: simulation.state.beaconsReceived,
+			manualConfirmations: simulation.state.manualConfirmations || [],
+		};
+
+		const commandHistory = simulation.state.commands;
+
+		return this.stepValidator.validateStepCompletion(
+			step,
+			sessionState,
+			commandHistory,
+		);
+	}
+
+	/**
+	 * Enqueue command with latency
+	 * Mission Control Enhancement - Phase 1
+	 * @param {string} sessionId - Session ID
+	 * @param {object} command - Command to enqueue
+	 * @param {number} latencySeconds - Optional custom latency
+	 * @returns {string} Command ID
+	 */
+	enqueueCommand(sessionId, command, latencySeconds = null) {
+		const simulation = this.activeSimulations.get(sessionId);
+		if (!simulation || !simulation.commandQueue) {
+			logger.warn("Cannot enqueue command - no command queue", { sessionId });
+			return null;
+		}
+
+		return simulation.commandQueue.enqueueCommand(command, latencySeconds);
+	}
+
+	/**
+	 * Get command queue status
+	 * Mission Control Enhancement - Phase 1
+	 * @param {string} sessionId - Session ID
+	 * @returns {object} Queue statistics
+	 */
+	getCommandQueueStatus(sessionId) {
+		const simulation = this.activeSimulations.get(sessionId);
+		if (!simulation || !simulation.commandQueue) {
+			return null;
+		}
+
+		return simulation.commandQueue.getStats();
+	}
+
+	/**
+	 * Apply anomaly effects to simulation state
+	 * Anomaly System Enhancement
+	 * @param {string} sessionId - Session ID
+	 * @param {object} anomalyDef - Anomaly definition
+	 */
+	applyAnomalyEffects(sessionId, anomalyDef) {
+		const simulation = this.activeSimulations.get(sessionId);
+		if (!simulation) return;
+
+		const effects = simulation.state.anomalyEffects;
+		effects[anomalyDef.id] = anomalyDef.effects;
+
+		logger.info("Anomaly effects applied to simulation", {
+			sessionId,
+			anomalyId: anomalyDef.id,
+			effects: anomalyDef.effects,
+		});
+	}
+
+	/**
+	 * Remove anomaly effects from simulation state
+	 * Anomaly System Enhancement
+	 * @param {string} sessionId - Session ID
+	 * @param {object} anomalyDef - Anomaly definition
+	 */
+	removeAnomalyEffects(sessionId, anomalyDef) {
+		const simulation = this.activeSimulations.get(sessionId);
+		if (!simulation) return;
+
+		const effects = simulation.state.anomalyEffects;
+		delete effects[anomalyDef.id];
+
+		logger.info("Anomaly effects removed from simulation", {
+			sessionId,
+			anomalyId: anomalyDef.id,
+		});
+	}
+
+	/**
+	 * Start anomaly injection for a session
+	 * Anomaly System Enhancement
+	 * @param {string} sessionId - Session ID
+	 * @param {string} difficulty - Scenario difficulty
+	 */
+	startAnomalyInjection(sessionId, difficulty) {
+		this.anomalyInjector.startInjection(sessionId, difficulty, this);
+
+		logger.info("Anomaly injection started for session", {
+			sessionId,
+			difficulty,
+		});
+	}
+
+	/**
+	 * Stop anomaly injection for a session
+	 * Anomaly System Enhancement
+	 * @param {string} sessionId - Session ID
+	 */
+	stopAnomalyInjection(sessionId) {
+		this.anomalyInjector.stopInjection(sessionId);
+
+		logger.info("Anomaly injection stopped for session", {
+			sessionId,
+		});
+	}
+
+	/**
+	 * Check if command resolves any active anomalies
+	 * Anomaly System Enhancement
+	 * @param {string} sessionId - Session ID
+	 * @param {string} commandName - Command name
+	 */
+	checkAnomalyResolution(sessionId, commandName) {
+		const resolved = this.anomalyInjector.resolveAnomaly(
+			sessionId,
+			commandName,
+			this,
+		);
+
+		if (resolved) {
+			logger.info("Command resolved anomaly", {
+				sessionId,
+				commandName,
+			});
+		}
+	}
+
+	/**
+	 * Get active anomalies for a session
+	 * Anomaly System Enhancement
+	 * @param {string} sessionId - Session ID
+	 * @returns {Array} Active anomalies
+	 */
+	getActiveAnomalies(sessionId) {
+		return this.anomalyInjector.getActiveAnomalies(sessionId);
+	}
+
+	/**
+	 * Get anomaly statistics for a session
+	 * Anomaly System Enhancement
+	 * @param {string} sessionId - Session ID
+	 * @returns {object} Anomaly statistics
+	 */
+	getAnomalyStats(sessionId) {
+		return this.anomalyInjector.getStats(sessionId);
+	}
 }
 
 module.exports = SimulationEngine;

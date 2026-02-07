@@ -3,79 +3,86 @@
  * Defines authentication endpoints
  */
 
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { z } = require('zod');
-const authController = require('../controllers/authController');
-const { authMiddleware, requireAdmin } = require('../middleware/authMiddleware');
-const { firebaseAuthMiddleware } = require('../middleware/firebaseAuthMiddleware');
+const { z } = require("zod");
+const authController = require("../controllers/authController");
 const {
-  loginLimiter, 
-  authLimiter,
-  passwordChangeLimiter,
-  passwordResetRequestLimiter,
-  passwordResetLimiter
-} = require('../middleware/rateLimiter');
-const { validate } = require('../middleware/validate');
+	authMiddleware,
+	requireAdmin,
+} = require("../middleware/authMiddleware");
 const {
-  loginSchema,
-  registerSchema,
-  refreshTokenSchema,
-  revokeTokenSchema,
-  changePasswordSchema,
-  forgotPasswordSchema,
-  resetPasswordSchema
-} = require('../schemas/authSchemas');
+	firebaseAuthMiddleware,
+} = require("../middleware/firebaseAuthMiddleware");
+const {
+	loginLimiter,
+	authLimiter,
+	passwordChangeLimiter,
+	passwordResetRequestLimiter,
+	passwordResetLimiter,
+} = require("../middleware/rateLimiter");
+const { validate } = require("../middleware/validate");
+const {
+	loginSchema,
+	registerSchema,
+	refreshTokenSchema,
+	revokeTokenSchema,
+	changePasswordSchema,
+	forgotPasswordSchema,
+	resetPasswordSchema,
+} = require("../schemas/authSchemas");
 
 // Wrapper schemas for unified validation (body + query + params)
 const loginValidation = z.object({
-  body: loginSchema,
-  query: z.object({}).strict(),
-  params: z.object({}).strict()
+	body: loginSchema,
+	query: z.object({}).strict(),
+	params: z.object({}).strict(),
 });
 
 const registerValidation = z.object({
-  body: registerSchema,
-  query: z.object({}).strict(),
-  params: z.object({}).strict()
+	body: registerSchema,
+	query: z.object({}).strict(),
+	params: z.object({}).strict(),
 });
 
 const refreshTokenValidation = z.object({
-  body: refreshTokenSchema,
-  query: z.object({}).strict(),
-  params: z.object({}).strict()
+	body: refreshTokenSchema,
+	query: z.object({}).strict(),
+	params: z.object({}).strict(),
 });
 
 const logoutValidation = z.object({
-  body: z.object({
-    refreshToken: z.string().optional()
-  }).strict(),
-  query: z.object({}).strict(),
-  params: z.object({}).strict()
+	body: z
+		.object({
+			refreshToken: z.string().optional(),
+		})
+		.strict(),
+	query: z.object({}).strict(),
+	params: z.object({}).strict(),
 });
 
 const revokeTokenValidation = z.object({
-  body: revokeTokenSchema,
-  query: z.object({}).strict(),
-  params: z.object({}).strict()
+	body: revokeTokenSchema,
+	query: z.object({}).strict(),
+	params: z.object({}).strict(),
 });
 
 const changePasswordValidation = z.object({
-  body: changePasswordSchema,
-  query: z.object({}).strict(),
-  params: z.object({}).strict()
+	body: changePasswordSchema,
+	query: z.object({}).strict(),
+	params: z.object({}).strict(),
 });
 
 const forgotPasswordValidation = z.object({
-  body: forgotPasswordSchema,
-  query: z.object({}).strict(),
-  params: z.object({}).strict()
+	body: forgotPasswordSchema,
+	query: z.object({}).strict(),
+	params: z.object({}).strict(),
 });
 
 const resetPasswordValidation = z.object({
-  body: resetPasswordSchema,
-  query: z.object({}).strict(),
-  params: z.object({}).strict()
+	body: resetPasswordSchema,
+	query: z.object({}).strict(),
+	params: z.object({}).strict(),
 });
 
 /**
@@ -162,7 +169,12 @@ const resetPasswordValidation = z.object({
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.post('/register', authLimiter, validate(registerValidation), authController.register);
+router.post(
+	"/register",
+	authLimiter,
+	validate(registerValidation),
+	authController.register,
+);
 
 /**
  * @swagger
@@ -191,7 +203,12 @@ router.post('/register', authLimiter, validate(registerValidation), authControll
  *       200:
  *         description: GO - OAuth profile synced successfully
  */
-router.post('/sync-oauth-profile', firebaseAuthMiddleware, authLimiter, authController.syncOAuthProfile);
+router.post(
+	"/sync-oauth-profile",
+	firebaseAuthMiddleware,
+	authLimiter,
+	authController.syncOAuthProfile,
+);
 
 /**
  * @swagger
@@ -228,7 +245,12 @@ router.post('/sync-oauth-profile', firebaseAuthMiddleware, authLimiter, authCont
  *       404:
  *         description: NO-GO - User not found in database
  */
-router.post('/exchange-token', firebaseAuthMiddleware, authLimiter, authController.exchangeToken);
+router.post(
+	"/exchange-token",
+	firebaseAuthMiddleware,
+	authLimiter,
+	authController.exchangeToken,
+);
 
 /**
  * @swagger
@@ -329,7 +351,12 @@ router.post('/exchange-token', firebaseAuthMiddleware, authLimiter, authControll
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.post('/login', loginLimiter, validate(loginValidation), authController.login);
+router.post(
+	"/login",
+	loginLimiter,
+	validate(loginValidation),
+	authController.login,
+);
 
 /**
  * @swagger
@@ -391,7 +418,12 @@ router.post('/login', loginLimiter, validate(loginValidation), authController.lo
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.post('/refresh', authLimiter, validate(refreshTokenValidation), authController.refreshToken);
+router.post(
+	"/refresh",
+	authLimiter,
+	validate(refreshTokenValidation),
+	authController.refreshToken,
+);
 
 /**
  * @swagger
@@ -447,7 +479,7 @@ router.post('/refresh', authLimiter, validate(refreshTokenValidation), authContr
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.get('/me', authMiddleware, authController.getCurrentUser);
+router.get("/me", authMiddleware, authController.getCurrentUser);
 
 /**
  * @swagger
@@ -497,7 +529,12 @@ router.get('/me', authMiddleware, authController.getCurrentUser);
  *       422:
  *         $ref: '#/components/responses/ValidationError'
  */
-router.post('/logout', authMiddleware, validate(logoutValidation), authController.logout);
+router.post(
+	"/logout",
+	authMiddleware,
+	validate(logoutValidation),
+	authController.logout,
+);
 
 /**
  * @swagger
@@ -550,7 +587,13 @@ router.post('/logout', authMiddleware, validate(logoutValidation), authControlle
  *       422:
  *         $ref: '#/components/responses/ValidationError'
  */
-router.post('/revoke', authMiddleware, requireAdmin, validate(revokeTokenValidation), authController.revokeToken);
+router.post(
+	"/revoke",
+	authMiddleware,
+	requireAdmin,
+	validate(revokeTokenValidation),
+	authController.revokeToken,
+);
 
 /**
  * @swagger
@@ -638,7 +681,12 @@ router.post('/revoke', authMiddleware, requireAdmin, validate(revokeTokenValidat
  *       422:
  *         $ref: '#/components/responses/ValidationError'
  */
-router.post('/bootstrap-admin', authLimiter, validate(registerValidation), authController.bootstrapAdmin);
+router.post(
+	"/bootstrap-admin",
+	authLimiter,
+	validate(registerValidation),
+	authController.bootstrapAdmin,
+);
 
 /**
  * @swagger
@@ -726,7 +774,13 @@ router.post('/bootstrap-admin', authLimiter, validate(registerValidation), authC
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.post('/change-password', authMiddleware, passwordChangeLimiter, validate(changePasswordValidation), authController.changePassword);
+router.post(
+	"/change-password",
+	authMiddleware,
+	passwordChangeLimiter,
+	validate(changePasswordValidation),
+	authController.changePassword,
+);
 
 /**
  * @swagger
@@ -779,7 +833,12 @@ router.post('/change-password', authMiddleware, passwordChangeLimiter, validate(
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.post('/forgot-password', passwordResetRequestLimiter, validate(forgotPasswordValidation), authController.forgotPassword);
+router.post(
+	"/forgot-password",
+	passwordResetRequestLimiter,
+	validate(forgotPasswordValidation),
+	authController.forgotPassword,
+);
 
 /**
  * @swagger
@@ -864,6 +923,11 @@ router.post('/forgot-password', passwordResetRequestLimiter, validate(forgotPass
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.post('/reset-password', passwordResetLimiter, validate(resetPasswordValidation), authController.resetPassword);
+router.post(
+	"/reset-password",
+	passwordResetLimiter,
+	validate(resetPasswordValidation),
+	authController.resetPassword,
+);
 
 module.exports = router;

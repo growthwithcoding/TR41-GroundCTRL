@@ -1,21 +1,22 @@
 /**
  * Lockout Service - CORRECTED VERSION
  * Handles account lockout logic based on failed login attempts
- * 
+ *
  * FIXES APPLIED:
  * - Line 24-28: Wrapped object literal in braces
  * - Line 34-48: Closed if/catch blocks properly
  * - Line 50+: Moved functions outside of try-catch
  */
 
-const auditRepository = require('../repositories/auditRepository');
-const auditFactory = require('../factories/auditFactory');
-const { AuthError } = require('../utils/errors');
-const logger = require('../utils/logger');
+const auditRepository = require("../repositories/auditRepository");
+const auditFactory = require("../factories/auditFactory");
+const { AuthError } = require("../utils/errors");
+const logger = require("../utils/logger");
 
 // Lockout configuration
 const LOCKOUT_THRESHOLD = parseInt(process.env.LOCKOUT_THRESHOLD) || 5;
-const LOCKOUT_DURATION_MINUTES = parseInt(process.env.LOCKOUT_DURATION_MINUTES) || 15;
+const LOCKOUT_DURATION_MINUTES =
+	parseInt(process.env.LOCKOUT_DURATION_MINUTES) || 15;
 const LOCKOUT_WINDOW_HOURS = parseInt(process.env.LOCKOUT_WINDOW_HOURS) || 1;
 
 /**
@@ -26,64 +27,75 @@ const LOCKOUT_WINDOW_HOURS = parseInt(process.env.LOCKOUT_WINDOW_HOURS) || 1;
  * @throws {AuthError} If account is locked
  */
 async function checkAccountLockout(userId, callSign) {
-  try {
-    // Get recent failed login attempts
-    const recentFailures = await auditRepository.getFailedLoginAttempts(userId, {
-      hoursBack: LOCKOUT_WINDOW_HOURS,
-      limit: LOCKOUT_THRESHOLD + 1
-    });
+	try {
+		// Get recent failed login attempts
+		const recentFailures = await auditRepository.getFailedLoginAttempts(
+			userId,
+			{
+				hoursBack: LOCKOUT_WINDOW_HOURS,
+				limit: LOCKOUT_THRESHOLD + 1,
+			},
+		);
 
-    if (recentFailures.length >= LOCKOUT_THRESHOLD) {
-      const lastFailure = recentFailures[0].timestamp;
-      const lastFailureDate = lastFailure instanceof Date ? lastFailure : lastFailure.toDate();
-      const lockoutExpiry = new Date(lastFailureDate.getTime() + LOCKOUT_DURATION_MINUTES * 60 * 1000);
+		if (recentFailures.length >= LOCKOUT_THRESHOLD) {
+			const lastFailure = recentFailures[0].timestamp;
+			const lastFailureDate =
+				lastFailure instanceof Date ? lastFailure : lastFailure.toDate();
+			const lockoutExpiry = new Date(
+				lastFailureDate.getTime() + LOCKOUT_DURATION_MINUTES * 60 * 1000,
+			);
 
-      if (new Date() < lockoutExpiry) {
-        const remainingMinutes = Math.ceil((lockoutExpiry - new Date()) / 1000 / 60);
+			if (new Date() < lockoutExpiry) {
+				const remainingMinutes = Math.ceil(
+					(lockoutExpiry - new Date()) / 1000 / 60,
+				);
 
-        // Log lockout attempt
-        // ✅ FIXED: Wrapped object literal in braces
-        const auditEntry = auditFactory.createAuditEntry(
-          'LOGIN_ATTEMPT_LOCKED',
-          'auth',
-          userId,
-          callSign,
-          'failure',
-          'WARNING',
-          {
-            details: `Account locked due to ${recentFailures.length} failed login attempts`,
-            lockoutExpiry: lockoutExpiry.toISOString(),
-            remainingMinutes
-          }
-        );
+				// Log lockout attempt
+				// ✅ FIXED: Wrapped object literal in braces
+				const auditEntry = auditFactory.createAuditEntry(
+					"LOGIN_ATTEMPT_LOCKED",
+					"auth",
+					userId,
+					callSign,
+					"failure",
+					"WARNING",
+					{
+						details: `Account locked due to ${recentFailures.length} failed login attempts`,
+						lockoutExpiry: lockoutExpiry.toISOString(),
+						remainingMinutes,
+					},
+				);
 
-        await auditRepository.logAudit(auditEntry);
+				await auditRepository.logAudit(auditEntry);
 
-        logger.warn('Account lockout enforced', {
-          userId,
-          callSign,
-          failedAttempts: recentFailures.length,
-          remainingMinutes
-        });
+				logger.warn("Account lockout enforced", {
+					userId,
+					callSign,
+					failedAttempts: recentFailures.length,
+					remainingMinutes,
+				});
 
-        throw new AuthError(
-          `Account temporarily locked due to multiple failed login attempts. Please try again in ${remainingMinutes} minute(s).`,
-          429
-        );
-      }
-    }
+				throw new AuthError(
+					`Account temporarily locked due to multiple failed login attempts. Please try again in ${remainingMinutes} minute(s).`,
+					429,
+				);
+			}
+		}
 
-    return false;
-  } catch (error) {
-    // ✅ FIXED: Proper error handling with closing braces
-    if (error instanceof AuthError) {
-      throw error;
-    }
+		return false;
+	} catch (error) {
+		// ✅ FIXED: Proper error handling with closing braces
+		if (error instanceof AuthError) {
+			throw error;
+		}
 
-    logger.error('Failed to check account lockout', { error: error.message, userId });
-    // Don't block login if lockout check fails
-    return false;
-  }
+		logger.error("Failed to check account lockout", {
+			error: error.message,
+			userId,
+		});
+		// Don't block login if lockout check fails
+		return false;
+	}
 }
 
 /**
@@ -95,29 +107,40 @@ async function checkAccountLockout(userId, callSign) {
  * @returns {Promise}
  */
 async function recordLoginAttempt(userId, callSign, success, metadata = {}) {
-  try {
-    const auditEntry = auditFactory.createLoginAudit(userId, callSign, success, metadata);
-    await auditRepository.logAudit(auditEntry);
+	try {
+		const auditEntry = auditFactory.createLoginAudit(
+			userId,
+			callSign,
+			success,
+			metadata,
+		);
+		await auditRepository.logAudit(auditEntry);
 
-    if (!success) {
-      // Check if this failure triggers lockout
-      const recentFailures = await auditRepository.getFailedLoginAttempts(userId, {
-        hoursBack: LOCKOUT_WINDOW_HOURS,
-        limit: LOCKOUT_THRESHOLD + 1
-      });
+		if (!success) {
+			// Check if this failure triggers lockout
+			const recentFailures = await auditRepository.getFailedLoginAttempts(
+				userId,
+				{
+					hoursBack: LOCKOUT_WINDOW_HOURS,
+					limit: LOCKOUT_THRESHOLD + 1,
+				},
+			);
 
-      if (recentFailures.length === LOCKOUT_THRESHOLD) {
-        logger.warn('Account lockout threshold reached', {
-          userId,
-          callSign,
-          failedAttempts: recentFailures.length
-        });
-      }
-    }
-  } catch (error) {
-    logger.error('Failed to record login attempt', { error: error.message, userId });
-    // Don't throw - audit logging should not break authentication
-  }
+			if (recentFailures.length === LOCKOUT_THRESHOLD) {
+				logger.warn("Account lockout threshold reached", {
+					userId,
+					callSign,
+					failedAttempts: recentFailures.length,
+				});
+			}
+		}
+	} catch (error) {
+		logger.error("Failed to record login attempt", {
+			error: error.message,
+			userId,
+		});
+		// Don't throw - audit logging should not break authentication
+	}
 }
 
 /**
@@ -126,16 +149,22 @@ async function recordLoginAttempt(userId, callSign, success, metadata = {}) {
  * @returns {Promise} Number of failed login attempts in lockout window
  */
 async function getFailedLoginCount(userId) {
-  try {
-    const recentFailures = await auditRepository.getFailedLoginAttempts(userId, {
-      hoursBack: LOCKOUT_WINDOW_HOURS,
-      limit: LOCKOUT_THRESHOLD + 1
-    });
-    return recentFailures.length;
-  } catch (error) {
-    logger.error('Failed to get failed login count', { error: error.message, userId });
-    return 0;
-  }
+	try {
+		const recentFailures = await auditRepository.getFailedLoginAttempts(
+			userId,
+			{
+				hoursBack: LOCKOUT_WINDOW_HOURS,
+				limit: LOCKOUT_THRESHOLD + 1,
+			},
+		);
+		return recentFailures.length;
+	} catch (error) {
+		logger.error("Failed to get failed login count", {
+			error: error.message,
+			userId,
+		});
+		return 0;
+	}
 }
 
 /**
@@ -144,48 +173,59 @@ async function getFailedLoginCount(userId) {
  * @returns {Promise} Lockout status with details
  */
 async function getLockoutStatus(userId) {
-  try {
-    const recentFailures = await auditRepository.getFailedLoginAttempts(userId, {
-      hoursBack: LOCKOUT_WINDOW_HOURS,
-      limit: LOCKOUT_THRESHOLD + 1
-    });
+	try {
+		const recentFailures = await auditRepository.getFailedLoginAttempts(
+			userId,
+			{
+				hoursBack: LOCKOUT_WINDOW_HOURS,
+				limit: LOCKOUT_THRESHOLD + 1,
+			},
+		);
 
-    if (recentFailures.length >= LOCKOUT_THRESHOLD) {
-      const lastFailure = recentFailures[0].timestamp;
-      const lastFailureDate = lastFailure instanceof Date ? lastFailure : lastFailure.toDate();
-      const lockoutExpiry = new Date(lastFailureDate.getTime() + LOCKOUT_DURATION_MINUTES * 60 * 1000);
+		if (recentFailures.length >= LOCKOUT_THRESHOLD) {
+			const lastFailure = recentFailures[0].timestamp;
+			const lastFailureDate =
+				lastFailure instanceof Date ? lastFailure : lastFailure.toDate();
+			const lockoutExpiry = new Date(
+				lastFailureDate.getTime() + LOCKOUT_DURATION_MINUTES * 60 * 1000,
+			);
 
-      if (new Date() < lockoutExpiry) {
-        const remainingMinutes = Math.ceil((lockoutExpiry - new Date()) / 1000 / 60);
-        return {
-          isLocked: true,
-          failedAttempts: recentFailures.length,
-          lockoutExpiry: lockoutExpiry.toISOString(),
-          remainingMinutes
-        };
-      }
-    }
+			if (new Date() < lockoutExpiry) {
+				const remainingMinutes = Math.ceil(
+					(lockoutExpiry - new Date()) / 1000 / 60,
+				);
+				return {
+					isLocked: true,
+					failedAttempts: recentFailures.length,
+					lockoutExpiry: lockoutExpiry.toISOString(),
+					remainingMinutes,
+				};
+			}
+		}
 
-    return {
-      isLocked: false,
-      failedAttempts: recentFailures.length,
-      lockoutExpiry: null,
-      remainingMinutes: 0
-    };
-  } catch (error) {
-    logger.error('Failed to get lockout status', { error: error.message, userId });
-    return {
-      isLocked: false,
-      failedAttempts: 0,
-      lockoutExpiry: null,
-      remainingMinutes: 0
-    };
-  }
+		return {
+			isLocked: false,
+			failedAttempts: recentFailures.length,
+			lockoutExpiry: null,
+			remainingMinutes: 0,
+		};
+	} catch (error) {
+		logger.error("Failed to get lockout status", {
+			error: error.message,
+			userId,
+		});
+		return {
+			isLocked: false,
+			failedAttempts: 0,
+			lockoutExpiry: null,
+			remainingMinutes: 0,
+		};
+	}
 }
 
 module.exports = {
-  checkAccountLockout,
-  recordLoginAttempt,
-  getFailedLoginCount,
-  getLockoutStatus
+	checkAccountLockout,
+	recordLoginAttempt,
+	getFailedLoginCount,
+	getLockoutStatus,
 };

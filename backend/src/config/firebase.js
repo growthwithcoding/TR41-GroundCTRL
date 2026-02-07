@@ -94,14 +94,15 @@ function initializeFirebase() {
 			process.env.FIREBASE_AUTH_EMULATOR_HOST
 		);
 
-		// Test mode with emulators: No credentials needed, emulators handle everything
-		if (isTest && hasEmulators) {
+		// Skip credential validation when emulators are enabled (for any environment)
+		if (hasEmulators) {
 			logger.info(
-				"Using Firebase emulators for testing (no credentials required)",
+				"Using Firebase emulators (no credentials required)",
 				{
 					projectId: process.env.FIREBASE_PROJECT_ID || "test-project",
 					firestoreEmulator: process.env.FIRESTORE_EMULATOR_HOST,
 					authEmulator: process.env.FIREBASE_AUTH_EMULATOR_HOST,
+					nodeEnv: process.env.NODE_ENV,
 				},
 			);
 
@@ -111,7 +112,7 @@ function initializeFirebase() {
 		}
 
 		// Test mode without emulators: Skip Firebase initialization entirely
-		if (isTest && !hasEmulators) {
+		else if (isTest && !hasEmulators) {
 			logger.warn(
 				"Skipping Firebase initialization in test environment (no emulators, no credentials)",
 				{

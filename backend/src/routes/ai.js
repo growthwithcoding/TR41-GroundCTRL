@@ -1,28 +1,31 @@
 /**
  * AI Routes
  * NOVA AI tutoring system endpoints
- * 
+ *
  * Phase 10 Implementation - NOVA AI End-to-End Integration
- * 
+ *
  * @swagger
  * tags:
  *   name: AI
  *   description: NOVA AI tutoring system - conversation management and intelligent responses
  */
 
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const novaController = require('../controllers/novaController');
-const { authMiddleware, optionalAuth } = require('../middleware/authMiddleware');
-const { validate } = require('../middleware/validate');
-const { createRateLimiter } = require('../middleware/rateLimiter');
-const { helpAiLimit } = require('../config/rateLimits');
+const novaController = require("../controllers/novaController");
 const {
-  listMessagesSchema,
-  postUserMessageSchema,
-  storeResponseSchema,
-  askHelpQuestionSchema,
-} = require('../schemas/novaSchemas');
+	authMiddleware,
+	optionalAuth,
+} = require("../middleware/authMiddleware");
+const { validate } = require("../middleware/validate");
+const { createRateLimiter } = require("../middleware/rateLimiter");
+const { helpAiLimit } = require("../config/rateLimits");
+const {
+	listMessagesSchema,
+	postUserMessageSchema,
+	storeResponseSchema,
+	askHelpQuestionSchema,
+} = require("../schemas/novaSchemas");
 
 /**
  * @swagger
@@ -225,10 +228,10 @@ const {
  *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.get(
-  '/conversations/:session_id',
-  authMiddleware,
-  validate(listMessagesSchema),
-  novaController.listConversation
+	"/conversations/:session_id",
+	authMiddleware,
+	validate(listMessagesSchema),
+	novaController.listConversation,
 );
 
 /**
@@ -291,10 +294,10 @@ router.get(
  *         $ref: '#/components/responses/ValidationError'
  */
 router.post(
-  '/messages',
-  authMiddleware,
-  validate(postUserMessageSchema),
-  novaController.postMessage
+	"/messages",
+	authMiddleware,
+	validate(postUserMessageSchema),
+	novaController.postMessage,
 );
 
 /**
@@ -365,10 +368,10 @@ router.post(
  *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.post(
-  '/response/:session_id',
-  authMiddleware,
-  validate(storeResponseSchema),
-  novaController.storeResponse
+	"/response/:session_id",
+	authMiddleware,
+	validate(storeResponseSchema),
+	novaController.storeResponse,
 );
 
 /**
@@ -413,11 +416,7 @@ router.post(
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.get(
-  '/context/:session_id',
-  authMiddleware,
-  novaController.getContext
-);
+router.get("/context/:session_id", authMiddleware, novaController.getContext);
 
 /**
  * @swagger
@@ -453,11 +452,7 @@ router.get(
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.get(
-  '/stats/:session_id',
-  authMiddleware,
-  novaController.getStats
-);
+router.get("/stats/:session_id", authMiddleware, novaController.getStats);
 
 /**
  * @swagger
@@ -501,9 +496,9 @@ router.get(
  *         $ref: '#/components/responses/ForbiddenError'
  */
 router.delete(
-  '/conversations/:session_id',
-  authMiddleware,
-  novaController.deleteConversation
+	"/conversations/:session_id",
+	authMiddleware,
+	novaController.deleteConversation,
 );
 
 /**
@@ -586,20 +581,20 @@ router.delete(
  *         description: Too Many Requests - Rate limit exceeded
  */
 router.post(
-  '/chat',
-  createRateLimiter(helpAiLimit),
-  optionalAuth,
-  validate(askHelpQuestionSchema),
-  novaController.askHelpQuestion
+	"/chat",
+	createRateLimiter(helpAiLimit),
+	optionalAuth,
+	validate(askHelpQuestionSchema),
+	novaController.askHelpQuestion,
 );
 
 // Alias for backward compatibility and common AI API pattern
 router.post(
-  '/nova/chat',
-  createRateLimiter(helpAiLimit),
-  optionalAuth,
-  validate(askHelpQuestionSchema),
-  novaController.askHelpQuestion
+	"/nova/chat",
+	createRateLimiter(helpAiLimit),
+	optionalAuth,
+	validate(askHelpQuestionSchema),
+	novaController.askHelpQuestion,
 );
 
 module.exports = router;

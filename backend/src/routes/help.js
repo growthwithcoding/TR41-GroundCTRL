@@ -3,12 +3,12 @@
  * Endpoints for help documentation (categories, articles, FAQs)
  */
 
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { optionalAuth } = require('../middleware/authMiddleware');
-const helpCategoryController = require('../controllers/helpCategoryController');
-const helpArticleController = require('../controllers/helpArticleController');
-const helpFaqController = require('../controllers/helpFaqController');
+const { optionalAuth } = require("../middleware/authMiddleware");
+const helpCategoryController = require("../controllers/helpCategoryController");
+const helpArticleController = require("../controllers/helpArticleController");
+const helpFaqController = require("../controllers/helpFaqController");
 
 // Apply optional authentication to capture user info if present
 // This enables audit logging for authenticated users without blocking anonymous access
@@ -26,7 +26,7 @@ router.use(optionalAuth);
  *       200:
  *         description: GO - Categories retrieved successfully
  */
-router.get('/categories', helpCategoryController.getAllCategories);
+router.get("/categories", helpCategoryController.getAllCategories);
 
 /**
  * @swagger
@@ -51,7 +51,7 @@ router.get('/categories', helpCategoryController.getAllCategories);
  *       200:
  *         description: GO - Articles retrieved successfully
  */
-router.get('/articles', helpArticleController.getAllArticles);
+router.get("/articles", helpArticleController.getAllArticles);
 
 /**
  * @swagger
@@ -72,7 +72,7 @@ router.get('/articles', helpArticleController.getAllArticles);
  *       200:
  *         description: GO - Popular articles retrieved successfully
  */
-router.get('/articles/popular', helpArticleController.getPopularArticles);
+router.get("/articles/popular", helpArticleController.getPopularArticles);
 
 /**
  * @swagger
@@ -95,7 +95,7 @@ router.get('/articles/popular', helpArticleController.getPopularArticles);
  *       404:
  *         description: NO-GO - Article not found
  */
-router.get('/articles/:slug', helpArticleController.getArticleBySlug);
+router.get("/articles/:slug", helpArticleController.getArticleBySlug);
 
 /**
  * @swagger
@@ -120,7 +120,7 @@ router.get('/articles/:slug', helpArticleController.getArticleBySlug);
  *       200:
  *         description: GO - FAQs retrieved successfully
  */
-router.get('/faqs', helpFaqController.getAllFaqs);
+router.get("/faqs", helpFaqController.getAllFaqs);
 
 /**
  * @swagger
@@ -141,6 +141,6 @@ router.get('/faqs', helpFaqController.getAllFaqs);
  *       200:
  *         description: GO - Search results retrieved
  */
-router.get('/search', helpArticleController.searchArticles);
+router.get("/search", helpArticleController.searchArticles);
 
 module.exports = router;

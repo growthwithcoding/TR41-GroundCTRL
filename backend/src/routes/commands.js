@@ -1,22 +1,25 @@
 /**
  * Command Routes
- * 
+ *
  * API endpoints for mission command operations
  * Commands are persisted and validated for NOVA tutoring feedback
  */
 
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const commandController = require('../controllers/commandController');
-const { authMiddleware, requireAdmin } = require('../middleware/authMiddleware');
-const { validate } = require('../middleware/validate');
+const commandController = require("../controllers/commandController");
 const {
-  createCommandSchema,
-  updateCommandSchema,
-  patchCommandSchema,
-  listCommandsSchema,
-  executeCommandSchema
-} = require('../schemas/commandSchemas');
+	authMiddleware,
+	requireAdmin,
+} = require("../middleware/authMiddleware");
+const { validate } = require("../middleware/validate");
+const {
+	createCommandSchema,
+	updateCommandSchema,
+	patchCommandSchema,
+	listCommandsSchema,
+	executeCommandSchema,
+} = require("../schemas/commandSchemas");
 
 /**
  * @swagger
@@ -239,7 +242,12 @@ const {
  *       401:
  *         description: NO-GO - Unauthorized
  */
-router.get('/', authMiddleware, validate(listCommandsSchema), commandController.list);
+router.get(
+	"/",
+	authMiddleware,
+	validate(listCommandsSchema),
+	commandController.list,
+);
 
 /**
  * @swagger
@@ -270,7 +278,7 @@ router.get('/', authMiddleware, validate(listCommandsSchema), commandController.
  *       401:
  *         description: NO-GO - Unauthorized
  */
-router.get('/registry', authMiddleware, commandController.getRegistry);
+router.get("/registry", authMiddleware, commandController.getRegistry);
 
 /**
  * @swagger
@@ -316,7 +324,7 @@ router.get('/registry', authMiddleware, commandController.getRegistry);
  *       401:
  *         description: NO-GO - Unauthorized
  */
-router.get('/history', authMiddleware, commandController.getHistory);
+router.get("/history", authMiddleware, commandController.getHistory);
 
 /**
  * @swagger
@@ -371,7 +379,11 @@ router.get('/history', authMiddleware, commandController.getHistory);
  *       404:
  *         description: NO-GO - Session not found
  */
-router.get('/session/:sessionId', authMiddleware, commandController.getBySession);
+router.get(
+	"/session/:sessionId",
+	authMiddleware,
+	commandController.getBySession,
+);
 
 /**
  * @swagger
@@ -411,7 +423,7 @@ router.get('/session/:sessionId', authMiddleware, commandController.getBySession
  *       404:
  *         description: NO-GO - Command not found
  */
-router.get('/:id', authMiddleware, commandController.getOne);
+router.get("/:id", authMiddleware, commandController.getOne);
 
 /**
  * @swagger
@@ -474,7 +486,12 @@ router.get('/:id', authMiddleware, commandController.getOne);
  *       401:
  *         description: NO-GO - Unauthorized
  */
-router.post('/execute', authMiddleware, validate(executeCommandSchema), commandController.execute);
+router.post(
+	"/execute",
+	authMiddleware,
+	validate(executeCommandSchema),
+	commandController.execute,
+);
 
 /**
  * @swagger
@@ -513,7 +530,12 @@ router.post('/execute', authMiddleware, validate(executeCommandSchema), commandC
  *       401:
  *         description: NO-GO - Unauthorized
  */
-router.post('/', authMiddleware, validate(createCommandSchema), commandController.create);
+router.post(
+	"/",
+	authMiddleware,
+	validate(createCommandSchema),
+	commandController.create,
+);
 
 /**
  * @swagger
@@ -563,7 +585,13 @@ router.post('/', authMiddleware, validate(createCommandSchema), commandControlle
  *       404:
  *         description: NO-GO - Command not found
  */
-router.put('/:id', authMiddleware, requireAdmin, validate(updateCommandSchema), commandController.update);
+router.put(
+	"/:id",
+	authMiddleware,
+	requireAdmin,
+	validate(updateCommandSchema),
+	commandController.update,
+);
 
 /**
  * @swagger
@@ -621,7 +649,13 @@ router.put('/:id', authMiddleware, requireAdmin, validate(updateCommandSchema), 
  *       404:
  *         description: NO-GO - Command not found
  */
-router.patch('/:id', authMiddleware, requireAdmin, validate(patchCommandSchema), commandController.patch);
+router.patch(
+	"/:id",
+	authMiddleware,
+	requireAdmin,
+	validate(patchCommandSchema),
+	commandController.patch,
+);
 
 /**
  * @swagger
@@ -650,6 +684,6 @@ router.patch('/:id', authMiddleware, requireAdmin, validate(patchCommandSchema),
  *       404:
  *         description: NO-GO - Command not found
  */
-router.delete('/:id', authMiddleware, requireAdmin, commandController.remove);
+router.delete("/:id", authMiddleware, requireAdmin, commandController.remove);
 
 module.exports = router;

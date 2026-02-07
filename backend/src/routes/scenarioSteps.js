@@ -1,27 +1,27 @@
 /**
  * Scenario Step Routes
- * 
+ *
  * CRUD endpoints for scenario steps
  * Steps are ordered sequences within scenarios with objectives and hints
- * 
+ *
  * @swagger
  * tags:
  *   name: Scenario Steps
  *   description: Ordered step sequences within scenarios - objectives, instructions, and completion conditions
  */
 
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { validate } = require('../middleware/validate');
-const { authMiddleware } = require('../middleware/authMiddleware');
-const controller = require('../controllers/scenarioStepController');
+const { validate } = require("../middleware/validate");
+const { authMiddleware } = require("../middleware/authMiddleware");
+const controller = require("../controllers/scenarioStepController");
 const {
-  createScenarioStepSchema,
-  updateScenarioStepSchema,
-  patchScenarioStepSchema,
-  listScenarioStepsSchema
-} = require('../schemas/scenarioStepSchemas');
-const { z } = require('zod');
+	createScenarioStepSchema,
+	updateScenarioStepSchema,
+	patchScenarioStepSchema,
+	listScenarioStepsSchema,
+} = require("../schemas/scenarioStepSchemas");
+const { z } = require("zod");
 
 router.use(authMiddleware);
 
@@ -91,13 +91,15 @@ router.use(authMiddleware);
  *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.get(
-  '/',
-  validate(z.object({
-    body: z.object({}).strict(),
-    query: listScenarioStepsSchema.shape.query,
-    params: z.object({}).strict()
-  })),
-  controller.list
+	"/",
+	validate(
+		z.object({
+			body: z.object({}).strict(),
+			query: listScenarioStepsSchema.shape.query,
+			params: z.object({}).strict(),
+		}),
+	),
+	controller.list,
 );
 
 /**
@@ -161,13 +163,15 @@ router.get(
  *         $ref: '#/components/responses/ValidationError'
  */
 router.post(
-  '/',
-  validate(z.object({
-    body: createScenarioStepSchema.shape.body,
-    query: z.object({}).strict(),
-    params: z.object({}).strict()
-  })),
-  controller.create
+	"/",
+	validate(
+		z.object({
+			body: createScenarioStepSchema.shape.body,
+			query: z.object({}).strict(),
+			params: z.object({}).strict(),
+		}),
+	),
+	controller.create,
 );
 
 /**
@@ -208,15 +212,19 @@ router.post(
  *         $ref: '#/components/responses/NotFoundError'
  */
 router.get(
-  '/:id',
-  validate(z.object({
-    body: z.object({}).strict(),
-    query: z.object({}).strict(),
-    params: z.object({
-      id: z.string().min(1, 'Step ID is required')
-    }).strict()
-  })),
-  controller.getOne
+	"/:id",
+	validate(
+		z.object({
+			body: z.object({}).strict(),
+			query: z.object({}).strict(),
+			params: z
+				.object({
+					id: z.string().min(1, "Step ID is required"),
+				})
+				.strict(),
+		}),
+	),
+	controller.getOne,
 );
 
 /**
@@ -265,13 +273,15 @@ router.get(
  *         $ref: '#/components/responses/ValidationError'
  */
 router.put(
-  '/:id',
-  validate(z.object({
-    body: updateScenarioStepSchema.shape.body,
-    query: z.object({}).strict(),
-    params: updateScenarioStepSchema.shape.params
-  })),
-  controller.update
+	"/:id",
+	validate(
+		z.object({
+			body: updateScenarioStepSchema.shape.body,
+			query: z.object({}).strict(),
+			params: updateScenarioStepSchema.shape.params,
+		}),
+	),
+	controller.update,
 );
 
 /**
@@ -366,13 +376,15 @@ router.put(
  *         $ref: '#/components/responses/ValidationError'
  */
 router.patch(
-  '/:id',
-  validate(z.object({
-    body: patchScenarioStepSchema.shape.body,
-    query: z.object({}).strict(),
-    params: patchScenarioStepSchema.shape.params
-  })),
-  controller.patch
+	"/:id",
+	validate(
+		z.object({
+			body: patchScenarioStepSchema.shape.body,
+			query: z.object({}).strict(),
+			params: patchScenarioStepSchema.shape.params,
+		}),
+	),
+	controller.patch,
 );
 
 /**
@@ -419,9 +431,6 @@ router.patch(
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.delete(
-  '/:id',
-  controller.remove
-);
+router.delete("/:id", controller.remove);
 
 module.exports = router;

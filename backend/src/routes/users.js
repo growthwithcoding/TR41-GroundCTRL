@@ -3,82 +3,99 @@
  * Defines user management endpoints
  */
 
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { z } = require('zod');
-const userController = require('../controllers/userController');
-const { authMiddleware, requireAdmin } = require('../middleware/authMiddleware');
-const { authLimiter } = require('../middleware/rateLimiter');
-const { validate } = require('../middleware/validate');
+const { z } = require("zod");
+const userController = require("../controllers/userController");
 const {
-  createUserSchema,
-  updateUserSchema,
-  patchUserSchema,
-  userQuerySchema
-} = require('../schemas/userSchemas');
+	authMiddleware,
+	requireAdmin,
+} = require("../middleware/authMiddleware");
+const { authLimiter } = require("../middleware/rateLimiter");
+const { validate } = require("../middleware/validate");
+const {
+	createUserSchema,
+	updateUserSchema,
+	patchUserSchema,
+	userQuerySchema,
+} = require("../schemas/userSchemas");
 
 // Wrapper schemas for unified validation (body + query + params)
 const getUsersValidation = z.object({
-  body: z.object({}).strict(),
-  query: userQuerySchema,
-  params: z.object({}).strict()
+	body: z.object({}).strict(),
+	query: userQuerySchema,
+	params: z.object({}).strict(),
 });
 
 const getUserByIdValidation = z.object({
-  body: z.object({}).strict(),
-  query: z.object({}).strict(),
-  params: z.object({
-    uid: z.string().min(1, 'User ID is required')
-  }).strict()
+	body: z.object({}).strict(),
+	query: z.object({}).strict(),
+	params: z
+		.object({
+			uid: z.string().min(1, "User ID is required"),
+		})
+		.strict(),
 });
 
 const createUserValidation = z.object({
-  body: createUserSchema,
-  query: z.object({}).strict(),
-  params: z.object({}).strict()
+	body: createUserSchema,
+	query: z.object({}).strict(),
+	params: z.object({}).strict(),
 });
 
 const updateUserValidation = z.object({
-  body: updateUserSchema,
-  query: z.object({}).strict(),
-  params: z.object({
-    uid: z.string().min(1, 'User ID is required')
-  }).strict()
+	body: updateUserSchema,
+	query: z.object({}).strict(),
+	params: z
+		.object({
+			uid: z.string().min(1, "User ID is required"),
+		})
+		.strict(),
 });
 
 const patchUserValidation = z.object({
-  body: patchUserSchema,
-  query: z.object({}).strict(),
-  params: z.object({
-    uid: z.string().min(1, 'User ID is required')
-  }).strict()
+	body: patchUserSchema,
+	query: z.object({}).strict(),
+	params: z
+		.object({
+			uid: z.string().min(1, "User ID is required"),
+		})
+		.strict(),
 });
 
 const deleteUserValidation = z.object({
-  body: z.object({}).strict(),
-  query: z.object({}).strict(),
-  params: z.object({
-    uid: z.string().min(1, 'User ID is required')
-  }).strict()
+	body: z.object({}).strict(),
+	query: z.object({}).strict(),
+	params: z
+		.object({
+			uid: z.string().min(1, "User ID is required"),
+		})
+		.strict(),
 });
 
 const getUserAuditLogsValidation = z.object({
-  body: z.object({}).strict(),
-  query: z.object({
-    page: z.string()
-      .regex(/^\d+$/, 'Page must be a number')
-      .transform(Number)
-      .refine(n => n > 0, 'Page must be greater than 0')
-      .optional(),
-    limit: z.string()
-      .regex(/^\d+$/, 'Limit must be a number')
-      .transform(Number)
-      .refine(n => n > 0 && n <= 100, 'Limit must be between 1 and 100')
-      .optional()
-  }).strict(),
-  params: z.object({
-    uid: z.string().min(1, 'User ID is required')
-  }).strict()
+	body: z.object({}).strict(),
+	query: z
+		.object({
+			page: z
+				.string()
+				.regex(/^\d+$/, "Page must be a number")
+				.transform(Number)
+				.refine((n) => n > 0, "Page must be greater than 0")
+				.optional(),
+			limit: z
+				.string()
+				.regex(/^\d+$/, "Limit must be a number")
+				.transform(Number)
+				.refine((n) => n > 0 && n <= 100, "Limit must be between 1 and 100")
+				.optional(),
+		})
+		.strict(),
+	params: z
+		.object({
+			uid: z.string().min(1, "User ID is required"),
+		})
+		.strict(),
 });
 
 /**
@@ -192,7 +209,13 @@ const getUserAuditLogsValidation = z.object({
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
  */
-router.get('/', authMiddleware, requireAdmin, validate(getUsersValidation), userController.getAllUsers);
+router.get(
+	"/",
+	authMiddleware,
+	requireAdmin,
+	validate(getUsersValidation),
+	userController.getAllUsers,
+);
 
 /**
  * @swagger
@@ -275,7 +298,12 @@ router.get('/', authMiddleware, requireAdmin, validate(getUsersValidation), user
  *                 requestId: "123e4567-e89b-12d3-a456-426614174000"
  *               timestamp: 1704067200000
  */
-router.get('/:uid', authMiddleware, validate(getUserByIdValidation), userController.getUserById);
+router.get(
+	"/:uid",
+	authMiddleware,
+	validate(getUserByIdValidation),
+	userController.getUserById,
+);
 
 /**
  * @swagger
@@ -386,7 +414,14 @@ router.get('/:uid', authMiddleware, validate(getUserByIdValidation), userControl
  *       429:
  *         $ref: '#/components/responses/RateLimitError'
  */
-router.post('/', authMiddleware, requireAdmin, authLimiter, validate(createUserValidation), userController.createUser);
+router.post(
+	"/",
+	authMiddleware,
+	requireAdmin,
+	authLimiter,
+	validate(createUserValidation),
+	userController.createUser,
+);
 
 /**
  * @swagger
@@ -476,7 +511,12 @@ router.post('/', authMiddleware, requireAdmin, authLimiter, validate(createUserV
  *       422:
  *         $ref: '#/components/responses/ValidationError'
  */
-router.put('/:uid', authMiddleware, validate(updateUserValidation), userController.updateUser);
+router.put(
+	"/:uid",
+	authMiddleware,
+	validate(updateUserValidation),
+	userController.updateUser,
+);
 
 /**
  * @swagger
@@ -563,7 +603,12 @@ router.put('/:uid', authMiddleware, validate(updateUserValidation), userControll
  *       422:
  *         $ref: '#/components/responses/ValidationError'
  */
-router.patch('/:uid', authMiddleware, validate(patchUserValidation), userController.patchUser);
+router.patch(
+	"/:uid",
+	authMiddleware,
+	validate(patchUserValidation),
+	userController.patchUser,
+);
 
 /**
  * @swagger
@@ -614,7 +659,13 @@ router.patch('/:uid', authMiddleware, validate(patchUserValidation), userControl
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.delete('/:uid', authMiddleware, requireAdmin, validate(deleteUserValidation), userController.deleteUser);
+router.delete(
+	"/:uid",
+	authMiddleware,
+	requireAdmin,
+	validate(deleteUserValidation),
+	userController.deleteUser,
+);
 
 /**
  * @swagger
@@ -732,6 +783,11 @@ router.delete('/:uid', authMiddleware, requireAdmin, validate(deleteUserValidati
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/:uid/audit', authMiddleware, validate(getUserAuditLogsValidation), userController.getUserAuditLogs);
+router.get(
+	"/:uid/audit",
+	authMiddleware,
+	validate(getUserAuditLogsValidation),
+	userController.getUserAuditLogs,
+);
 
 module.exports = router;

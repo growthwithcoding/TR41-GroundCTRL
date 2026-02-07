@@ -3,10 +3,10 @@
  * Handles persistence of audit logs to Firebase Firestore
  */
 
-const { getFirestore } = require('../config/firebase');
-const logger = require('../utils/logger');
+const { getFirestore } = require("../config/firebase");
+const logger = require("../utils/logger");
 
-const COLLECTION_NAME = 'audit_logs';
+const COLLECTION_NAME = "audit_logs";
 
 /**
  * Log audit entry to Firestore
@@ -14,21 +14,21 @@ const COLLECTION_NAME = 'audit_logs';
  * @returns {Promise<object>} Saved audit entry with Firestore ID
  */
 async function logAudit(entry) {
-  try {
-    const db = getFirestore();
-    const docRef = await db.collection(COLLECTION_NAME).add(entry);
-    
-    logger.debug('Audit log created', { id: docRef.id, action: entry.action });
-    
-    return {
-      id: docRef.id,
-      ...entry
-    };
-  } catch (error) {
-    logger.error('Failed to create audit log', { error: error.message });
-    // Don't throw - audit logging should not break the application
-    return null;
-  }
+	try {
+		const db = getFirestore();
+		const docRef = await db.collection(COLLECTION_NAME).add(entry);
+
+		logger.debug("Audit log created", { id: docRef.id, action: entry.action });
+
+		return {
+			id: docRef.id,
+			...entry,
+		};
+	} catch (error) {
+		logger.error("Failed to create audit log", { error: error.message });
+		// Don't throw - audit logging should not break the application
+		return null;
+	}
 }
 
 /**
@@ -41,31 +41,35 @@ async function logAudit(entry) {
  * @returns {Promise<array>} Array of audit entries
  */
 async function getAuditsByUserId(userId, options = {}) {
-  try {
-    const { limit = 50, startDate, endDate } = options;
-    const db = getFirestore();
-    
-    let query = db.collection(COLLECTION_NAME)
-      .where('userId', '==', userId)
-      .orderBy('timestamp', 'desc')
-      .limit(limit);
-    
-    if (startDate) {
-      query = query.where('timestamp', '>=', startDate);
-    }
-    if (endDate) {
-      query = query.where('timestamp', '<=', endDate);
-    }
-    
-    const snapshot = await query.get();
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-  } catch (error) {
-    logger.error('Failed to fetch audit logs by user ID', { error: error.message, userId });
-    throw error;
-  }
+	try {
+		const { limit = 50, startDate, endDate } = options;
+		const db = getFirestore();
+
+		let query = db
+			.collection(COLLECTION_NAME)
+			.where("userId", "==", userId)
+			.orderBy("timestamp", "desc")
+			.limit(limit);
+
+		if (startDate) {
+			query = query.where("timestamp", ">=", startDate);
+		}
+		if (endDate) {
+			query = query.where("timestamp", "<=", endDate);
+		}
+
+		const snapshot = await query.get();
+		return snapshot.docs.map((doc) => ({
+			id: doc.id,
+			...doc.data(),
+		}));
+	} catch (error) {
+		logger.error("Failed to fetch audit logs by user ID", {
+			error: error.message,
+			userId,
+		});
+		throw error;
+	}
 }
 
 /**
@@ -77,28 +81,32 @@ async function getAuditsByUserId(userId, options = {}) {
  * @returns {Promise<array>} Array of failed login audit entries
  */
 async function getFailedLoginAttempts(userId, options = {}) {
-  try {
-    const { hoursBack = 1, limit = 10 } = options;
-    const db = getFirestore();
-    
-    const startTime = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
-    
-    const snapshot = await db.collection(COLLECTION_NAME)
-      .where('userId', '==', userId)
-      .where('action', '==', 'LOGIN_FAILED')
-      .where('timestamp', '>=', startTime)
-      .orderBy('timestamp', 'desc')
-      .limit(limit)
-      .get();
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-  } catch (error) {
-    logger.error('Failed to fetch failed login attempts', { error: error.message, userId });
-    throw error;
-  }
+	try {
+		const { hoursBack = 1, limit = 10 } = options;
+		const db = getFirestore();
+
+		const startTime = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
+
+		const snapshot = await db
+			.collection(COLLECTION_NAME)
+			.where("userId", "==", userId)
+			.where("action", "==", "LOGIN_FAILED")
+			.where("timestamp", ">=", startTime)
+			.orderBy("timestamp", "desc")
+			.limit(limit)
+			.get();
+
+		return snapshot.docs.map((doc) => ({
+			id: doc.id,
+			...doc.data(),
+		}));
+	} catch (error) {
+		logger.error("Failed to fetch failed login attempts", {
+			error: error.message,
+			userId,
+		});
+		throw error;
+	}
 }
 
 /**
@@ -109,24 +117,28 @@ async function getFailedLoginAttempts(userId, options = {}) {
  * @returns {Promise<array>} Array of audit entries
  */
 async function getAuditsByAction(action, options = {}) {
-  try {
-    const { limit = 50 } = options;
-    const db = getFirestore();
-    
-    const snapshot = await db.collection(COLLECTION_NAME)
-      .where('action', '==', action)
-      .orderBy('timestamp', 'desc')
-      .limit(limit)
-      .get();
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-  } catch (error) {
-    logger.error('Failed to fetch audit logs by action', { error: error.message, action });
-    throw error;
-  }
+	try {
+		const { limit = 50 } = options;
+		const db = getFirestore();
+
+		const snapshot = await db
+			.collection(COLLECTION_NAME)
+			.where("action", "==", action)
+			.orderBy("timestamp", "desc")
+			.limit(limit)
+			.get();
+
+		return snapshot.docs.map((doc) => ({
+			id: doc.id,
+			...doc.data(),
+		}));
+	} catch (error) {
+		logger.error("Failed to fetch audit logs by action", {
+			error: error.message,
+			action,
+		});
+		throw error;
+	}
 }
 
 /**
@@ -137,24 +149,28 @@ async function getAuditsByAction(action, options = {}) {
  * @returns {Promise<array>} Array of audit entries
  */
 async function getAuditsBySeverity(severity, options = {}) {
-  try {
-    const { limit = 50 } = options;
-    const db = getFirestore();
-    
-    const snapshot = await db.collection(COLLECTION_NAME)
-      .where('severity', '==', severity)
-      .orderBy('timestamp', 'desc')
-      .limit(limit)
-      .get();
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-  } catch (error) {
-    logger.error('Failed to fetch audit logs by severity', { error: error.message, severity });
-    throw error;
-  }
+	try {
+		const { limit = 50 } = options;
+		const db = getFirestore();
+
+		const snapshot = await db
+			.collection(COLLECTION_NAME)
+			.where("severity", "==", severity)
+			.orderBy("timestamp", "desc")
+			.limit(limit)
+			.get();
+
+		return snapshot.docs.map((doc) => ({
+			id: doc.id,
+			...doc.data(),
+		}));
+	} catch (error) {
+		logger.error("Failed to fetch audit logs by severity", {
+			error: error.message,
+			severity,
+		});
+		throw error;
+	}
 }
 
 /**
@@ -165,46 +181,47 @@ async function getAuditsBySeverity(severity, options = {}) {
  * @returns {Promise<object>} Paginated audit logs
  */
 async function getAllAudits(options = {}) {
-  try {
-    const { page = 1, limit = 50 } = options;
-    const db = getFirestore();
-    
-    const offset = (page - 1) * limit;
-    
-    const snapshot = await db.collection(COLLECTION_NAME)
-      .orderBy('timestamp', 'desc')
-      .limit(limit)
-      .offset(offset)
-      .get();
-    
-    const audits = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    // Get total count
-    const countSnapshot = await db.collection(COLLECTION_NAME).count().get();
-    const total = countSnapshot.data().count;
-    
-    return {
-      audits,
-      pagination: {
-        page,
-        limit,
-        total
-      }
-    };
-  } catch (error) {
-    logger.error('Failed to fetch all audit logs', { error: error.message });
-    throw error;
-  }
+	try {
+		const { page = 1, limit = 50 } = options;
+		const db = getFirestore();
+
+		const offset = (page - 1) * limit;
+
+		const snapshot = await db
+			.collection(COLLECTION_NAME)
+			.orderBy("timestamp", "desc")
+			.limit(limit)
+			.offset(offset)
+			.get();
+
+		const audits = snapshot.docs.map((doc) => ({
+			id: doc.id,
+			...doc.data(),
+		}));
+
+		// Get total count
+		const countSnapshot = await db.collection(COLLECTION_NAME).count().get();
+		const total = countSnapshot.data().count;
+
+		return {
+			audits,
+			pagination: {
+				page,
+				limit,
+				total,
+			},
+		};
+	} catch (error) {
+		logger.error("Failed to fetch all audit logs", { error: error.message });
+		throw error;
+	}
 }
 
 module.exports = {
-  logAudit,
-  getAuditsByUserId,
-  getFailedLoginAttempts,
-  getAuditsByAction,
-  getAuditsBySeverity,
-  getAllAudits
+	logAudit,
+	getAuditsByUserId,
+	getFailedLoginAttempts,
+	getAuditsByAction,
+	getAuditsBySeverity,
+	getAllAudits,
 };

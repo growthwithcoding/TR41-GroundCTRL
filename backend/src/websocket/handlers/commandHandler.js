@@ -3,8 +3,8 @@
  * Handles command transmission and acknowledgment
  */
 
-const logger = require('../../utils/logger');
-const { v4: uuidv4 } = require('uuid');
+const logger = require("../../utils/logger");
+const { v4: uuidv4 } = require("uuid");
 
 /**
  * Create command event handlers
@@ -13,155 +13,154 @@ const { v4: uuidv4 } = require('uuid');
  * @returns {function} Connection handler
  */
 function createCommandHandler(io, sessionManager, simulationEngine) {
-  return (socket) => {
-    logger.info('Command connection established', {
-      socketId: socket.id,
-      userId: socket.user.id,
-      email: socket.user.email
-    });
+	return (socket) => {
+		logger.info("Command connection established", {
+			socketId: socket.id,
+			userId: socket.user.id,
+			email: socket.user.email,
+		});
 
-    // Handle command transmission
-    socket.on('command:send', async ({ sessionId, command, parameters }) => {
-      const commandId = command.id || uuidv4();
-      
-      try {
-        logger.info('Command transmission initiated', {
-          socketId: socket.id,
-          userId: socket.user.id,
-          sessionId,
-          commandId,
-          commandType: command.type || command.name
-        });
+		// Handle command transmission
+		socket.on("command:send", async ({ sessionId, command, parameters }) => {
+			const commandId = command.id || uuidv4();
 
-        // Validate command exists
-        if (!command || !sessionId) {
-          throw new Error('Invalid command or session');
-        }
+			try {
+				logger.info("Command transmission initiated", {
+					socketId: socket.id,
+					userId: socket.user.id,
+					sessionId,
+					commandId,
+					commandType: command.type || command.name,
+				});
 
-        // Step 1: Validating
-        socket.emit('command:status', {
-          commandId,
-          status: 'validating',
-          timestamp: Date.now()
-        });
+				// Validate command exists
+				if (!command || !sessionId) {
+					throw new Error("Invalid command or session");
+				}
 
-        await delay(500);
+				// Step 1: Validating
+				socket.emit("command:status", {
+					commandId,
+					status: "validating",
+					timestamp: Date.now(),
+				});
 
-        // Step 2: Transmitting
-        socket.emit('command:status', {
-          commandId,
-          status: 'transmitting',
-          timestamp: Date.now()
-        });
+				await delay(500);
 
-        await delay(1500);
+				// Step 2: Transmitting
+				socket.emit("command:status", {
+					commandId,
+					status: "transmitting",
+					timestamp: Date.now(),
+				});
 
-        // Step 3: Awaiting acknowledgment
-        socket.emit('command:status', {
-          commandId,
-          status: 'awaiting-ack',
-          timestamp: Date.now()
-        });
+				await delay(1500);
 
-        await delay(1500);
+				// Step 3: Awaiting acknowledgment
+				socket.emit("command:status", {
+					commandId,
+					status: "awaiting-ack",
+					timestamp: Date.now(),
+				});
 
-        // Step 4: Executing
-        socket.emit('command:status', {
-          commandId,
-          status: 'executing',
-          timestamp: Date.now()
-        });
+				await delay(1500);
 
-        // Apply command to simulation engine if available
-        if (simulationEngine && simulationEngine.isRunning(sessionId)) {
-          simulationEngine.applyCommand(sessionId, {
-            id: commandId,
-            ...command,
-            parameters
-          });
-        }
+				// Step 4: Executing
+				socket.emit("command:status", {
+					commandId,
+					status: "executing",
+					timestamp: Date.now(),
+				});
 
-        // Update session state based on command
-        sessionManager.updateSessionState(sessionId, {
-          lastCommand: {
-            id: commandId,
-            command,
-            parameters,
-            timestamp: Date.now(),
-            status: 'executing'
-          }
-        });
+				// Apply command to simulation engine if available
+				if (simulationEngine && simulationEngine.isRunning(sessionId)) {
+					simulationEngine.applyCommand(sessionId, {
+						id: commandId,
+						...command,
+						parameters,
+					});
+				}
 
-        await delay(1000);
+				// Update session state based on command
+				sessionManager.updateSessionState(sessionId, {
+					lastCommand: {
+						id: commandId,
+						command,
+						parameters,
+						timestamp: Date.now(),
+						status: "executing",
+					},
+				});
 
-        // Step 5: Completed
-        socket.emit('command:status', {
-          commandId,
-          status: 'completed',
-          timestamp: Date.now(),
-          result: {
-            success: true,
-            message: 'Command executed successfully'
-          }
-        });
+				await delay(1000);
 
-        // Update final command state
-        sessionManager.updateSessionState(sessionId, {
-          lastCommand: {
-            id: commandId,
-            command,
-            parameters,
-            timestamp: Date.now(),
-            status: 'completed'
-          }
-        });
+				// Step 5: Completed
+				socket.emit("command:status", {
+					commandId,
+					status: "completed",
+					timestamp: Date.now(),
+					result: {
+						success: true,
+						message: "Command executed successfully",
+					},
+				});
 
-        logger.info('Command execution completed', {
-          socketId: socket.id,
-          userId: socket.user.id,
-          sessionId,
-          commandId
-        });
+				// Update final command state
+				sessionManager.updateSessionState(sessionId, {
+					lastCommand: {
+						id: commandId,
+						command,
+						parameters,
+						timestamp: Date.now(),
+						status: "completed",
+					},
+				});
 
-      } catch (error) {
-        logger.error('Command execution failed', {
-          socketId: socket.id,
-          userId: socket.user.id,
-          sessionId,
-          commandId,
-          error: error.message
-        });
+				logger.info("Command execution completed", {
+					socketId: socket.id,
+					userId: socket.user.id,
+					sessionId,
+					commandId,
+				});
+			} catch (error) {
+				logger.error("Command execution failed", {
+					socketId: socket.id,
+					userId: socket.user.id,
+					sessionId,
+					commandId,
+					error: error.message,
+				});
 
-        socket.emit('command:status', {
-          commandId,
-          status: 'failed',
-          timestamp: Date.now(),
-          error: error.message
-        });
+				socket.emit("command:status", {
+					commandId,
+					status: "failed",
+					timestamp: Date.now(),
+					error: error.message,
+				});
 
-        // Update session with failed command
-        sessionManager.updateSessionState(sessionId, {
-          lastCommand: {
-            id: commandId,
-            command,
-            parameters,
-            timestamp: Date.now(),
-            status: 'failed',
-            error: error.message
-          }
-        });
-      }
-    });
+				// Update session with failed command
+				sessionManager.updateSessionState(sessionId, {
+					lastCommand: {
+						id: commandId,
+						command,
+						parameters,
+						timestamp: Date.now(),
+						status: "failed",
+						error: error.message,
+					},
+				});
+			}
+		});
 
-    // Handle disconnect
-    socket.on('disconnect', (reason) => {
-      logger.info('Command connection closed', {
-        socketId: socket.id,
-        userId: socket.user.id,
-        reason
-      });
-    });
-  };
+		// Handle disconnect
+		socket.on("disconnect", (reason) => {
+			logger.info("Command connection closed", {
+				socketId: socket.id,
+				userId: socket.user.id,
+				reason,
+			});
+		});
+	};
 }
 
 /**
@@ -170,7 +169,7 @@ function createCommandHandler(io, sessionManager, simulationEngine) {
  * @returns {Promise} Promise that resolves after delay
  */
 function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 module.exports = { createCommandHandler };
