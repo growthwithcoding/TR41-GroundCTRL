@@ -95,6 +95,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 			"http://localhost:5174", // Allow alternate port
 			"http://localhost:5175", // Allow alternate port
 			"http://localhost:8080", // Allow backend port
+			"https://missionctrl.org", // Production frontend
 		];
 
 logger.info("CORS Configuration", {

@@ -9,7 +9,7 @@ import { auth } from '@/lib/firebase/config';
 
 const WebSocketContext = createContext(null);
 
-const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://api.missionctrl.org';
 
 // Module-level flag to prevent duplicate connections during React StrictMode double-mount
 let isConnecting = false;

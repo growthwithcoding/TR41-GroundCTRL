@@ -40,7 +40,7 @@ export async function loginWithCredentials(email, password) {
  */
 export async function loginWithFirebaseToken(firebaseToken) {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1'}/auth/exchange-token`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://api.missionctrl.org/api/v1'}/auth/exchange-token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

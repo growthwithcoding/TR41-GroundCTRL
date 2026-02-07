@@ -30,6 +30,24 @@
             "value": "max-age=31536000"
           }
         ]
+      },
+      {
+        "source": "**/*.css",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "text/css; charset=utf-8"
+          }
+        ]
+      },
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Content-Security-Policy",
+            "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' https://api.missionctrl.org wss://api.missionctrl.org https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com; font-src 'self' https://fonts.gstatic.com data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; frame-src 'self' https://*.firebaseapp.com;"
+          }
+        ]
       }
     ]
   }
