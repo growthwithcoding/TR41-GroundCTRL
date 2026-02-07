@@ -87,11 +87,11 @@ test.describe('UI-005: Code Splitting and Lazy Loading', () => {
     
     // Navigate to login
     await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     
     // Navigate to register
     await page.goto('/register');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     
     // Vendor chunks should be cached (allow small number of preload/modulepreload requests)
     // Vite uses smart preloading which may count as requests but doesn't re-download

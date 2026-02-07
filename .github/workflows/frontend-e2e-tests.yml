@@ -63,6 +63,7 @@ jobs:
           PORT: 3001
           # Minimal test configuration for backend
           FIREBASE_PROJECT_ID: test-project-e2e
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
           JWT_SECRET: test-jwt-secret-for-e2e-testing-only-min-64-chars-long-secret
           ALLOWED_ORIGINS: http://localhost:5173
       

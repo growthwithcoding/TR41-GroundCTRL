@@ -99,10 +99,43 @@ function initializeFirebase() {
         authEmulator: process.env.FIREBASE_AUTH_EMULATOR_HOST,
       });
       
-      admin.initializeApp({
-        projectId: process.env.FIREBASE_PROJECT_ID || 'test-project',
+    // Test mode without emulators: Skip Firebase initialization entirely
+    if (isTest && !hasEmulators) {
+      logger.warn('Skipping Firebase initialization in test environment (no emulators, no credentials)', {
+        nodeEnv: process.env.NODE_ENV,
+        hasEmulators,
+        hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
       });
+      
+      // Mark as initialized to prevent repeated attempts
+      isInitialized = true;
+      
+      // Return admin object with mock methods to prevent crashes
+      return {
+        ...admin,
+        initializeApp: () => {}, // No-op
+        firestore: () => ({
+          collection: () => ({
+            doc: () => ({
+              get: () => Promise.resolve({ exists: false, data: () => null }),
+              set: () => Promise.resolve(),
+              update: () => Promise.resolve(),
+              delete: () => Promise.resolve(),
+            }),
+            where: () => ({
+              get: () => Promise.resolve({ empty: true, docs: [] }),
+            }),
+            get: () => Promise.resolve({ empty: true, docs: [] }),
+            add: () => Promise.resolve({ id: 'mock-doc-id' }),
+          }),
+        }),
+        auth: () => ({
+          verifyIdToken: () => Promise.reject(new Error('Firebase auth not available in test mode')),
+          createCustomToken: () => Promise.reject(new Error('Firebase auth not available in test mode')),
+        }),
+      };
     }
+    
     // Production mode: Always use Application Default Credentials
     // Firebase App Hosting / Cloud Run provides credentials automatically
     else if (isProduction) {

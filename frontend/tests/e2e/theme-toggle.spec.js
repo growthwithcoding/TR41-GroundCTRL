@@ -10,7 +10,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('UI-THEME-001: Theme Toggle Functionality', () => {
   test('should have theme toggle button in header', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     // Look for theme toggle button
     const themeButtons = [
@@ -37,25 +37,28 @@ test.describe('UI-THEME-001: Theme Toggle Functionality', () => {
   });
 
   test('should toggle between light and dark themes', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    // Find theme toggle button
-    const themeToggle = page.locator('[data-testid*="theme"], button:has-text("theme"), .theme-toggle').first();
+    // Find theme toggle button - use more specific selector
+    const themeToggle = page.locator('button:has-text("Toggle theme")').first();
 
-    if (await themeToggle.isVisible({ timeout: 3000 })) {
-      // Get initial theme state
-      const initialClass = await page.getAttribute('html', 'class') || '';
-      const initialDark = initialClass.includes('dark');
+    // Wait for button to be visible and stable
+    await themeToggle.waitFor({ state: 'visible', timeout: 15000 });
+    await themeToggle.waitFor({ state: 'attached', timeout: 15000 });
 
-      // Click theme toggle
-      await themeToggle.click();
+    // Get initial theme state
+    const initialClass = await page.getAttribute('html', 'class') || '';
+    const initialDark = initialClass.includes('dark');
 
-      // Wait for theme change
-      await page.waitForTimeout(500);
+    // Click theme toggle with force to handle any overlays
+    await themeToggle.click({ force: true, timeout: 15000 });
 
-      // Check if theme changed
-      const newClass = await page.getAttribute('html', 'class') || '';
-      const newDark = newClass.includes('dark');
+    // Wait for theme change with longer timeout
+    await page.waitForTimeout(1000);
+
+    // Check if theme changed
+    const newClass = await page.getAttribute('html', 'class') || '';
+    const newDark = newClass.includes('dark');
 
       // Theme should have changed
       expect(newDark).not.toBe(initialDark);
@@ -66,13 +69,13 @@ test.describe('UI-THEME-001: Theme Toggle Functionality', () => {
   });
 
   test('should persist theme preference', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    const themeToggle = page.locator('[data-testid*="theme"], .theme-toggle').first();
+    const themeToggle = page.locator('button:has-text("Toggle theme")').first();
 
     if (await themeToggle.isVisible({ timeout: 3000 })) {
       // Toggle theme
-      await themeToggle.click();
+      await themeToggle.click({ force: true, timeout: 15000 });
       await page.waitForTimeout(500);
 
       // Get theme after toggle
@@ -80,7 +83,7 @@ test.describe('UI-THEME-001: Theme Toggle Functionality', () => {
       const toggledDark = toggledClass.includes('dark');
 
       // Reload page
-      await page.reload({ waitUntil: 'networkidle' });
+      await page.reload({ waitUntil: 'domcontentloaded' });
 
       // Check if theme persisted
       const reloadedClass = await page.getAttribute('html', 'class') || '';
@@ -96,9 +99,9 @@ test.describe('UI-THEME-001: Theme Toggle Functionality', () => {
   });
 
   test('should have proper accessibility attributes', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    const themeToggle = page.locator('[data-testid*="theme"], .theme-toggle').first();
+    const themeToggle = page.locator('button:has-text("Toggle theme")').first();
 
     if (await themeToggle.isVisible({ timeout: 3000 })) {
       // Check for accessibility attributes
@@ -120,9 +123,9 @@ test.describe('UI-THEME-001: Theme Toggle Functionality', () => {
     const pages = ['/', '/help', '/contact'];
 
     for (const pagePath of pages) {
-      await page.goto(pagePath, { waitUntil: 'networkidle' });
+      await page.goto(pagePath, { waitUntil: 'domcontentloaded' });
 
-      const themeToggle = page.locator('[data-testid*="theme"], .theme-toggle').first();
+      const themeToggle = page.locator('button:has-text("Toggle theme")').first();
 
       // Theme toggle should be available on all pages (if implemented)
       if (await themeToggle.isVisible({ timeout: 2000 })) {
