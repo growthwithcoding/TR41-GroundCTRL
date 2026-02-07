@@ -48,6 +48,10 @@ export default defineConfig({
     mimeTypes: {
       '.css': 'text/css',
       'text/css': 'text/css'
+    },
+    headers: {
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Opener-Policy': 'same-origin'
     }
   },
   build: {

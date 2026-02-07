@@ -14,8 +14,9 @@ export async function getCategories() {
     const response = await api.get('/help/categories', {}, false) // No auth required
     return response.payload?.data || []
   } catch (error) {
-    // Silently fail in test environments (backend may not be running)
-    if (!error.message?.includes('Failed to fetch') && !error.message?.includes('ERR_CONNECTION_REFUSED')) {
+    // Silently fail in test/CI environments (backend may not be running or rate limited)
+    const isTestEnv = typeof window !== 'undefined' && window.location?.hostname === 'localhost' && window.location?.port === '5173'
+    if (!isTestEnv && !error.message?.includes('Failed to fetch') && !error.message?.includes('ERR_CONNECTION_REFUSED')) {
       console.error('Failed to fetch help categories:', error)
     }
     return []
@@ -36,7 +37,11 @@ export async function getArticles(params = {}) {
     const response = await api.get(endpoint, {}, false) // No auth required
     return response.payload?.data || []
   } catch (error) {
-    console.error('Failed to fetch help articles:', error)
+    // Silently fail in test/CI environments
+    const isTestEnv = typeof window !== 'undefined' && window.location?.hostname === 'localhost' && window.location?.port === '5173'
+    if (!isTestEnv) {
+      console.error('Failed to fetch help articles:', error)
+    }
     return []
   }
 }
@@ -51,7 +56,11 @@ export async function getArticleBySlug(slug) {
     const response = await api.get(`/help/articles/${slug}`, {}, false) // No auth required
     return response.payload?.data || null
   } catch (error) {
-    console.error(`Failed to fetch article with slug ${slug}:`, error)
+    // Silently fail in test/CI environments
+    const isTestEnv = typeof window !== 'undefined' && window.location?.hostname === 'localhost' && window.location?.port === '5173'
+    if (!isTestEnv) {
+      console.error(`Failed to fetch article with slug ${slug}:`, error)
+    }
     return null
   }
 }
@@ -70,8 +79,9 @@ export async function getFaqs(params = {}) {
     const response = await api.get(endpoint, {}, false) // No auth required
     return response.payload?.data || []
   } catch (error) {
-    // Silently fail in test environments (backend may not be running)
-    if (!error.message?.includes('Failed to fetch') && !error.message?.includes('ERR_CONNECTION_REFUSED')) {
+    // Silently fail in test/CI environments
+    const isTestEnv = typeof window !== 'undefined' && window.location?.hostname === 'localhost' && window.location?.port === '5173'
+    if (!isTestEnv && !error.message?.includes('Failed to fetch') && !error.message?.includes('ERR_CONNECTION_REFUSED')) {
       console.error('Failed to fetch FAQs:', error)
     }
     return []
@@ -88,7 +98,11 @@ export async function searchHelp(query) {
     const response = await api.get(`/help/search?q=${encodeURIComponent(query)}`, {}, false)
     return response.payload?.data || { articles: [], faqs: [] }
   } catch (error) {
-    console.error('Failed to search help content:', error)
+    // Silently fail in test/CI environments
+    const isTestEnv = typeof window !== 'undefined' && window.location?.hostname === 'localhost' && window.location?.port === '5173'
+    if (!isTestEnv) {
+      console.error('Failed to search help content:', error)
+    }
     return { articles: [], faqs: [] }
   }
 }
@@ -114,8 +128,9 @@ export async function getPopularArticles(limit = 4) {
     const response = await api.get(`/help/articles/popular?limit=${limit}`, {}, false)
     return response.payload?.data?.articles || []
   } catch (error) {
-    // Silently fail in test environments (backend may not be running)
-    if (!error.message?.includes('Failed to fetch') && !error.message?.includes('ERR_CONNECTION_REFUSED')) {
+    // Silently fail in test/CI environments
+    const isTestEnv = typeof window !== 'undefined' && window.location?.hostname === 'localhost' && window.location?.port === '5173'
+    if (!isTestEnv && !error.message?.includes('Failed to fetch') && !error.message?.includes('ERR_CONNECTION_REFUSED')) {
       console.error('Failed to fetch popular articles:', error)
     }
     return []
