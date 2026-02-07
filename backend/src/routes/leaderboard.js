@@ -87,8 +87,13 @@ router.get(
   leaderboardLimiter,
   authMiddleware,
   async (req, res, next) => {
+    // Declare variables at function scope for catch block access
+    let period = 'all-time';
+    let limitNum = 100;
+    
     try {
-      const { period = 'all-time', limit = '100', includeUser = 'true' } = req.query;
+      const { period: periodParam = 'all-time', limit = '100', includeUser = 'true' } = req.query;
+      period = periodParam;
       const userId = req.user?.uid;
       
       // Validate period
@@ -109,7 +114,7 @@ router.get(
       }
       
       // Validate and cap limit
-      const limitNum = Math.min(Math.max(parseInt(limit) || 100, 1), 500);
+      limitNum = Math.min(Math.max(parseInt(limit) || 100, 1), 500);
       
       // Fetch leaderboard data
       let leaderboard;
@@ -222,12 +227,15 @@ router.get(
   leaderboardLimiter,
   authMiddleware,
   async (req, res, next) => {
+    // Declare variables at function scope for catch block access
+    let limitNum = 100;
+    
     try {
       const { scenarioId } = req.params;
       const { limit = '100' } = req.query;
       
       // Validate and cap limit
-      const limitNum = Math.min(Math.max(parseInt(limit) || 100, 1), 500);
+      limitNum = Math.min(Math.max(parseInt(limit) || 100, 1), 500);
       
       // Fetch scenario leaderboard
       const leaderboard = await leaderboardService.getScenarioLeaderboard(scenarioId, {
