@@ -49,6 +49,26 @@ jobs:
         working-directory: ./frontend
         run: npm ci
       
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+      
+      - name: Start backend server in background
+        working-directory: ./backend
+        run: |
+          npm start &
+          echo $! > backend.pid
+        env:
+          NODE_ENV: test
+          PORT: 3001
+          # Add minimal Firebase config for backend (if needed)
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID || 'test-project' }}
+      
+      - name: Wait for backend to be ready
+        run: |
+          echo "Waiting for backend API to be ready..."
+          npx wait-on --timeout 60000 http://localhost:3001/api/v1/help/categories || echo "Backend health check timed out, continuing anyway"
+      
       - name: Install Playwright browsers
         working-directory: ./frontend
         run: npx playwright install --with-deps
@@ -66,6 +86,16 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET || 'test.appspot.com' }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID || '123456789' }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID || 'test-app-id' }}
+          VITE_API_BASE_URL: http://localhost:3001/api/v1
+      
+      - name: Stop backend server
+        if: always()
+        working-directory: ./backend
+        run: |
+          if [ -f backend.pid ]; then
+            kill $(cat backend.pid) || true
+            rm backend.pid
+          fi
       
       - name: Upload test results for ${{ matrix.browser }}
         if: always()
