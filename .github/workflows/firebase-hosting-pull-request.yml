@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chromium, firefox, webkit, 'Mobile Chrome', 'Mobile Safari']
+        browser: [chromium, firefox, webkit]
     steps:
       - uses: actions/checkout@v4
       

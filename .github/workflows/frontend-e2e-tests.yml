@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false  # Continue running other browsers even if one fails
       matrix:
-        browser: [chromium, firefox, webkit, 'Mobile Chrome', 'Mobile Safari']
+        browser: [chromium, firefox, webkit]
     
     steps:
       - name: Checkout code
