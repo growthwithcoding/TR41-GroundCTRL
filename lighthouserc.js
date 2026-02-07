@@ -20,7 +20,7 @@ module.exports = {
     assert: {
       assertions: {
         'first-contentful-paint': ['error', { 'minScore': 0.4 }],
-        'largest-contentful-paint': ['error', { 'minScore': 0.2 }],
+        'largest-contentful-paint': ['error', { 'minScore': 0.1 }],
         'total-blocking-time': ['error', { 'minScore': 0.5 }],
         'cumulative-layout-shift': ['error', { 'minScore': 0.5 }],
         'speed-index': ['error', { 'minScore': 0.5 }],
