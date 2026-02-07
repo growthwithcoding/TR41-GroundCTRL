@@ -250,6 +250,9 @@ export default function MissionBriefingPage() {
     setCreatingSession(true)
     
     try {
+      // Create session via backend API
+      // Only send fields expected by backend schema
+      // Backend will set user_id from authenticated user
       // Fetch the full scenario data
       const scenario = await fetchScenarioById(id)
       
@@ -278,14 +281,15 @@ export default function MissionBriefingPage() {
         version: 1
       }
       
+      console.log('Creating session with data:', sessionData)
       // Create the session via backend API
       const newSessionId = await createSession(sessionData)
+      console.log('Session created successfully with ID:', newSessionId)
       
       console.log('✅ Session created successfully:', newSessionId)
       console.log('📋 Starting countdown sequence...')
       
       setSessionId(newSessionId)
-      setSessionData(sessionData) // Store session data for launch animation
       setPhase("countdown")
       setCreatingSession(false)
     } catch (err) {
@@ -309,6 +313,8 @@ export default function MissionBriefingPage() {
     setCreatingSession(true)
     
     try {
+      // Create session via backend API
+      // Only send fields expected by backend schema
       // Fetch the full scenario data
       const scenario = await fetchScenarioById(id)
       
@@ -333,8 +339,10 @@ export default function MissionBriefingPage() {
         version: 1
       }
       
+      console.log('Creating session (skip) with data:', sessionData)
       // Create the session via backend API
       const newSessionId = await createSession(sessionData)
+      console.log('Session created (skip) successfully with ID:', newSessionId)
       
       console.log('✅ Session created successfully:', newSessionId)
       console.log('🚀 Navigating to simulator with session:', newSessionId)

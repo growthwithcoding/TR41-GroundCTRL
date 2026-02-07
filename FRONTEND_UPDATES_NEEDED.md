@@ -1,6 +1,6 @@
 # Frontend Updates Needed - Priority Tasks
 
-**Date:** January 25, 2026  
+**Date:** February 2, 2026  
 **Status:** 🔴 ACTION REQUIRED  
 **Assigned:** Frontend Team
 
@@ -13,6 +13,109 @@
 3. ⚠️ **Account & Settings Pages** - Migrate from Firebase Auth to Backend API
 4. ⚠️ **CRUD & Auth** - Ensure async API calls to backend
 5. 📝 **Email Server DNS Setup** - Configuration note added
+6. ✅ **Admin Scenario Management** - Complete CRUD interface implemented (February 2026)
+7. ✅ **Recent Activity Widget** - Dashboard activity feed implemented (February 2026)
+
+---
+
+## 7. ✅ RECENT ACTIVITY WIDGET - COMPLETED
+
+### Implementation Summary
+**Date Completed:** February 3, 2026
+
+#### Features Implemented:
+- **Real-time Activity Feed** - Shows 7 most recent user activities on dashboard
+- **Firestore Integration** - Direct read from `audit_logs` collection
+- **User-Friendly Messages** - Translated technical logs to readable activities
+- **Smart Deduplication** - Removes duplicate entries within 10-second window
+- **Security** - Users can only see their own logs via Firestore rules
+- **Filtering** - Shows only successful activities, excludes errors/failures
+
+#### Files Modified:
+- ✅ `frontend/src/components/dashboard/recent-activity.jsx` - Main component
+- ✅ `frontend/src/lib/firebase/auditService.js` - Firestore query and formatting logic
+- ✅ `firestore.rules` - Added security rule for `audit_logs` collection
+
+#### Activity Types Supported:
+1. **Authentication**: "Signed in", "Signed out", "Joined GroundCTRL"
+2. **Missions**: "Started a mission", "Continued training session"
+3. **Profile**: "Updated profile settings", "Updated account"
+4. **Satellites**: "Added a new satellite", "Updated satellite configuration"
+5. **Commands**: "Executed a command", "Executed satellite command"
+6. **AI**: "Used AI assistant", "Asked NOVA for help"
+7. **Generic**: "Completed an activity" (fallback)
+
+#### Firestore Security Rule:
+```javascript
+match /audit_logs/{logId} {
+  allow read: if isAuthenticated() && 
+                 (resource.data.userId == request.auth.uid || isAdmin());
+  allow write: if isAdmin();
+}
+```
+
+#### Known Limitations:
+- Backend must create audit logs with proper format (`result: 'success'`, `severity: 'INFO'`)
+- No full activity history page (only recent 7 shown)
+- Mission-specific details not displayed (shows generic "Started a mission")
+- Depends on backend audit logging being enabled for all relevant actions
+
+#### Future Enhancements:
+- Create `/activity` page for full history
+- Add pagination for viewing older activities
+- Display mission names when available in audit log metadata
+- Add filtering by activity type
+- Add achievement/badge activities when feature is built
+
+## 6. ✅ ADMIN SCENARIO MANAGEMENT - COMPLETED
+
+### Implementation Summary
+**Date Completed:** February 2, 2026
+
+#### Files Created/Modified:
+- ✅ `frontend/src/pages/admin/AdminScenarios.jsx` - Full scenario list with CRUD
+- ✅ `frontend/src/pages/admin/ScenarioCreator.jsx` - Multi-mode editor (create/edit/view)
+- ✅ `frontend/src/components/admin/AdminRoute.jsx` - Admin access guard
+- ✅ `frontend/src/App.jsx` - Added admin routes
+- ✅ `firestore.rules` - Added ground_stations read permission
+- ✅ `frontend/src/lib/api/scenarioService.js` - API service with temporary Firestore workaround
+
+#### Features Implemented:
+1. **Scenario List (AdminScenarios.jsx)**
+   - Search by title/code with debounced input
+   - Filter by status (all/draft/published/archived)
+   - Filter by difficulty levels
+   - Grid/list view toggle
+   - Edit, View, Delete actions
+   - Publish/Unpublish toggle
+
+2. **Scenario Editor (ScenarioCreator.jsx)**
+   - Three modes: Create, Edit (`?edit=id`), View (`?view=id`)
+   - Multi-step wizard: Basic Info → Satellite Config → Steps → Publishing
+   - Dynamic step management
+   - Ground station selection
+   - Form validation with error handling
+
+3. **Admin Security**
+   - AdminRoute component checks user.isAdmin
+   - Redirects unauthorized users
+   - Protected routes in App.jsx
+
+#### Known Issues & Workarounds:
+- ⚠️ **Ground Stations Workaround**: Currently using direct Firestore access
+  - Location: `scenarioService.getGroundStations()`
+  - Reason: No backend API endpoint exists for ground stations
+  - Security: Added Firestore rule `allow read: if isAuthenticated()`
+  - **TODO**: Create backend endpoint `/api/v1/ground-stations` for proper architecture
+
+#### Architectural Patterns Used:
+- URL query parameters for component modes (`?edit=id`, `?view=id`)
+- React Router's `useSearchParams` hook for param extraction
+- useEffect hooks for loading data on mode change
+- Service layer pattern with scenarioService.js
+- Component-level state management for forms
+
+
 
 ---
 

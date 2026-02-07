@@ -24,14 +24,30 @@ const logger = require('./utils/logger');
 // Initialize Express app
 const app = express();
 
+// Track application readiness
+app.locals.appReady = false;
+app.locals.firebaseInitialized = false;
+
 // Initialize Firebase with graceful error handling
 // Don't exit process on failure - let server start for Cloud Run health checks
 let firebaseInitialized = false;
+
+// Add startup logging for Cloud Run debugging
+console.log('🚀 Starting GroundCTRL Backend Server...');
+console.log(`Node Version: ${process.version}`);
+console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`PORT: ${process.env.PORT || '8080'}`);
+
 try {
+  console.log('📡 Initializing Firebase Admin SDK...');
   initializeFirebase();
   firebaseInitialized = true;
+  app.locals.firebaseInitialized = true;
+  console.log('✅ Firebase initialized successfully');
   logger.info('Firebase initialized successfully');
 } catch (error) {
+  console.error('❌ Firebase initialization failed:', error.message);
+  app.locals.firebaseInitialized = false;
   logger.error('Failed to initialize Firebase - server will start in degraded mode', { 
     error: error.message,
     stack: error.stack 
@@ -44,24 +60,29 @@ try {
 }
 
 // Security headers middleware (helmet)
-if (process.env.NODE_ENV !== 'test') {
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ['\'self\''],
-        styleSrc: ['\'self\'', '\'unsafe-inline\''], // Allow inline styles for now
-        scriptSrc: ['\'self\''],
-        imgSrc: ['\'self\'', 'data:', 'https:'],
-      },
+// Enable for all environments including tests so security header tests work
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ['\'self\''],
+      styleSrc: ['\'self\'', '\'unsafe-inline\''], // Allow inline styles for now
+      scriptSrc: ['\'self\''],
+      imgSrc: ['\'self\'', 'data:', 'https:'],
+      reportUri: '/csp-report', // CSP violation reporting endpoint
     },
-  }));
-}
+  },
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  }
+}));
 
 // CORS configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
   : [
-    'http://localhost:3001', 
+    'http://localhost:3001',
     'http://localhost:5173',
     'http://localhost:5174',  // Allow alternate port
     'http://localhost:5175',  // Allow alternate port
@@ -74,16 +95,49 @@ logger.info('CORS Configuration', {
   allowedOriginsArray: allowedOrigins
 });
 
+// 1. Handle CORS preflight globally (before auth)
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    cors({
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        // In development and test, allow any localhost origin
+        if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && origin.startsWith('http://localhost:')) {
+          return callback(null, true);
+        }
+
+        if (allowedOrigins.indexOf(origin) !== -1) {
+          callback(null, true);
+        } else {
+          logger.warn('CORS blocked origin', { origin, allowedOrigins });
+          // Return false to block without throwing error (prevents 500)
+          callback(null, false);
+        }
+      },
+      credentials: true, // Allow credentials for preflight requests from allowed origins
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      optionsSuccessStatus: 204,
+      maxAge: 3600
+    })(req, res, next);
+  } else {
+    next();
+  }
+});
+
+// 2. Apply CORS to all routes
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
-    // In development, allow any localhost origin
-    if (process.env.NODE_ENV === 'development' && origin.startsWith('http://localhost:')) {
+
+    // In development and test, allow any localhost origin
+    if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && origin.startsWith('http://localhost:')) {
       return callback(null, true);
     }
-    
+
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -92,17 +146,28 @@ app.use(cors({
       callback(null, false);
     }
   },
-  credentials: true, // Allow cookies/credentials with allowed origins
+  credentials: (req, callback) => {
+    const origin = req.headers.origin;
+    if (!origin) return callback(null, true);
+    if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && origin.startsWith('http://localhost:')) {
+      return callback(null, true);
+    }
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  }, // Allow cookies/credentials with allowed origins
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 204, // Return 204 for successful OPTIONS requests
-  maxAge: 86400 // 24 hours
+  maxAge: 3600 // 24 hours
 }));
 
 // Expose Firebase status for health checks
 app.locals.firebaseInitialized = firebaseInitialized;
 
-// Body parsing middleware
+// Body parsing middleware with size limits
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -125,10 +190,7 @@ app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customfavIcon: '/favicon.ico'
 }));
 
-// API Routes (versioned)
-app.use('/api/v1', routes);
-
-// Health endpoint at root level for tests and quick checks
+// Health endpoint at root level for tests and quick checks (before auth)
 app.get('/health', (req, res) => {
   res.json({
     status: 'GO',
@@ -137,7 +199,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Root endpoint
+// Root endpoint (before auth)
 app.get('/', (req, res) => {
   res.json({
     service: 'GroundCTRL API',
@@ -148,6 +210,9 @@ app.get('/', (req, res) => {
   });
 });
 
+// API Routes (versioned) - auth is handled within routes
+app.use('/api/v1', routes);
+
 // 404 handler (must be after all routes)
 app.use(notFoundHandler);
 
@@ -156,5 +221,9 @@ app.use(authErrorNormalizer);
 
 // Global error handler (must be last)
 app.use(errorHandler);
+
+// Mark app as ready after all middleware and routes are configured
+console.log('✅ Express app configuration complete');
+app.locals.appReady = true;
 
 module.exports = app;

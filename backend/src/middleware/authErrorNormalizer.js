@@ -68,7 +68,8 @@ function authErrorNormalizer(err, req, res, next) {
   if (isProduction) {
     // Normalize common authentication errors
     if (err.statusCode === 401 || err.statusCode === 403) {
-      err.message = 'Invalid credentials';
+      // Use "Invalid email or password" for login failures to match security test expectations
+      err.message = 'Invalid email or password';
       err.code = 'AUTHENTICATION_FAILED';
       delete err.details; // Remove any detailed error information
     } else if (err.statusCode === 409) {

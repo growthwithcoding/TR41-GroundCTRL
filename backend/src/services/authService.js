@@ -50,6 +50,18 @@ async function verifyPassword(email, password) {
     });
     return response.data.localId; // Returns Firebase UID
   } catch (error) {
+    // Handle API key configuration error separately
+    if (error.response?.data?.error?.message === 'API key not valid. Please pass a valid API key.') {
+      logger.error('CRITICAL: Firebase API key is invalid or misconfigured', { 
+        error: error.message,
+        apiKeyConfigured: !!process.env.FIREBASE_WEB_API_KEY 
+      });
+      // Return 503 Service Unavailable for configuration issues
+      const serviceError = new Error('Authentication service temporarily unavailable');
+      serviceError.statusCode = 503;
+      throw serviceError;
+    }
+    
     if (error.response?.data?.error?.message === 'INVALID_PASSWORD' || 
         error.response?.data?.error?.message === 'EMAIL_NOT_FOUND' ||
         error.response?.data?.error?.message === 'INVALID_LOGIN_CREDENTIALS') {

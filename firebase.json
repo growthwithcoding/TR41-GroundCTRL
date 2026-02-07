@@ -15,6 +15,21 @@
         "source": "**",
         "destination": "/index.html"
       }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Content-Security-Policy",
+            "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com https://*.firebase.com wss://*.firebaseapp.com wss://*.firebase.com https://*.socket.io wss://*.socket.io; frame-ancestors 'self';"
+          },
+          { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+          { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(), camera=(), payment=()" }
+        ]
+      }
     ]
   },
   "emulators": {
@@ -39,8 +54,5 @@
       "port": 5000
     },
     "singleProjectMode": false
-  },
-  "remoteConfig": {
-    "template": "remoteconfig.template.json"
   }
 }

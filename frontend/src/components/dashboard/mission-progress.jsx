@@ -17,6 +17,7 @@ import { fetchUserProgress, getCompletedScenarioCodes, getInProgressSession } fr
 export function MissionProgress() {
   const { user } = useAuth()
   const [missions, setMissions] = useState([])
+  const [progressByTier, setProgressByTier] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 

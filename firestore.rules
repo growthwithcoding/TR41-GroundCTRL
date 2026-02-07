@@ -49,6 +49,12 @@ service cloud.firestore {
                               (resource.data.userId == request.auth.uid || isAdmin());
     }
 
+    // Ground Stations collection - authenticated users can read, only admins can write
+    match /ground_stations/{stationId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
     // Scenario Sessions collection - users can read/write their own sessions
     match /scenario_sessions/{sessionId} {
       allow read: if isAuthenticated() && 
@@ -61,9 +67,11 @@ service cloud.firestore {
                        (resource.data.user_id == request.auth.uid || isAdmin());
     }
 
-    // Audit logs - only admins can read/write
-    match /auditLogs/{logId} {
-      allow read, write: if isAdmin();
+    // Audit logs - users can read their own logs, admins can read all
+    match /audit_logs/{logId} {
+      allow read: if isAuthenticated() && 
+                     (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
     }
 
     // Token blacklist - only system/admin can access

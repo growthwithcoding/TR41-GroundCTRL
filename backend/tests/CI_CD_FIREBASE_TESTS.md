@@ -6,12 +6,12 @@ This document explains the Firebase-dependent tests and how they behave in local
 ## Test Status Summary
 
 **Local Environment (with mocks):**
-- ✅ 150 tests passing
+- ✅ 495 tests passing across 68 test suites
 - ⏭️ 1 test skipped (npm audit - intentionally skipped)
-- 🔄 4 tests skip gracefully (Firebase repository tests)
+- 🔄 Firebase repository tests skip gracefully when not initialized
 
 **CI/CD Environment (with real Firebase credentials):**
-- These 4 tests should PASS when Firebase credentials are available:
+- Firebase-dependent tests should PASS when Firebase credentials are available:
   1. `identity-enforcement.test.js`: "uses uid for all auth/user CRUD operations"
   2. `identity-enforcement.test.js`: "prevents cross-user access by uid scoping"
   3. `security-rules.test.js`: "enforces uid-scoped access at repository level"
@@ -82,7 +82,8 @@ npm test -- tests/integration/firebase/security-rules.test.js
 **Full suite:**
 ```bash
 npm test
-# Expected: 150 passed, 1 skipped (npm audit), 4 skipped (Firebase)
+# Expected: ~495 passed across 68 test suites, 1 skipped (npm audit)
+# Firebase-dependent tests skip gracefully when not initialized
 ```
 
 ## CI/CD Workflow Example
@@ -106,7 +107,7 @@ jobs:
           node-version: '18'
       - run: npm ci
       - run: npm test
-      # With Firebase secrets, all 4 tests should PASS
+      # With Firebase secrets, Firebase-dependent tests should PASS
 ```
 
 ## Troubleshooting

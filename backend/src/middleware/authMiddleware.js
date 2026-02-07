@@ -14,6 +14,11 @@ const logger = require('../utils/logger');
  */
 async function authMiddleware(req, res, next) {
   try {
+    // Skip authentication for CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
+
     // Extract token from Authorization header
     const authHeader = req.headers.authorization;
     
@@ -99,6 +104,11 @@ function requireAdmin(req, res, next) {
  */
 async function optionalAuth(req, res, next) {
   try {
+    // Skip authentication for CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
+
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

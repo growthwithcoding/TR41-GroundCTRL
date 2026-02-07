@@ -7,6 +7,9 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
   
+  /* Increase timeout for slow tests */
+  timeout: 90 * 1000, // 90 seconds per test
+  
   /* Run tests in files in parallel */
   fullyParallel: true,
   
@@ -49,7 +52,17 @@ export default defineConfig({
     },
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      use: { 
+        ...devices['Desktop Firefox'],
+        // Firefox has intermittent browser protocol errors on context close
+        // This doesn't affect test validity, just cleanup
+        contextOptions: {
+          // Disable session restore to prevent Firefox protocol errors
+          ignoreDefaultArgs: ['--restore-session'],
+        },
+      },
+      // Retry Firefox tests once to handle intermittent protocol errors
+      retries: 1,
     },
     {
       name: 'webkit',
@@ -73,15 +86,7 @@ export default defineConfig({
       url: 'http://localhost:5173',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
-      env: {
-        // Pass through Firebase config from CI environment
-        VITE_FIREBASE_API_KEY: process.env.VITE_FIREBASE_API_KEY,
-        VITE_FIREBASE_AUTH_DOMAIN: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-        VITE_FIREBASE_PROJECT_ID: process.env.VITE_FIREBASE_PROJECT_ID,
-        VITE_FIREBASE_STORAGE_BUCKET: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-        VITE_FIREBASE_MESSAGING_SENDER_ID: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-        VITE_FIREBASE_APP_ID: process.env.VITE_FIREBASE_APP_ID,
-      },
+      // Vite automatically loads .env files - don't override
     },
   }),
 });

@@ -18,6 +18,10 @@ jobs:
   build_and_preview:
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit, 'Mobile Chrome', 'Mobile Safari']
     steps:
       - uses: actions/checkout@v4
       
@@ -86,23 +90,10 @@ jobs:
         run: npx playwright install --with-deps
         continue-on-error: true
       
-      - name: Run E2E tests against deployed preview
+      - name: Run E2E tests for ${{ matrix.browser }} against deployed preview
         if: steps.check_secret.outputs.secret_configured == 'true' && steps.extract_url.outputs.deployment_status == 'success'
         working-directory: ./frontend
-        run: |
-          for attempt in {1..3}; do
-            echo "E2E Test Attempt $attempt against ${{ steps.extract_url.outputs.preview_url }}"
-            npm run test:e2e
-            exit_code=$?
-            if [ $exit_code -eq 0 ]; then
-              break
-            fi
-            if [ $attempt -lt 3 ]; then
-              echo "Test attempt $attempt failed, retrying..."
-              sleep 10
-            fi
-          done
-          exit $exit_code
+        run: npx playwright test --project="${{ matrix.browser }}"
         continue-on-error: true
         env:
           CI: true
@@ -115,36 +106,33 @@ jobs:
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID || '123456789' }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID || 'test-app-id' }}
       
-      - name: Upload E2E test results
+      - name: Upload E2E test results for ${{ matrix.browser }}
         if: always() && steps.check_secret.outputs.secret_configured == 'true'
         uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
-          name: e2e-test-results-pr-${{ github.event.pull_request.number }}
+          name: e2e-test-results-${{ matrix.browser }}-pr-${{ github.event.pull_request.number }}
           path: frontend/test-results/
           retention-days: 7
       
-      - name: Comment on PR - Deployment Success
-        if: steps.check_secret.outputs.secret_configured == 'true' && steps.extract_url.outputs.deployment_status == 'success'
+      - name: Comment on PR - E2E Test Results (${{ matrix.browser }})
+        if: always() && steps.check_secret.outputs.secret_configured == 'true' && steps.extract_url.outputs.deployment_status == 'success'
         continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |
             const url = '${{ steps.extract_url.outputs.preview_url }}';
-            const body = `✅ **Firebase Hosting Preview Deployed Successfully!**
+            const browser = '${{ matrix.browser }}';
+            const status = '${{ job.status }}';
+            const emoji = status === 'success' ? '✅' : '❌';
+            const body = `${emoji} **E2E Tests on ${browser}**
 
             🔗 **Preview URL:** ${url}
-
-            📊 **Deployment Details:**
-            - **Build Status:** ✅ Success
-            - **Deploy Status:** ✅ Success
-            - **Channel:** \`pr-${{ github.event.pull_request.number }}-fix\`
-            - **Commit:** \`${context.sha.substring(0, 7)}\`
+            🌐 **Browser:** ${browser}
+            📊 **Status:** ${status === 'success' ? 'Passed' : 'Failed'}
 
             🔍 **Workflow:** [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-            ---
-            *This preview will expire in 7 days*`;
+            📦 **Commit:** \`${context.sha.substring(0, 7)}\``;
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,

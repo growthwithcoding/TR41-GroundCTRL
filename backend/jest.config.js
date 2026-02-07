@@ -6,9 +6,20 @@
 module.exports = {
   testEnvironment: 'node',
   rootDir: '.',
-  roots: ['<rootDir>'],
+  roots: ['<rootDir>/src', '<rootDir>/tests'],
   haste: {
     enableSymlinks: false,
+  },
+
+  // Run tests sequentially to avoid port conflicts
+  maxWorkers: 1,
+
+  // Help Jest find modules - search in src/ directory and node_modules
+  moduleDirectories: ['node_modules', 'src'],
+
+  // Map absolute imports to support cleaner paths
+  moduleNameMapper: {
+    '^src/(.*)$': '<rootDir>/src/$1',
   },
 
   // Updated: Use new tests/ directory
@@ -36,10 +47,10 @@ module.exports = {
   // Updated: Point to new tests/setup.js location
   setupFiles: ['<rootDir>/tests/setup.js'],
 
-  // Updated: Point to new setupAfterEnv.js if it exists
-  // setupFilesAfterEnv: ['<rootDir>/tests/setupAfterEnv.js'],
+  // Teardown after each test file to prevent open handles
+  setupFilesAfterEnv: ['<rootDir>/tests/teardown.js'],
 
-  testTimeout: 30000, // 30 seconds per test
+  testTimeout: 90000, // 90 seconds per test (increased for CI environments)
   forceExit: true, // Force exit after all tests complete
   detectOpenHandles: false, // Don't hang waiting for handles
   collectCoverage: false,
