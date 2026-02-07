@@ -4,6 +4,7 @@
  */
 
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit');
 const { v4: uuidv4 } = require('uuid');
 const rateLimitConfig = require('../config/rateLimits');
 const responseFactory = require('../factories/responseFactory');
@@ -48,7 +49,7 @@ const loginLimiter = rateLimit({
   ...rateLimitConfig.loginLimit,
   keyGenerator: (req) => {
     // Create composite key using IP address and email
-    const ip = req.ip || 'unknown-ip';
+    const ip = ipKeyGenerator(req) || 'unknown-ip';
     const email = req.body?.email || 'no-email';
     return `${ip}_${email}`;
   },

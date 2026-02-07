@@ -69,7 +69,7 @@ test.describe('UI-006: Tailwind CSS Styling', () => {
     // Test mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load', { timeout: 10000 });
     
     const header = page.locator('header');
     await expect(header).toBeVisible();
@@ -77,7 +77,7 @@ test.describe('UI-006: Tailwind CSS Styling', () => {
     // Test desktop viewport
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.reload();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load', { timeout: 10000 });
     
     const desktopHeader = page.locator('header');
     await expect(desktopHeader).toBeVisible();
