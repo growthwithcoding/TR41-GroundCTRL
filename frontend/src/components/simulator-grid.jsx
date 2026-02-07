@@ -23,43 +23,49 @@ export function SimulatorGrid({ authView, onAuthViewChange, authError }) {
   const [userSessions, setUserSessions] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [missionsLoaded, setMissionsLoaded] = useState(false)
 
-  // Fetch scenarios and user progress when user logs in
-  useEffect(() => {
-    async function loadData() {
-      if (!user) {
-        setScenarios([])
-        setUserSessions([])
-        return
-      }
+  // Load mission data only when needed (lazy loading)
+  const loadMissionData = async () => {
+    if (missionsLoaded || !user) return
 
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Fetch scenarios first (this should work)
+      const scenariosData = await fetchPublishedScenarios()
+      setScenarios(scenariosData)
+
+      // Try to fetch user progress, but don't fail if it errors
       try {
-        setLoading(true)
-        setError(null)
-
-        // Fetch scenarios first (this should work)
-        const scenariosData = await fetchPublishedScenarios()
-        setScenarios(scenariosData)
-
-        // Try to fetch user progress, but don't fail if it errors
-        try {
-          const sessionsData = await fetchUserProgress(user.uid)
-          setUserSessions(sessionsData)
-        } catch (progressErr) {
-          console.warn('Could not load user progress (this is okay):', progressErr)
-          // Continue without user progress - just show all missions
-          setUserSessions([])
-        }
-      } catch (err) {
-        console.error('Error loading missions:', err)
-        setError(err.message)
-      } finally {
-        setLoading(false)
+        const sessionsData = await fetchUserProgress(user.uid)
+        setUserSessions(sessionsData)
+      } catch (progressErr) {
+        console.warn('Could not load user progress (this is okay):', progressErr)
+        // Continue without user progress - just show all missions
+        setUserSessions([])
       }
+      
+      setMissionsLoaded(true)
+    } catch (err) {
+      console.error('Error loading missions:', err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
+  }
 
-    loadData()
-  }, [user])
+  // Load mission data when user logs in or when component mounts and user exists
+  useEffect(() => {
+    if (user && !missionsLoaded) {
+      // Delay loading mission data to prioritize initial render
+      const timer = setTimeout(() => {
+        loadMissionData()
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [user, missionsLoaded])
 
   // Calculate mission suggestions based on user progress
   const getMissionSuggestions = () => {
@@ -201,6 +207,19 @@ export function SimulatorGrid({ authView, onAuthViewChange, authError }) {
                   Suggested Missions
                 </h3>
 
+                {/* Load Missions Button */}
+                {!missionsLoaded && !loading && (
+                  <Button 
+                    onClick={loadMissionData} 
+                    variant="outline" 
+                    className="w-full" 
+                    size="sm"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Load Missions
+                  </Button>
+                )}
+
                 {/* Loading State */}
                 {loading && (
                   <div className="flex items-center justify-center py-8">
@@ -228,7 +247,7 @@ export function SimulatorGrid({ authView, onAuthViewChange, authError }) {
                 )}
 
                 {/* Empty State - No Missions Available */}
-                {!loading && !error && scenarios.length === 0 && (
+                {!loading && !error && missionsLoaded && scenarios.length === 0 && (
                   <div className="bg-card border border-border rounded-lg p-6 text-center">
                     <Satellite className="w-12 h-12 text-muted-foreground mx-auto mb-3 animate-pulse" />
                     <h4 className="text-sm font-semibold text-foreground mb-2">
