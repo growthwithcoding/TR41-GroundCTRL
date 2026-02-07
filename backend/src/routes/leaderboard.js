@@ -95,9 +95,25 @@ router.get(
     } catch (error) {
       logger.error('Error fetching global leaderboard', {
         error: error.message,
-        userId: req.user?.uid
+        stack: error.stack,
+        userId: req.user?.uid,
+        period,
+        limit: limitNum
       });
-      next(error);
+      
+      // Return graceful error response instead of cascading
+      const response = responseFactory.createErrorResponse(
+        {
+          statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+          code: 'LEADERBOARD_ERROR',
+          message: 'Unable to fetch leaderboard data. Please try again later.'
+        },
+        {
+          callSign: req.callSign || 'SYSTEM',
+          requestId: req.id
+        }
+      );
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json(response);
     }
   }
 );
@@ -147,9 +163,24 @@ router.get(
     } catch (error) {
       logger.error('Error fetching scenario leaderboard', {
         error: error.message,
-        scenarioId: req.params.scenarioId
+        stack: error.stack,
+        scenarioId: req.params.scenarioId,
+        limit: limitNum
       });
-      next(error);
+      
+      // Return graceful error response
+      const response = responseFactory.createErrorResponse(
+        {
+          statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+          code: 'LEADERBOARD_ERROR',
+          message: 'Unable to fetch scenario leaderboard. Please try again later.'
+        },
+        {
+          callSign: req.callSign || 'SYSTEM',
+          requestId: req.id
+        }
+      );
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json(response);
     }
   }
 );
@@ -197,9 +228,23 @@ router.get(
     } catch (error) {
       logger.error('Error fetching user rank', {
         error: error.message,
+        stack: error.stack,
         userId: req.user?.uid
       });
-      next(error);
+      
+      // Return graceful error response
+      const response = responseFactory.createErrorResponse(
+        {
+          statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+          code: 'LEADERBOARD_ERROR',
+          message: 'Unable to fetch user rank. Please try again later.'
+        },
+        {
+          callSign: req.callSign || 'SYSTEM',
+          requestId: req.id
+        }
+      );
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json(response);
     }
   }
 );
@@ -250,9 +295,23 @@ router.post(
     } catch (error) {
       logger.error('Error clearing leaderboard cache', {
         error: error.message,
+        stack: error.stack,
         userId: req.user?.uid
       });
-      next(error);
+      
+      // Return graceful error response
+      const response = responseFactory.createErrorResponse(
+        {
+          statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+          code: 'CACHE_CLEAR_ERROR',
+          message: 'Unable to clear cache. Please try again later.'
+        },
+        {
+          callSign: req.callSign || 'SYSTEM',
+          requestId: req.id
+        }
+      );
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json(response);
     }
   }
 );

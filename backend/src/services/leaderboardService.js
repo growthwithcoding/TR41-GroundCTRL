@@ -58,8 +58,21 @@ async function getGlobalLeaderboard(options = {}) {
     return result;
     
   } catch (error) {
-    logger.error('Error getting global leaderboard', { error: error.message });
-    throw error;
+    logger.error('Error getting global leaderboard', { 
+      error: error.message,
+      stack: error.stack,
+      limit,
+      period 
+    });
+    // Return empty result instead of throwing
+    return {
+      operators: [],
+      topThree: [],
+      period,
+      lastUpdated: new Date().toISOString(),
+      totalOperators: 0,
+      error: 'Failed to fetch leaderboard'
+    };
   }
 }
 
@@ -90,8 +103,23 @@ async function getLeaderboardWithUserRank(userId, options = {}) {
     };
     
   } catch (error) {
-    logger.error('Error getting leaderboard with user rank', { error: error.message, userId });
-    throw error;
+    logger.error('Error getting leaderboard with user rank', { 
+      error: error.message,
+      stack: error.stack,
+      userId,
+      period: options.period 
+    });
+    // Return empty result instead of throwing
+    return {
+      operators: [],
+      topThree: [],
+      period: options.period || 'all-time',
+      lastUpdated: new Date().toISOString(),
+      totalOperators: 0,
+      userRank: null,
+      nearbyOperators: [],
+      error: 'Failed to fetch leaderboard'
+    };
   }
 }
 
@@ -133,8 +161,21 @@ async function getScenarioLeaderboard(scenarioId, options = {}) {
     return result;
     
   } catch (error) {
-    logger.error('Error getting scenario leaderboard', { error: error.message, scenarioId });
-    throw error;
+    logger.error('Error getting scenario leaderboard', { 
+      error: error.message,
+      stack: error.stack,
+      scenarioId,
+      limit 
+    });
+    // Return empty result instead of throwing
+    return {
+      scenarioId,
+      operators: [],
+      topThree: [],
+      lastUpdated: new Date().toISOString(),
+      totalOperators: 0,
+      error: 'Failed to fetch scenario leaderboard'
+    };
   }
 }
 
@@ -161,8 +202,19 @@ async function getUserRankSummary(userId) {
     };
     
   } catch (error) {
-    logger.error('Error getting user rank summary', { error: error.message, userId });
-    throw error;
+    logger.error('Error getting user rank summary', { 
+      error: error.message,
+      stack: error.stack,
+      userId 
+    });
+    // Return null for all periods instead of throwing
+    return {
+      allTime: null,
+      month: null,
+      week: null,
+      today: null,
+      error: 'Failed to fetch user rank summary'
+    };
   }
 }
 

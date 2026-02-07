@@ -9,6 +9,23 @@ const { db } = require('../config/firebase');
 const logger = require('../utils/logger');
 
 /**
+ * Validate Firebase emulator configuration in test/CI environments
+ */
+function validateEmulatorConfig() {
+  if (process.env.NODE_ENV === 'test' || process.env.CI) {
+    if (!process.env.FIRESTORE_EMULATOR_HOST) {
+      logger.warn('FIRESTORE_EMULATOR_HOST not set in test/CI environment');
+    }
+    if (!process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+      logger.warn('FIREBASE_AUTH_EMULATOR_HOST not set in test/CI environment');
+    }
+  }
+}
+
+// Validate on module load
+validateEmulatorConfig();
+
+/**
  * Get top operators by average performance score
  * 
  * @param {Object} options - Query options
@@ -81,8 +98,14 @@ async function getTopOperators(options = {}) {
     return operators;
     
   } catch (error) {
-    logger.error('Error fetching top operators', { error: error.message });
-    throw error;
+    logger.error('Error fetching top operators', { 
+      error: error.message,
+      stack: error.stack,
+      limit,
+      period
+    });
+    // Return empty array instead of throwing to prevent cascade failures
+    return [];
   }
 }
 
@@ -120,8 +143,14 @@ async function getUserRank(userId, period = 'all-time') {
     };
     
   } catch (error) {
-    logger.error('Error fetching user rank', { error: error.message, userId });
-    throw error;
+    logger.error('Error fetching user rank', { 
+      error: error.message,
+      stack: error.stack,
+      userId,
+      period
+    });
+    // Return null instead of throwing
+    return null;
   }
 }
 
@@ -179,8 +208,14 @@ async function getScenarioLeaderboard(scenarioId, options = {}) {
     return operators;
     
   } catch (error) {
-    logger.error('Error fetching scenario leaderboard', { error: error.message, scenarioId });
-    throw error;
+    logger.error('Error fetching scenario leaderboard', { 
+      error: error.message,
+      stack: error.stack,
+      scenarioId,
+      limit
+    });
+    // Return empty array instead of throwing
+    return [];
   }
 }
 
@@ -211,8 +246,15 @@ async function getNearbyOperators(userId, range = 5, period = 'all-time') {
     return allOperators.slice(startIndex, endIndex);
     
   } catch (error) {
-    logger.error('Error fetching nearby operators', { error: error.message, userId });
-    throw error;
+    logger.error('Error fetching nearby operators', { 
+      error: error.message,
+      stack: error.stack,
+      userId,
+      range,
+      period
+    });
+    // Return empty array instead of throwing
+    return [];
   }
 }
 
